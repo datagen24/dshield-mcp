@@ -58,9 +58,9 @@ logs/
 security_analysis_results.json
 chatgpt_context.txt
 *.json
+*.txt
 !requirements.txt
 !requirements-dev.txt
-*.txt
 
 # Test coverage
 htmlcov/
