@@ -58,6 +58,8 @@ logs/
 security_analysis_results.json
 chatgpt_context.txt
 *.json
+!requirements.txt
+!requirements-dev.txt
 *.txt
 
 # Test coverage
