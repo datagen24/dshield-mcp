@@ -24,6 +24,7 @@ from src.dshield_client import DShieldClient
 from src.data_processor import DataProcessor
 from src.context_injector import ContextInjector
 from src.models import SecurityEvent, ThreatIntelligence, AttackReport, DShieldStatistics
+from src.op_secrets import get_env_with_op_resolution
 
 # Load environment variables
 load_dotenv()

@@ -15,6 +15,7 @@ import structlog
 from dotenv import load_dotenv
 
 from .models import ThreatIntelligence
+from .op_secrets import get_env_with_op_resolution
 
 # Load environment variables
 load_dotenv()
@@ -26,18 +27,18 @@ class DShieldClient:
     """Client for interacting with DShield threat intelligence API."""
     
     def __init__(self):
-        self.api_key = os.getenv("DSHIELD_API_KEY")
-        self.base_url = os.getenv("DSHIELD_API_URL", "https://dshield.org/api")
+        self.api_key = get_env_with_op_resolution("DSHIELD_API_KEY")
+        self.base_url = get_env_with_op_resolution("DSHIELD_API_URL", "https://dshield.org/api")
         self.session: Optional[aiohttp.ClientSession] = None
         
         # Rate limiting
-        self.rate_limit_requests = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", "60"))
+        self.rate_limit_requests = int(get_env_with_op_resolution("RATE_LIMIT_REQUESTS_PER_MINUTE", "60"))
         self.rate_limit_window = 60  # seconds
         self.request_times: List[float] = []
         
         # Cache for IP reputation data
         self.cache: Dict[str, Dict[str, Any]] = {}
-        self.cache_ttl = int(os.getenv("CACHE_TTL_SECONDS", "300"))  # 5 minutes
+        self.cache_ttl = int(get_env_with_op_resolution("CACHE_TTL_SECONDS", "300"))  # 5 minutes
         
         # Headers for API requests
         self.headers = {
@@ -235,7 +236,7 @@ class DShieldClient:
         results = {}
         
         # Process IPs in batches to respect rate limits
-        batch_size = int(os.getenv("MAX_IP_ENRICHMENT_BATCH_SIZE", "100"))
+        batch_size = int(get_env_with_op_resolution("MAX_IP_ENRICHMENT_BATCH_SIZE", "100"))
         
         for i in range(0, len(ip_addresses), batch_size):
             batch = ip_addresses[i:i + batch_size]

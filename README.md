@@ -203,6 +203,77 @@ pip install -r requirements-dev.txt
 - `DSHIELD_API_KEY`: DShield API key for threat intelligence
 - `LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
 
+### 1Password Integration
+
+The DShield MCP supports 1Password CLI integration for secure secret management. You can use `op://` URLs in your environment variables to automatically resolve secrets from 1Password.
+
+#### Setup 1Password CLI
+
+1. **Install 1Password CLI**:
+   ```bash
+   # macOS (using Homebrew)
+   brew install 1password-cli
+   
+   # Linux
+   # Download from: https://1password.com/downloads/command-line/
+   
+   # Windows
+   # Download from: https://1password.com/downloads/command-line/
+   ```
+
+2. **Authenticate with 1Password**:
+   ```bash
+   op signin
+   ```
+
+#### Using op:// URLs
+
+Replace sensitive values in your `.env` file with 1Password URLs:
+
+```bash
+# Instead of plain text passwords/keys:
+ELASTICSEARCH_PASSWORD=your-password-here
+DSHIELD_API_KEY=your-api-key-here
+
+# Use 1Password URLs:
+ELASTICSEARCH_PASSWORD=op://vault/elasticsearch/password
+DSHIELD_API_KEY=op://vault/dshield/api-key
+```
+
+#### 1Password URL Format
+
+- **Format**: `op://vault-name/item-name/field-name`
+- **Examples**:
+  - `op://vault/elasticsearch/password` - Password from Elasticsearch item
+  - `op://vault/dshield/api-key` - API key from DShield item
+  - `op://vault/credentials/username` - Username from credentials item
+
+#### Testing 1Password Integration
+
+Test your 1Password setup:
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Test 1Password integration
+python test_op_integration.py
+```
+
+#### Security Benefits
+
+- **No plain text secrets** in configuration files
+- **Centralized secret management** in 1Password
+- **Automatic secret rotation** through 1Password
+- **Audit trail** for secret access
+- **Team collaboration** on secret management
+
+#### Fallback Behavior
+
+If 1Password CLI is not available or fails to resolve a URL:
+- The system will log a warning
+- The original `op://` URL will be used as-is
+- This prevents application crashes if 1Password is unavailable
+
 ### DShield Elasticsearch Indices
 
 The utility is specifically configured to work with DShield SIEM indices:

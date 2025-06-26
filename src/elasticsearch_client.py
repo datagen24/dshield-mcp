@@ -16,6 +16,7 @@ from elasticsearch.exceptions import ElasticsearchException, RequestError
 from dotenv import load_dotenv
 
 from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
+from .op_secrets import get_env_with_op_resolution
 
 # Load environment variables
 load_dotenv()
@@ -28,13 +29,13 @@ class ElasticsearchClient:
     
     def __init__(self):
         self.client: Optional[AsyncElasticsearch] = None
-        self.url = os.getenv("ELASTICSEARCH_URL", "http://localhost:9200")
-        self.username = os.getenv("ELASTICSEARCH_USERNAME", "elastic")
-        self.password = os.getenv("ELASTICSEARCH_PASSWORD", "")
-        self.verify_ssl = os.getenv("ELASTICSEARCH_VERIFY_SSL", "true").lower() == "true"
-        self.ca_certs = os.getenv("ELASTICSEARCH_CA_CERTS")
-        self.timeout = int(os.getenv("QUERY_TIMEOUT_SECONDS", "30"))
-        self.max_results = int(os.getenv("MAX_QUERY_RESULTS", "1000"))
+        self.url = get_env_with_op_resolution("ELASTICSEARCH_URL", "http://localhost:9200")
+        self.username = get_env_with_op_resolution("ELASTICSEARCH_USERNAME", "elastic")
+        self.password = get_env_with_op_resolution("ELASTICSEARCH_PASSWORD", "")
+        self.verify_ssl = get_env_with_op_resolution("ELASTICSEARCH_VERIFY_SSL", "true").lower() == "true"
+        self.ca_certs = get_env_with_op_resolution("ELASTICSEARCH_CA_CERTS")
+        self.timeout = int(get_env_with_op_resolution("QUERY_TIMEOUT_SECONDS", "30"))
+        self.max_results = int(get_env_with_op_resolution("MAX_QUERY_RESULTS", "1000"))
         
         # DShield SIEM specific indices
         self.dshield_indices = [
