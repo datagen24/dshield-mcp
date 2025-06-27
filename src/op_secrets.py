@@ -9,6 +9,7 @@ import subprocess
 import re
 from typing import Optional, Dict, Any
 import structlog
+from unittest.mock import MagicMock, AsyncMock
 
 logger = structlog.get_logger(__name__)
 

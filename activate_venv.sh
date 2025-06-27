@@ -28,6 +28,7 @@ echo "📋 Available commands:"
 echo "  python mcp_server.py          - Run the MCP server"
 echo "  python examples/basic_usage.py - Run the example"
 echo "  python test_installation.py   - Test the installation"
+echo "  python test_op_integration.py - Test 1Password integration"
 echo "  python config.py              - Configure settings"
 echo "  deactivate                    - Deactivate virtual environment"
 echo
@@ -35,7 +36,7 @@ echo
 # Check if .env file exists
 if [ ! -f ".env" ]; then
     echo "⚠️  Warning: .env file not found!"
-    echo "Please copy .env.example to .env and configure your settings."
+    echo "Please copy env.example to .env and configure your settings."
 fi
 
 echo "🚀 Ready to use DShield MCP!"

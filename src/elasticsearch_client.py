@@ -12,7 +12,7 @@ from urllib.parse import urlparse
 
 import structlog
 from elasticsearch import AsyncElasticsearch
-from elasticsearch.exceptions import ElasticsearchException, RequestError
+from elasticsearch.exceptions import RequestError, TransportError
 from dotenv import load_dotenv
 
 from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
