@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 import structlog
 from dotenv import load_dotenv
-from mcp import Server
+from mcp.server import Server
 from mcp.server import NotificationOptions
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server

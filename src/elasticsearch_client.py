@@ -112,9 +112,10 @@ class ElasticsearchClient:
             self.client = AsyncElasticsearch(
                 hosts=hosts,
                 http_auth=(self.username, self.password) if self.password else None,
-                timeout=self.timeout,
+                request_timeout=self.timeout,
                 max_retries=3,
                 retry_on_timeout=True,
+                compatibility_mode=True,
                 **ssl_options
             )
             

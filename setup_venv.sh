@@ -45,6 +45,10 @@ pip install --upgrade pip
 echo "📥 Installing dependencies..."
 pip install -r requirements.txt
 
+# Install elasticsearch Python client with version from env or default
+ELASTICSEARCH_PY_VERSION=${ELASTICSEARCH_PY_VERSION:-8.18.1}
+pip install "elasticsearch==${ELASTICSEARCH_PY_VERSION}"
+
 # Create .env file if it doesn't exist
 if [ ! -f .env ]; then
     echo "📝 Creating .env file from template..."

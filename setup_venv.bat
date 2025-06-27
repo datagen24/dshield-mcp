@@ -41,6 +41,10 @@ REM Install dependencies
 echo 📥 Installing dependencies...
 pip install -r requirements.txt
 
+REM Install elasticsearch Python client with version from env or default
+IF NOT DEFINED ELASTICSEARCH_PY_VERSION SET ELASTICSEARCH_PY_VERSION=8.18.1
+pip install elasticsearch==%ELASTICSEARCH_PY_VERSION%
+
 REM Create .env file if it doesn't exist
 if not exist .env (
     echo 📝 Creating .env file from template...
