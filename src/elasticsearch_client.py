@@ -115,7 +115,6 @@ class ElasticsearchClient:
                 request_timeout=self.timeout,
                 max_retries=3,
                 retry_on_timeout=True,
-                compatibility_mode=True,
                 **ssl_options
             )
             
