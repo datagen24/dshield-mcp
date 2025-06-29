@@ -191,9 +191,17 @@ class ContextInjector:
         destination_ips = set()
         for event in events:
             if event.get('source_ip'):
-                source_ips.add(event['source_ip'])
+                source_ip = event['source_ip']
+                if isinstance(source_ip, (list, dict)):
+                    source_ips.add(str(source_ip))
+                else:
+                    source_ips.add(str(source_ip))
             if event.get('destination_ip'):
-                destination_ips.add(event['destination_ip'])
+                destination_ip = event['destination_ip']
+                if isinstance(destination_ip, (list, dict)):
+                    destination_ips.add(str(destination_ip))
+                else:
+                    destination_ips.add(str(destination_ip))
         
         # Get sample events (first 5)
         sample_events = events[:5]
@@ -503,7 +511,15 @@ class ContextInjector:
         sources = set()
         for event in events:
             if 'indices' in event:
-                sources.update(event['indices'])
+                indices = event['indices']
+                if isinstance(indices, list):
+                    for index in indices:
+                        if isinstance(index, (list, dict)):
+                            sources.add(str(index))
+                        else:
+                            sources.add(str(index))
+                else:
+                    sources.add(str(indices))
         
         return list(sources)
     
@@ -522,8 +538,18 @@ class ContextInjector:
         }
         
         for event in events:
-            description = event.get('description', '').lower()
-            event_type = event.get('event_type', '').lower()
+            # Robustly handle both strings and lists for description and event_type
+            description_raw = event.get('description', '')
+            if isinstance(description_raw, list):
+                description = ' '.join(map(str, description_raw)).lower()
+            else:
+                description = str(description_raw).lower()
+            
+            event_type_raw = event.get('event_type', '')
+            if isinstance(event_type_raw, list):
+                event_type = ' '.join(map(str, event_type_raw)).lower()
+            else:
+                event_type = str(event_type_raw).lower()
             
             if any(keyword in description or keyword in event_type 
                   for keyword in ['brute', 'auth', 'login', 'failed']):
