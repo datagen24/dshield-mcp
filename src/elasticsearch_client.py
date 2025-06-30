@@ -39,6 +39,18 @@ class ElasticsearchClient:
         
         # DShield SIEM specific indices
         self.dshield_indices = [
+            "cowrie.dshield-*",    # DShield data from Cowrie honeypot
+            "cowrie-*",            # Cowrie honeypot data
+            "cowrie.vt_data-*",    # Cowrie VirusTotal enrichment data
+            "cowrie.webhoneypot-*",# Cowrie web honeypot data
+            # Zeek data patterns
+            "filebeat-zeek-*",     # Zeek logs via Filebeat
+            "zeek.connection*",    # Zeek connection logs
+            "zeek.dns*",           # Zeek DNS logs
+            "zeek.files*",         # Zeek files logs
+            "zeek.http*",          # Zeek HTTP logs
+            "zeek.ssl*",           # Zeek SSL logs
+            # DShield-specific patterns
             "dshield-*",           # DShield specific data
             "dshield-attacks-*",   # DShield attack data
             "dshield-blocks-*",    # DShield block data
