@@ -74,7 +74,30 @@ QUERY_TIMEOUT_SECONDS=30
 DEFAULT_TIME_RANGE_HOURS=24
 MAX_IP_ENRICHMENT_BATCH_SIZE=100
 CACHE_TTL_SECONDS=300
+
+# Optional: Proxy Configuration
+HTTP_PROXY=
+HTTPS_PROXY=
+NO_PROXY=localhost,127.0.0.1
 ```
+
+## Configuration Optimizations
+
+### Index Pattern Optimization
+The system has been optimized to include only valid, existing index patterns to minimize connection retries and improve performance:
+
+**Supported Index Patterns:**
+- **Cowrie Honeypot**: `cowrie-*`, `cowrie.dshield-*`, `cowrie.vt_data-*`, `cowrie.webhoneypot-*`
+- **Zeek Network**: `filebeat-zeek-*`, `zeek.connection*`, `zeek.dns*`, `zeek.files*`, `zeek.http*`, `zeek.ssl*`
+
+**Benefits:**
+- Reduced connection retries on non-existent indices
+- Faster initial connection establishment
+- Improved overall system performance
+- Cleaner error handling and logging
+
+### Data Dictionary Integration
+The data dictionary is automatically provided to AI models during initialization, reducing the need for trial-and-error query formulation.
 
 ## Using with ChatGPT
 
@@ -90,11 +113,19 @@ CACHE_TTL_SECONDS=300
    - The server will be available as `dshield-elastic-mcp`
 
 3. **Available Tools**:
-   - `query_security_events`: Query security events from Elasticsearch
-   - `enrich_ip_with_dshield`: Enrich IP addresses with threat intelligence
+   - `query_dshield_events`: Query DShield events from Elasticsearch
+   - `query_dshield_attacks`: Query DShield attack data specifically
+   - `query_dshield_reputation`: Query DShield reputation data for IP addresses
+   - `query_dshield_top_attackers`: Query DShield top attackers data
+   - `query_dshield_geographic_data`: Query DShield geographic attack data
+   - `query_dshield_port_data`: Query DShield port attack data
+   - `get_dshield_statistics`: Get comprehensive DShield statistics
+   - `enrich_ip_with_dshield`: Enrich IP address with DShield threat intelligence
    - `generate_attack_report`: Generate structured attack reports
    - `query_events_by_ip`: Query events for specific IP addresses
    - `get_security_summary`: Get security summary for the last 24 hours
+   - `get_data_dictionary`: Get comprehensive data dictionary for DShield SIEM fields
+   - `test_elasticsearch_connection`: Test connection to Elasticsearch and show available indices
 
 ### Method 2: Context Injection
 
@@ -111,6 +142,80 @@ CACHE_TTL_SECONDS=300
    - Copy the generated context
    - Paste it into your ChatGPT conversation
    - Ask ChatGPT to analyze the security data
+
+## Data Dictionary Usage
+
+The DShield MCP server includes a comprehensive data dictionary that helps AI models understand the available data structures and analysis patterns.
+
+### Accessing the Data Dictionary
+
+#### Method 1: MCP Tool
+```python
+# Get the data dictionary as a formatted prompt
+result = await mcp_client.call_tool("get_data_dictionary", {
+    "format": "prompt"
+})
+
+# Get specific sections as JSON
+result = await mcp_client.call_tool("get_data_dictionary", {
+    "format": "json",
+    "sections": ["fields", "examples"]
+})
+```
+
+#### Method 2: MCP Resource
+```python
+# Read the data dictionary resource
+dictionary = await mcp_client.read_resource("dshield://data-dictionary")
+```
+
+#### Method 3: Server Initialization
+The data dictionary is automatically provided to models during server initialization as part of the experimental capabilities.
+
+### Data Dictionary Contents
+
+The data dictionary includes:
+
+1. **Field Descriptions**: Detailed explanations of all available fields with examples and usage guidelines
+2. **Query Examples**: Pre-built patterns for common security analysis tasks
+3. **Data Patterns**: Recognition patterns for attack types, threat levels, and time-based analysis
+4. **Analysis Guidelines**: Correlation rules and response priorities for threat assessment
+
+### Example: Using the Data Dictionary
+
+```python
+import asyncio
+from src.data_dictionary import DataDictionary
+
+async def demonstrate_data_dictionary():
+    # Get the initial prompt for models
+    prompt = DataDictionary.get_initial_prompt()
+    print(f"Generated prompt ({len(prompt)} characters)")
+    
+    # Get field descriptions
+    field_descriptions = DataDictionary.get_field_descriptions()
+    print(f"Available field categories: {list(field_descriptions.keys())}")
+    
+    # Get query examples
+    query_examples = DataDictionary.get_query_examples()
+    for name, example in query_examples.items():
+        print(f"{name}: {example['description']}")
+    
+    # Get analysis guidelines
+    guidelines = DataDictionary.get_analysis_guidelines()
+    print(f"Correlation rules: {len(guidelines['correlation_rules'])}")
+    print(f"Response priorities: {len(guidelines['response_priorities'])}")
+
+# Run the example
+asyncio.run(demonstrate_data_dictionary())
+```
+
+### Benefits for AI Models
+
+- **Reduced Trial and Error**: Models receive comprehensive field descriptions and usage patterns upfront
+- **Standardized Analysis**: Pre-defined correlation rules and threat levels ensure consistent analysis
+- **Better Query Formulation**: Query examples help models construct effective searches
+- **Contextual Understanding**: Data patterns help models recognize attack signatures and threat indicators
 
 ## Example Workflows
 

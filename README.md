@@ -10,27 +10,30 @@ This MCP (Model Context Protocol) utility connects your DShield SIEM with ChatGP
 - **DShield Statistics**: Generate comprehensive DShield-specific security statistics
 - **Structured Data Export**: Format DShield security data for ChatGPT analysis
 - **Real-time Context Injection**: Provide relevant DShield security context to AI conversations
+- **Comprehensive Data Dictionary**: Built-in data dictionary with field descriptions, query examples, and analysis guidelines
+- **Model Optimization**: Initial prompts and data patterns to reduce trial and error for AI models
+- **Config Optimization**: Streamlined index patterns to minimize connection retries
 
 ## DShield-Specific Capabilities
 
 ### DShield Indices Support
-- `dshield-*` - General DShield data
-- `dshield-attacks-*` - DShield attack data
-- `dshield-blocks-*` - DShield block data
-- `dshield-reputation-*` - DShield reputation data
-- `dshield-summary-*` - DShield summary data
-- `dshield-top-*` - DShield top attackers/ports
-- `dshield-geo-*` - DShield geographic data
-- `dshield-asn-*` - DShield ASN data
-- `dshield-org-*` - DShield organization data
-- `dshield-ports-*` - DShield port data
-- `dshield-countries-*` - DShield country data
-- `dshield-protocols-*` - DShield protocol data
-- `dshield-events-*` - DShield event data
-- `dshield-alerts-*` - DShield alert data
-- `dshield-logs-*` - DShield log data
-- `dshield-reports-*` - DShield report data
-- `dshield-statistics-*` - DShield statistics data
+The following index patterns are supported and optimized for minimal retries:
+
+**Cowrie Honeypot Data:**
+- `cowrie-*` - General Cowrie honeypot data
+- `cowrie.dshield-*` - DShield-specific Cowrie data
+- `cowrie.vt_data-*` - VirusTotal integration data
+- `cowrie.webhoneypot-*` - Web honeypot data
+
+**Zeek Network Data:**
+- `filebeat-zeek-*` - Filebeat Zeek logs
+- `zeek.connection*` - Zeek connection logs
+- `zeek.dns*` - Zeek DNS logs
+- `zeek.files*` - Zeek file logs
+- `zeek.http*` - Zeek HTTP logs
+- `zeek.ssl*` - Zeek SSL/TLS logs
+
+*Note: Non-existent index patterns have been removed to optimize performance and reduce connection retries.*
 
 ### DShield Data Models
 - **DShieldAttack**: Structured attack event data
@@ -39,6 +42,20 @@ This MCP (Model Context Protocol) utility connects your DShield SIEM with ChatGP
 - **DShieldGeographicData**: Geographic attack distribution
 - **DShieldPortData**: Port-based attack analysis
 - **DShieldStatistics**: Comprehensive DShield statistics
+
+### Data Dictionary & Model Optimization
+The system includes a comprehensive data dictionary that helps AI models understand DShield data structures:
+
+- **Field Descriptions**: Detailed explanations of all available fields with examples
+- **Query Examples**: Pre-built query patterns for common security analysis tasks
+- **Data Patterns**: Recognition patterns for attack types, threat levels, and time-based analysis
+- **Analysis Guidelines**: Correlation rules and response priorities for threat assessment
+- **Initial Prompts**: Built-in prompts provided to models during initialization to reduce trial and error
+
+**Available as:**
+- MCP Tool: `get_data_dictionary`
+- MCP Resource: `dshield://data-dictionary`
+- Server Initialization: Included in experimental capabilities
 
 ## Quick Start
 
@@ -159,8 +176,14 @@ python mcp_server.py
 # Basic usage example
 python examples/basic_usage.py
 
+# Data dictionary usage example
+python examples/data_dictionary_usage.py
+
 # Test installation
 python test_installation.py
+
+# Test data dictionary functionality
+python test_data_dictionary.py
 
 # Configure settings
 python config.py
