@@ -23,6 +23,7 @@ from src.dshield_client import DShieldClient
 from src.data_processor import DataProcessor
 from src.context_injector import ContextInjector
 from src.models import SecurityEvent, ThreatIntelligence, AttackReport, DShieldStatistics
+from src.data_dictionary import DataDictionary
 
 # Configure structured logging
 structlog.configure(
@@ -259,6 +260,24 @@ class DShieldMCPServer:
                         "type": "object",
                         "properties": {}
                     }
+                },
+                {
+                    "name": "get_data_dictionary",
+                    "description": "Get comprehensive data dictionary for DShield SIEM fields and analysis guidelines",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "format": {
+                                "type": "string",
+                                "description": "Output format: 'prompt' for model prompt, 'json' for structured data (default: 'prompt')"
+                            },
+                            "sections": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Specific sections to include: 'fields', 'examples', 'patterns', 'guidelines' (default: all)"
+                            }
+                        }
+                    }
                 }
             ]
         
@@ -290,6 +309,8 @@ class DShieldMCPServer:
                     return await self._get_security_summary(arguments)
                 elif name == "test_elasticsearch_connection":
                     return await self._test_elasticsearch_connection(arguments)
+                elif name == "get_data_dictionary":
+                    return await self._get_data_dictionary(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
             except Exception as e:
@@ -329,6 +350,12 @@ class DShieldMCPServer:
                     "name": "DShield Threat Intelligence",
                     "description": "DShield threat intelligence data",
                     "mimeType": "application/json"
+                },
+                {
+                    "uri": "dshield://data-dictionary",
+                    "name": "DShield Data Dictionary",
+                    "description": "Comprehensive data dictionary for DShield SIEM fields and analysis guidelines",
+                    "mimeType": "text/markdown"
                 }
             ]
         
@@ -350,6 +377,9 @@ class DShieldMCPServer:
             elif uri == "dshield://threat-intelligence":
                 # Return cached threat intelligence
                 return json.dumps({"message": "Use enrich_ip_with_dshield tool for specific IPs"})
+            elif uri == "dshield://data-dictionary":
+                # Return the data dictionary
+                return DataDictionary.get_initial_prompt()
             else:
                 raise ValueError(f"Unknown resource: {uri}")
     
@@ -643,6 +673,41 @@ class DShieldMCPServer:
                        "4. Authentication credentials if required"
             }]
     
+    async def _get_data_dictionary(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get comprehensive data dictionary for DShield SIEM fields and analysis guidelines."""
+        format_type = arguments.get("format", "prompt")
+        sections = arguments.get("sections", ["fields", "examples", "patterns", "guidelines"])
+        
+        logger.info("Getting data dictionary", format=format_type, sections=sections)
+        
+        if format_type == "prompt":
+            # Return the formatted prompt
+            prompt = DataDictionary.get_initial_prompt()
+            return [{
+                "type": "text",
+                "text": prompt
+            }]
+        else:
+            # Return structured JSON data
+            data = {}
+            
+            if "fields" in sections:
+                data["field_descriptions"] = DataDictionary.get_field_descriptions()
+            
+            if "examples" in sections:
+                data["query_examples"] = DataDictionary.get_query_examples()
+            
+            if "patterns" in sections:
+                data["data_patterns"] = DataDictionary.get_data_patterns()
+            
+            if "guidelines" in sections:
+                data["analysis_guidelines"] = DataDictionary.get_analysis_guidelines()
+            
+            return [{
+                "type": "text",
+                "text": json.dumps(data, indent=2, default=str)
+            }]
+    
     async def _get_recent_dshield_events(self) -> List[Dict[str, Any]]:
         """Get recent DShield events for resource reading."""
         events = await self.elastic_client.query_dshield_events(time_range_hours=1)
@@ -684,7 +749,12 @@ async def main():
                     server_version="1.0.0",
                     capabilities=server.server.get_capabilities(
                         notification_options=NotificationOptions(),
-                        experimental_capabilities={}
+                        experimental_capabilities={
+                            "dshield_data_dictionary": {
+                                "description": "DShield SIEM data dictionary and analysis guidelines",
+                                "prompt": DataDictionary.get_initial_prompt()
+                            }
+                        }
                     )
                 )
             )
