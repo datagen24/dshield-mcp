@@ -199,4 +199,8 @@ docs/_build/
 
 # PyBuilder
 .pybuilder/
-target/ 
+target/
+
+# Ignore real config and secrets
+#mcp_config.yaml
+.env 

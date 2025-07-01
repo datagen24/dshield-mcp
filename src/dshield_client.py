@@ -15,7 +15,8 @@ import structlog
 from dotenv import load_dotenv
 
 from .models import ThreatIntelligence
-from .op_secrets import get_env_with_op_resolution
+from .config_loader import get_config, ConfigError
+from .op_secrets import OnePasswordSecrets
 
 # Load environment variables
 load_dotenv()
@@ -27,18 +28,31 @@ class DShieldClient:
     """Client for interacting with DShield threat intelligence API."""
     
     def __init__(self):
-        self.api_key = get_env_with_op_resolution("DSHIELD_API_KEY")
-        self.base_url = get_env_with_op_resolution("DSHIELD_API_URL", "https://dshield.org/api")
+        try:
+            config = get_config()
+            secrets_config = config.get("secrets", {})
+            dshield_api_key = secrets_config.get("dshield_api_key")
+            dshield_api_url = secrets_config.get("dshield_api_url", "https://dshield.org/api")
+            rate_limit = secrets_config.get("rate_limit_requests_per_minute", 60)
+            cache_ttl = secrets_config.get("cache_ttl_seconds", 300)
+            batch_size = secrets_config.get("max_ip_enrichment_batch_size", 100)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load DShield config: {e}")
+
+        # 1Password resolution if needed
+        op = OnePasswordSecrets()
+        self.api_key = op.resolve_environment_variable(dshield_api_key) if dshield_api_key else None
+        self.base_url = dshield_api_url
         self.session: Optional[aiohttp.ClientSession] = None
         
         # Rate limiting
-        self.rate_limit_requests = int(get_env_with_op_resolution("RATE_LIMIT_REQUESTS_PER_MINUTE", "60"))
+        self.rate_limit_requests = int(rate_limit)
         self.rate_limit_window = 60  # seconds
         self.request_times: List[float] = []
         
         # Cache for IP reputation data
         self.cache: Dict[str, Dict[str, Any]] = {}
-        self.cache_ttl = int(get_env_with_op_resolution("CACHE_TTL_SECONDS", "300"))  # 5 minutes
+        self.cache_ttl = int(cache_ttl)
         
         # Headers for API requests
         self.headers = {
@@ -49,6 +63,8 @@ class DShieldClient:
         
         if self.api_key:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
+        
+        self.batch_size = int(batch_size)
     
     async def __aenter__(self):
         """Async context manager entry."""
@@ -235,9 +251,7 @@ class DShieldClient:
         
         results = {}
         
-        # Process IPs in batches to respect rate limits
-        batch_size = int(get_env_with_op_resolution("MAX_IP_ENRICHMENT_BATCH_SIZE", "100"))
-        
+        batch_size = self.batch_size
         for i in range(0, len(ip_addresses), batch_size):
             batch = ip_addresses[i:i + batch_size]
             

@@ -6,6 +6,7 @@ Test script to verify DShield MCP installation and basic functionality.
 import sys
 import asyncio
 from pathlib import Path
+import pytest
 
 def test_imports():
     """Test that all required modules can be imported."""
@@ -35,39 +36,26 @@ def test_imports():
         return False
 
 def test_environment():
-    """Test environment configuration."""
-    print("\nTesting environment configuration...")
-    
+    """Test configuration presence for YAML-based config."""
+    print("\nTesting YAML config presence...")
     try:
-        from dotenv import load_dotenv
-        import os
-        
-        # Load environment variables
-        load_dotenv()
-        
-        # Check required environment variables
-        required_vars = [
-            "ELASTICSEARCH_URL",
-            "ELASTICSEARCH_USERNAME"
-        ]
-        
-        missing_vars = []
-        for var in required_vars:
-            if not os.getenv(var):
-                missing_vars.append(var)
-        
-        if missing_vars:
-            print(f"⚠ Missing environment variables: {', '.join(missing_vars)}")
-            print("  Run 'python config.py setup' to configure")
+        from src.config_loader import get_config, ConfigError
+        config = get_config()
+        # Check for required top-level keys
+        required_keys = ["elasticsearch", "secrets"]
+        missing = [k for k in required_keys if k not in config]
+        if missing:
+            print(f"⚠ Missing config keys: {', '.join(missing)}")
+            print("  Ensure mcp_config.yaml is present and valid.")
             return False
         else:
-            print("✓ Environment variables configured")
+            print("✓ YAML config present and valid")
             return True
-            
     except Exception as e:
-        print(f"✗ Environment test error: {e}")
+        print(f"✗ Config test error: {e}")
         return False
 
+@pytest.mark.asyncio
 async def test_elasticsearch_connection():
     """Test Elasticsearch connection."""
     print("\nTesting Elasticsearch connection...")
@@ -90,6 +78,7 @@ async def test_elasticsearch_connection():
         print("  Check your Elasticsearch configuration and connectivity")
         return False
 
+@pytest.mark.asyncio
 async def test_dshield_connection():
     """Test DShield API connection."""
     print("\nTesting DShield API connection...")

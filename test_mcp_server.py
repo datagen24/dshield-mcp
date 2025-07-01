@@ -9,6 +9,7 @@ import json
 import sys
 import os
 from pathlib import Path
+import pytest
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -33,6 +34,7 @@ except ImportError as e:
     from src.context_injector import ContextInjector
 
 
+@pytest.mark.asyncio
 async def test_server_components():
     """Test the server components directly."""
     
@@ -163,6 +165,7 @@ async def test_server_components():
         raise
 
 
+@pytest.mark.asyncio
 async def test_mcp_server_tools():
     """Test the MCP server tool functions directly."""
     

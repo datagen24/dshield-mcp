@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import structlog
-from dotenv import load_dotenv
 from mcp.server import Server
 from mcp.server import NotificationOptions
 from mcp.server.models import InitializationOptions
@@ -24,10 +23,6 @@ from src.dshield_client import DShieldClient
 from src.data_processor import DataProcessor
 from src.context_injector import ContextInjector
 from src.models import SecurityEvent, ThreatIntelligence, AttackReport, DShieldStatistics
-from src.op_secrets import get_env_with_op_resolution
-
-# Load environment variables
-load_dotenv()
 
 # Configure structured logging
 structlog.configure(
@@ -256,6 +251,14 @@ class DShieldMCPServer:
                             }
                         }
                     }
+                },
+                {
+                    "name": "test_elasticsearch_connection",
+                    "description": "Test connection to Elasticsearch and show available indices",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {}
+                    }
                 }
             ]
         
@@ -285,6 +288,8 @@ class DShieldMCPServer:
                     return await self._query_events_by_ip(arguments)
                 elif name == "get_security_summary":
                     return await self._get_security_summary(arguments)
+                elif name == "test_elasticsearch_connection":
+                    return await self._test_elasticsearch_connection(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
             except Exception as e:
@@ -352,9 +357,8 @@ class DShieldMCPServer:
         """Initialize the MCP server and clients."""
         logger.info("Initializing DShield MCP Server")
         
-        # Initialize Elasticsearch client
+        # Initialize Elasticsearch client (but don't connect yet)
         self.elastic_client = ElasticsearchClient()
-        await self.elastic_client.connect()
         
         # Initialize DShield client
         self.dshield_client = DShieldClient()
@@ -377,19 +381,26 @@ class DShieldMCPServer:
                    time_range_hours=time_range_hours, 
                    indices=indices)
         
-        events = await self.elastic_client.query_dshield_events(
-            time_range_hours=time_range_hours,
-            indices=indices,
-            filters=filters
-        )
-        
-        processed_events = self.data_processor.process_security_events(events)
-        
-        return [{
-            "type": "text",
-            "text": f"Found {len(processed_events)} DShield events in the last {time_range_hours} hours:\n\n" + 
-                   json.dumps(processed_events, indent=2, default=str)
-        }]
+        try:
+            events = await self.elastic_client.query_dshield_events(
+                time_range_hours=time_range_hours,
+                indices=indices,
+                filters=filters
+            )
+            
+            processed_events = self.data_processor.process_security_events(events)
+            
+            return [{
+                "type": "text",
+                "text": f"Found {len(processed_events)} DShield events in the last {time_range_hours} hours:\n\n" + 
+                       json.dumps(processed_events, indent=2, default=str)
+            }]
+        except Exception as e:
+            logger.error("Failed to query DShield events", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error querying DShield events: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
+            }]
     
     async def _query_dshield_attacks(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield attack data specifically."""
@@ -587,6 +598,50 @@ class DShieldMCPServer:
             "text": "Security Summary (Last 24 Hours):\n\n" + 
                    json.dumps(summary, indent=2, default=str)
         }]
+    
+    async def _test_elasticsearch_connection(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Test Elasticsearch connection and show available indices."""
+        try:
+            # Try to connect
+            await self.elastic_client.connect()
+            
+            # Get cluster info
+            info = await self.elastic_client.client.info()
+            
+            # Get available indices
+            indices = await self.elastic_client.get_available_indices()
+            
+            # Get cluster health
+            health = await self.elastic_client.client.cluster.health()
+            
+            result = {
+                "connection_status": "success",
+                "cluster_info": {
+                    "cluster_name": info.get('cluster_name'),
+                    "version": info.get('version', {}).get('number'),
+                    "status": health.get('status')
+                },
+                "available_dshield_indices": indices,
+                "total_indices": len(indices)
+            }
+            
+            return [{
+                "type": "text",
+                "text": f"✅ Elasticsearch connection successful!\n\n" + 
+                       json.dumps(result, indent=2, default=str)
+            }]
+            
+        except Exception as e:
+            logger.error("Elasticsearch connection test failed", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"❌ Elasticsearch connection failed: {str(e)}\n\n" +
+                       "Please check:\n" +
+                       "1. Elasticsearch is running\n" +
+                       "2. The URL in mcp_config.yaml is correct\n" +
+                       "3. Network connectivity to the Elasticsearch server\n" +
+                       "4. Authentication credentials if required"
+            }]
     
     async def _get_recent_dshield_events(self) -> List[Dict[str, Any]]:
         """Get recent DShield events for resource reading."""

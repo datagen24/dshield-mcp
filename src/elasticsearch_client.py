@@ -13,13 +13,8 @@ from urllib.parse import urlparse
 import structlog
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.exceptions import RequestError, TransportError
-from dotenv import load_dotenv
-
 from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
-from .op_secrets import get_env_with_op_resolution
-
-# Load environment variables
-load_dotenv()
+from .config_loader import get_config, ConfigError
 
 logger = structlog.get_logger(__name__)
 
@@ -29,53 +24,27 @@ class ElasticsearchClient:
     
     def __init__(self):
         self.client: Optional[AsyncElasticsearch] = None
-        self.url = get_env_with_op_resolution("ELASTICSEARCH_URL", "http://localhost:9200")
-        self.username = get_env_with_op_resolution("ELASTICSEARCH_USERNAME", "elastic")
-        self.password = get_env_with_op_resolution("ELASTICSEARCH_PASSWORD", "")
-        self.verify_ssl = get_env_with_op_resolution("ELASTICSEARCH_VERIFY_SSL", "true").lower() == "true"
-        self.ca_certs = get_env_with_op_resolution("ELASTICSEARCH_CA_CERTS")
-        self.timeout = int(get_env_with_op_resolution("QUERY_TIMEOUT_SECONDS", "30"))
-        self.max_results = int(get_env_with_op_resolution("MAX_QUERY_RESULTS", "1000"))
-        
-        # DShield SIEM specific indices
-        self.dshield_indices = [
-            "cowrie.dshield-*",    # DShield data from Cowrie honeypot
-            "cowrie-*",            # Cowrie honeypot data
-            "cowrie.vt_data-*",    # Cowrie VirusTotal enrichment data
-            "cowrie.webhoneypot-*",# Cowrie web honeypot data
-            # Zeek data patterns
-            "filebeat-zeek-*",     # Zeek logs via Filebeat
-            "zeek.connection*",    # Zeek connection logs
-            "zeek.dns*",           # Zeek DNS logs
-            "zeek.files*",         # Zeek files logs
-            "zeek.http*",          # Zeek HTTP logs
-            "zeek.ssl*",           # Zeek SSL logs
-            # DShield-specific patterns
-            "dshield-*",           # DShield specific data
-            "dshield-attacks-*",   # DShield attack data
-            "dshield-blocks-*",    # DShield block data
-            "dshield-reputation-*", # DShield reputation data
-            "dshield-summary-*",   # DShield summary data
-            "dshield-top-*",       # DShield top attackers/ports
-            "dshield-geo-*",       # DShield geographic data
-            "dshield-asn-*",       # DShield ASN data
-            "dshield-org-*",       # DShield organization data
-            "dshield-tags-*",      # DShield tag data
-            "dshield-ports-*",     # DShield port data
-            "dshield-countries-*", # DShield country data
-            "dshield-protocols-*", # DShield protocol data
-            "dshield-sources-*",   # DShield source data
-            "dshield-targets-*",   # DShield target data
-            "dshield-events-*",    # DShield event data
-            "dshield-alerts-*",    # DShield alert data
-            "dshield-logs-*",      # DShield log data
-            "dshield-reports-*",   # DShield report data
-            "dshield-statistics-*" # DShield statistics data
-        ]
-        
-        # Fallback to general SIEM indices if DShield specific ones don't exist
-        self.fallback_indices = ["logs-*", "security-*", "alerts-*", "zeek-*", "suricata-*"]
-        
+        try:
+            config = get_config()
+            es_config = config["elasticsearch"]
+        except Exception as e:
+            raise RuntimeError(f"Failed to load Elasticsearch config: {e}")
+
+        self.url = es_config["url"]
+        self.username = es_config.get("username", "")
+        self.password = es_config.get("password", "")
+        self.verify_ssl = es_config.get("verify_ssl", True)
+        self.ca_certs = es_config.get("ca_certs", None)
+        self.timeout = int(es_config.get("timeout", 30))
+        self.max_results = int(es_config.get("max_results", 1000))
+
+        # Index patterns
+        patterns = es_config.get("index_patterns", {})
+        self.dshield_indices = []
+        for group in ("cowrie", "zeek", "dshield"):
+            self.dshield_indices.extend(patterns.get(group, []))
+        self.fallback_indices = patterns.get("fallback", [])
+
         # DShield specific field mappings
         self.dshield_field_mappings = {
             'timestamp': ['@timestamp', 'timestamp', 'time', 'date'],
@@ -149,7 +118,7 @@ class ElasticsearchClient:
     async def get_available_indices(self) -> List[str]:
         """Get available DShield indices."""
         if not self.client:
-            raise RuntimeError("Elasticsearch client not connected")
+            await self.connect()
         
         try:
             # Get all indices
@@ -179,7 +148,7 @@ class ElasticsearchClient:
         """Query DShield events from Elasticsearch."""
         
         if not self.client:
-            raise RuntimeError("Elasticsearch client not connected")
+            await self.connect()
         
         # Use DShield indices if available, otherwise fallback
         if indices is None:

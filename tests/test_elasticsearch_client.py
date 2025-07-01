@@ -8,23 +8,32 @@ from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta
 from src.elasticsearch_client import ElasticsearchClient
 
+# Minimal valid config for ElasticsearchClient
+TEST_CONFIG = {
+    "elasticsearch": {
+        "url": "https://test-elasticsearch:9200",
+        "username": "test_user",
+        "password": "test_password",
+        "verify_ssl": True,
+        "ca_certs": "/path/to/ca.crt",
+        "timeout": 30,
+        "max_results": 1000,
+        "index_patterns": {
+            "cowrie": [],
+            "zeek": [],
+            "dshield": [],
+            "fallback": []
+        }
+    }
+}
 
 class TestElasticsearchClient:
     """Test the ElasticsearchClient class."""
     
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    def test_init(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    def test_init(self, mock_get_config):
         """Test ElasticsearchClient initialization."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": "/path/to/ca.crt",
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = ElasticsearchClient()
         
         assert client.url == "https://test-elasticsearch:9200"
@@ -36,38 +45,22 @@ class TestElasticsearchClient:
         assert client.max_results == 1000
         assert client.client is None
     
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    def test_init_with_op_urls(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    def test_init_with_op_urls(self, mock_get_config):
         """Test ElasticsearchClient initialization with 1Password URLs."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "resolved_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        config = dict(TEST_CONFIG)
+        config["elasticsearch"]["password"] = "resolved_password"
+        mock_get_config.return_value = config
         client = ElasticsearchClient()
         
         assert client.password == "resolved_password"
     
     @pytest.mark.asyncio
     @patch('src.elasticsearch_client.AsyncElasticsearch')
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_connect_success(self, mock_get_env, mock_async_es):
+    @patch('src.config_loader.get_config')
+    async def test_connect_success(self, mock_get_config, mock_async_es):
         """Test successful connection to Elasticsearch."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         mock_client = AsyncMock()
         mock_client.info.return_value = {
             "cluster_name": "test-cluster",
@@ -84,19 +77,10 @@ class TestElasticsearchClient:
     
     @pytest.mark.asyncio
     @patch('src.elasticsearch_client.AsyncElasticsearch')
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_connect_with_ssl_certs(self, mock_get_env, mock_async_es):
+    @patch('src.config_loader.get_config')
+    async def test_connect_with_ssl_certs(self, mock_get_config, mock_async_es):
         """Test connection with SSL certificates."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": "/path/to/ca.crt",
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         mock_client = AsyncMock()
         mock_client.info.return_value = {
             "cluster_name": "test-cluster",
@@ -113,19 +97,12 @@ class TestElasticsearchClient:
     
     @pytest.mark.asyncio
     @patch('src.elasticsearch_client.AsyncElasticsearch')
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_connect_without_ssl_verification(self, mock_get_env, mock_async_es):
+    @patch('src.config_loader.get_config')
+    async def test_connect_without_ssl_verification(self, mock_get_config, mock_async_es):
         """Test connection without SSL verification."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "false",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        config = dict(TEST_CONFIG)
+        config["elasticsearch"]["verify_ssl"] = False
+        mock_get_config.return_value = config
         mock_client = AsyncMock()
         mock_client.info.return_value = {
             "cluster_name": "test-cluster",
@@ -142,19 +119,10 @@ class TestElasticsearchClient:
     
     @pytest.mark.asyncio
     @patch('src.elasticsearch_client.AsyncElasticsearch')
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_connect_failure(self, mock_get_env, mock_async_es):
+    @patch('src.config_loader.get_config')
+    async def test_connect_failure(self, mock_get_config, mock_async_es):
         """Test connection failure."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         mock_async_es.side_effect = Exception("Connection failed")
         
         client = ElasticsearchClient()
@@ -163,8 +131,10 @@ class TestElasticsearchClient:
             await client.connect()
     
     @pytest.mark.asyncio
-    async def test_close(self):
+    @patch('src.config_loader.get_config')
+    async def test_close(self, mock_get_config):
         """Test closing the Elasticsearch connection."""
+        mock_get_config.return_value = TEST_CONFIG
         client = ElasticsearchClient()
         client.client = AsyncMock()
         
@@ -173,19 +143,10 @@ class TestElasticsearchClient:
         client.client.close.assert_called_once()
     
     @pytest.mark.asyncio
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_get_available_indices(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_get_available_indices(self, mock_get_config):
         """Test getting available DShield indices."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = ElasticsearchClient()
         client.client = AsyncMock()
         
@@ -205,19 +166,10 @@ class TestElasticsearchClient:
         assert "other-index" not in indices  # Not a DShield index
     
     @pytest.mark.asyncio
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_query_dshield_events(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_query_dshield_events(self, mock_get_config):
         """Test querying DShield events."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = ElasticsearchClient()
         client.client = AsyncMock()
         
@@ -267,19 +219,10 @@ class TestElasticsearchClient:
         assert call_args[1]["timeout"] == "30s"
     
     @pytest.mark.asyncio
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_query_dshield_events_no_client(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_query_dshield_events_no_client(self, mock_get_config):
         """Test querying DShield events without connected client."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = ElasticsearchClient()
         client.client = None
         
@@ -287,19 +230,10 @@ class TestElasticsearchClient:
             await client.query_dshield_events()
     
     @pytest.mark.asyncio
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_query_events_by_ip(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_query_events_by_ip(self, mock_get_config):
         """Test querying events by IP addresses."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = ElasticsearchClient()
         client.client = AsyncMock()
         
@@ -331,19 +265,10 @@ class TestElasticsearchClient:
         assert events[0]["source_ip"] == "192.168.1.100"
     
     @pytest.mark.asyncio
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    async def test_get_dshield_statistics(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_get_dshield_statistics(self, mock_get_config):
         """Test getting DShield statistics."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = ElasticsearchClient()
         client.client = AsyncMock()
         
@@ -377,19 +302,10 @@ class TestElasticsearchClient:
 class TestElasticsearchClientFieldMapping:
     """Test field mapping functionality."""
     
-    @patch('src.elasticsearch_client.get_env_with_op_resolution')
-    def test_extract_field_mapped(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    def test_extract_field_mapped(self, mock_get_config):
         """Test field mapping extraction."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "ELASTICSEARCH_URL": "https://test-elasticsearch:9200",
-            "ELASTICSEARCH_USERNAME": "test_user",
-            "ELASTICSEARCH_PASSWORD": "test_password",
-            "ELASTICSEARCH_VERIFY_SSL": "true",
-            "ELASTICSEARCH_CA_CERTS": None,
-            "QUERY_TIMEOUT_SECONDS": "30",
-            "MAX_QUERY_RESULTS": "1000"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = ElasticsearchClient()
         
         # Test source_ip mapping

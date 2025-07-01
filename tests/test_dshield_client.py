@@ -8,20 +8,24 @@ from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta
 from src.dshield_client import DShieldClient
 
+# Minimal valid config for DShieldClient
+TEST_CONFIG = {
+    "secrets": {
+        "dshield_api_key": "test_api_key",
+        "dshield_api_url": "https://test-dshield.org/api",
+        "rate_limit_requests_per_minute": 60,
+        "cache_ttl_seconds": 300,
+        "max_ip_enrichment_batch_size": 100
+    }
+}
 
 class TestDShieldClient:
     """Test the DShieldClient class."""
     
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    def test_init(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    def test_init(self, mock_get_config):
         """Test DShieldClient initialization."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         
         assert client.api_key == "test_api_key"
@@ -32,30 +36,24 @@ class TestDShieldClient:
         assert "Authorization" in client.headers
         assert client.headers["Authorization"] == "Bearer test_api_key"
     
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    def test_init_with_op_urls(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    def test_init_with_op_urls(self, mock_get_config):
         """Test DShieldClient initialization with 1Password URLs."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "resolved_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
+        config = dict(TEST_CONFIG)
+        config["secrets"]["dshield_api_key"] = "resolved_api_key"
+        mock_get_config.return_value = config
         
         client = DShieldClient()
         
         assert client.api_key == "resolved_api_key"
         assert client.headers["Authorization"] == "Bearer resolved_api_key"
     
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    def test_init_without_api_key(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    def test_init_without_api_key(self, mock_get_config):
         """Test DShieldClient initialization without API key."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": None,
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
+        config = dict(TEST_CONFIG)
+        config["secrets"]["dshield_api_key"] = None
+        mock_get_config.return_value = config
         
         client = DShieldClient()
         
@@ -64,17 +62,10 @@ class TestDShieldClient:
     
     @pytest.mark.asyncio
     @patch('src.dshield_client.aiohttp.ClientSession')
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_connect(self, mock_get_env, mock_client_session_class):
+    @patch('src.config_loader.get_config')
+    async def test_connect(self, mock_get_config, mock_client_session_class):
         """Test connecting to DShield API."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
-        # Mock the ClientSession constructor
+        mock_get_config.return_value = TEST_CONFIG
         mock_session = AsyncMock()
         mock_client_session_class.return_value = mock_session
         
@@ -86,16 +77,10 @@ class TestDShieldClient:
         mock_client_session_class.assert_called_once()
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_close(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_close(self, mock_get_config):
         """Test closing DShield client session."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         client.session = AsyncMock()
         
@@ -105,16 +90,10 @@ class TestDShieldClient:
         assert client.session is None
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_get_ip_reputation_success(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_get_ip_reputation_success(self, mock_get_config):
         """Test successful IP reputation lookup."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         client.session = AsyncMock()
         
@@ -149,16 +128,10 @@ class TestDShieldClient:
         assert "reputation_192.168.1.100" in client.cache
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_get_ip_reputation_not_found(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_get_ip_reputation_not_found(self, mock_get_config):
         """Test IP reputation lookup for non-existent IP."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         client.session = AsyncMock()
         
@@ -180,16 +153,10 @@ class TestDShieldClient:
         assert result["attack_count"] == 0
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_get_ip_reputation_cached(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_get_ip_reputation_cached(self, mock_get_config):
         """Test IP reputation lookup using cached data."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         
         # Pre-populate cache
@@ -215,16 +182,10 @@ class TestDShieldClient:
         assert not hasattr(client, 'session') or client.session is None
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_get_ip_reputation_http_error(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_get_ip_reputation_http_error(self, mock_get_config):
         """Test IP reputation lookup with HTTP error."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         client.session = AsyncMock()
         
@@ -241,16 +202,10 @@ class TestDShieldClient:
         assert result["threat_level"] == "unknown"
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_get_top_attackers(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_get_top_attackers(self, mock_get_config):
         """Test getting top attackers from DShield."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         client.session = AsyncMock()
         
@@ -277,16 +232,10 @@ class TestDShieldClient:
         assert result[1]["attack_count"] == 500
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_get_attack_summary(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_get_attack_summary(self, mock_get_config):
         """Test getting attack summary from DShield."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         client.session = AsyncMock()
         
@@ -315,16 +264,18 @@ class TestDShieldClient:
         assert "top_ports" in result
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_enrich_ips_batch(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_enrich_ips_batch(self, mock_get_config):
         """Test batch IP enrichment."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300",
-            "MAX_IP_ENRICHMENT_BATCH_SIZE": "100"
-        }.get(key, default)
+        mock_get_config.return_value = {
+            "secrets": {
+                "dshield_api_key": "test_api_key",
+                "dshield_api_url": "https://test-dshield.org/api",
+                "rate_limit_requests_per_minute": 60,
+                "cache_ttl_seconds": 300,
+                "max_ip_enrichment_batch_size": 100
+            }
+        }
         
         client = DShieldClient()
         
@@ -358,15 +309,17 @@ class TestDShieldClientRateLimiting:
     """Test rate limiting functionality."""
     
     @pytest.mark.asyncio
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    async def test_rate_limiting(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    async def test_rate_limiting(self, mock_get_config):
         """Test rate limiting functionality."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "2",  # 2 requests per minute
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
+        mock_get_config.return_value = {
+            "secrets": {
+                "dshield_api_key": "test_api_key",
+                "dshield_api_url": "https://test-dshield.org/api",
+                "rate_limit_requests_per_minute": "2",  # 2 requests per minute
+                "cache_ttl_seconds": "300"
+            }
+        }
         
         client = DShieldClient()
         client.session = AsyncMock()
@@ -395,16 +348,10 @@ class TestDShieldClientRateLimiting:
 class TestDShieldClientCaching:
     """Test caching functionality."""
     
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    def test_cache_operations(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    def test_cache_operations(self, mock_get_config):
         """Test cache operations."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "300"
-        }.get(key, default)
-        
+        mock_get_config.return_value = TEST_CONFIG
         client = DShieldClient()
         
         # Test caching data
@@ -419,15 +366,17 @@ class TestDShieldClientCaching:
         non_existent = client._get_cached_data("non_existent_key")
         assert non_existent is None
     
-    @patch('src.dshield_client.get_env_with_op_resolution')
-    def test_cache_expiration(self, mock_get_env):
+    @patch('src.config_loader.get_config')
+    def test_cache_expiration(self, mock_get_config):
         """Test cache expiration."""
-        mock_get_env.side_effect = lambda key, default=None: {
-            "DSHIELD_API_KEY": "test_api_key",
-            "DSHIELD_API_URL": "https://test-dshield.org/api",
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
-            "CACHE_TTL_SECONDS": "1"  # 1 second TTL
-        }.get(key, default)
+        mock_get_config.return_value = {
+            "secrets": {
+                "dshield_api_key": "test_api_key",
+                "dshield_api_url": "https://test-dshield.org/api",
+                "rate_limit_requests_per_minute": "60",
+                "cache_ttl_seconds": "1"  # 1 second TTL
+            }
+        }
         
         client = DShieldClient()
         
