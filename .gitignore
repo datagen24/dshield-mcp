@@ -155,6 +155,11 @@ results/
 *.yaml
 *.yml
 
+# Development tools and test scripts (exclude from releases)
+dev_tools/
+test_*.py
+debug_*.py
+
 # Security
 *.pem
 *.key
