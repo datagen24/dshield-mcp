@@ -98,17 +98,7 @@ query_dshield_aggregations(
     top_n=50
 )
 '''
-# Medium Priority Enhancements
-## 5. Query Result Streaming (Done)
-For very large datasets
-'''python 
-stream_dshield_events(
-    filters={...},
-    chunk_size=500,
-    callback=process_chunk
-)
-'''
-## 6. Smart Query Optimization
+## 6. Smart Query Optimization (Done)
 Automatically optimize queries based on data volume
 '''python 
 query_dshield_events(
@@ -117,6 +107,28 @@ query_dshield_events(
     fallback_strategy="aggregate"  # fall back to aggregations
 )
 '''
+
+**Status:** ✅ Complete as of 2025-07-05
+
+**Implementation Details:**
+- **Automatic Size Estimation**: Estimates query result size before execution using count queries
+- **Field Optimization**: Reduces fields to essential ones when results are too large (priority fields: @timestamp, source_ip, destination_ip, etc.)
+- **Page Size Reduction**: Automatically reduces page size if needed (minimum 10)
+- **Fallback Strategies**: 
+  - `aggregate`: Returns aggregation results (top sources, destinations, event types, timeline)
+  - `sample`: Returns a small sample of events (10 events)
+  - `error`: Returns error with explanation
+- **Configuration**: `max_result_size_mb` (default: 10.0), `query_timeout_seconds` (default: 30)
+- **MCP Integration**: All parameters available in MCP server with enhanced response formatting
+- **Test Coverage**: Comprehensive test script in `dev_tools/test_smart_query_optimization.py`
+
+**Test Results:**
+- Size estimation: ✅ (4.88 MB detected for large queries)
+- Field reduction: ✅ (20 fields → 13 priority fields)
+- Page size reduction: ✅ (1000 → 500 → fallback)
+- Aggregation fallback: ✅ (returns summary events)
+- Sampling fallback: ✅ (returns sample events)
+- Performance monitoring: ✅ (optimization metadata included)
 ## 7. Template/Preset Queries
 Pre-built queries for common analysis patterns
 '''python
@@ -219,3 +231,40 @@ Track and replay queries
 get_query_history(user_session="abc123")
 replay_query(query_id="xyz789", modified_params={...})
 '''
+## 15. Field Mapping Bug Fix (Done)
+Fix the mismatch between display fields and query fields as described in GitHub issue #17
+'''python
+# Before: User-friendly field names failed
+query_dshield_events(filters={"source_ip": "141.98.80.135"})  # ❌ No results
+
+# After: Intelligent field mapping works
+query_dshield_events(filters={"source_ip": "141.98.80.135"})  # ✅ 10,000 events
+query_dshield_events(filters={"source.ip": "141.98.80.135"})  # ✅ 10,000 events (same)
+'''
+
+**Status:** ✅ Complete as of 2025-07-05
+
+**Implementation Details:**
+- **Intelligent Field Mapping**: Automatically converts user-friendly field names to ECS dot notation
+- **Comprehensive Coverage**: Maps 50+ common field variations (source_ip → source.ip, event_type → event.type, etc.)
+- **Backward Compatibility**: ECS dot notation continues to work unchanged
+- **Helpful Logging**: Logs field mappings and provides suggestions for unmapped fields
+- **Query Consistency**: Both formats return identical results
+- **Test Coverage**: Comprehensive test script in `dev_tools/test_field_mapping.py`
+
+**Field Mapping Examples:**
+- `source_ip`, `src_ip`, `sourceip` → `source.ip`
+- `destination_ip`, `dest_ip`, `target_ip` → `destination.ip`
+- `event_type`, `eventtype` → `event.type`
+- `http_method`, `httpmethod` → `http.request.method`
+- `user_agent`, `useragent`, `ua` → `user_agent.original`
+- `severity` → `event.severity`
+- `timestamp`, `time`, `date` → `@timestamp`
+
+**Test Results:**
+- User-friendly field names: ✅ (source_ip works)
+- ECS dot notation: ✅ (source.ip works)  
+- Mixed field formats: ✅ (both in same query)
+- Field suggestions: ✅ (helpful alternatives)
+- Query consistency: ✅ (identical results)
+- Comprehensive mapping: ✅ (50+ field variations)

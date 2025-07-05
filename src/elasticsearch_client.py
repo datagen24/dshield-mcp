@@ -241,9 +241,12 @@ class ElasticsearchClient:
             "size": page_size
         }
         
+        # Apply intelligent field mapping for user-friendly field names
+        mapped_filters = self._map_query_fields(filters) if filters else None
+        
         # Add additional filters
-        if filters:
-            for key, value in filters.items():
+        if mapped_filters:
+            for key, value in mapped_filters.items():
                 if key == "@timestamp":
                     # Handle custom timestamp filtering
                     search_body["query"]["bool"]["must"].append({"range": {"@timestamp": value}})
@@ -362,9 +365,12 @@ class ElasticsearchClient:
                 }
             }
             
+            # Apply intelligent field mapping for user-friendly field names
+            mapped_filters = self._map_query_fields(filters) if filters else None
+            
             # Add filters if provided
-            if filters:
-                for key, value in filters.items():
+            if mapped_filters:
+                for key, value in mapped_filters.items():
                     if key == "@timestamp":
                         count_body["query"]["bool"]["must"].append({"range": {"@timestamp": value}})
                     elif isinstance(value, dict):
@@ -1372,3 +1378,140 @@ class ElasticsearchClient:
         except Exception as e:
             logger.error("Failed to get cluster stats", error=str(e))
             raise 
+
+    def _map_query_fields(self, filters: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Map user-friendly field names to ECS dot notation for querying.
+        
+        This handles the mismatch between display fields (source_ip) and 
+        query fields (source.ip) as described in GitHub issue #17.
+        """
+        if not filters:
+            return filters
+            
+        field_mappings = {
+            # IP address fields
+            "source_ip": "source.ip",
+            "src_ip": "source.ip",
+            "sourceip": "source.ip",
+            "destination_ip": "destination.ip",
+            "dest_ip": "destination.ip",
+            "destinationip": "destination.ip",
+            "target_ip": "destination.ip",
+            
+            # Port fields
+            "source_port": "source.port",
+            "src_port": "source.port",
+            "destination_port": "destination.port",
+            "dest_port": "destination.port",
+            "target_port": "destination.port",
+            
+            # Event fields
+            "event_type": "event.type",
+            "eventtype": "event.type",
+            "event_category": "event.category",
+            "eventcategory": "event.category",
+            "event_kind": "event.kind",
+            "eventkind": "event.kind",
+            "event_outcome": "event.outcome",
+            "eventoutcome": "event.outcome",
+            
+            # Network fields
+            "protocol": "network.protocol",
+            "network_protocol": "network.protocol",
+            "network_type": "network.type",
+            "networktype": "network.type",
+            "network_direction": "network.direction",
+            "networkdirection": "network.direction",
+            
+            # HTTP fields
+            "http_method": "http.request.method",
+            "httpmethod": "http.request.method",
+            "http_status": "http.response.status_code",
+            "httpstatus": "http.response.status_code",
+            "http_version": "http.version",
+            "httpversion": "http.version",
+            
+            # URL fields
+            "url": "url.original",
+            "url_original": "url.original",
+            "url_path": "url.path",
+            "urlpath": "url.path",
+            "url_query": "url.query",
+            "urlquery": "url.query",
+            
+            # User agent fields
+            "user_agent": "user_agent.original",
+            "useragent": "user_agent.original",
+            "ua": "user_agent.original",
+            
+            # Geographic fields
+            "source_country": "source.geo.country_name",
+            "sourcecountry": "source.geo.country_name",
+            "dest_country": "destination.geo.country_name",
+            "destcountry": "destination.geo.country_name",
+            "country": "source.geo.country_name",  # Default to source
+            
+            # Timestamp fields
+            "timestamp": "@timestamp",
+            "time": "@timestamp",
+            "date": "@timestamp",
+            
+            # Severity and description (common user expectations)
+            "severity": "event.severity",
+            "description": "event.description",
+            "message": "log.message",
+            "log_message": "log.message"
+        }
+        
+        mapped_filters = {}
+        unmapped_fields = []
+        
+        for key, value in filters.items():
+            mapped_key = field_mappings.get(key, key)
+            if mapped_key != key:
+                logger.info(f"Field mapping: '{key}' -> '{mapped_key}'")
+            mapped_filters[mapped_key] = value
+            
+            # Track unmapped fields for potential suggestions
+            if key not in field_mappings and "." not in key:
+                unmapped_fields.append(key)
+        
+        # Log suggestions for unmapped fields
+        if unmapped_fields:
+            logger.info(f"Unmapped fields detected: {unmapped_fields}")
+            logger.info("Consider using ECS dot notation (e.g., 'source.ip' instead of 'source_ip')")
+        
+        return mapped_filters
+
+    def _get_field_suggestions(self, field_name: str) -> List[str]:
+        """Get suggestions for field name alternatives."""
+        suggestions = []
+        
+        # Common patterns
+        if field_name.endswith("_ip"):
+            base = field_name[:-3]
+            suggestions.extend([
+                f"{base}.ip",
+                f"source.ip" if "source" in base else f"destination.ip"
+            ])
+        elif field_name.endswith("_port"):
+            base = field_name[:-5]
+            suggestions.extend([
+                f"{base}.port",
+                f"source.port" if "source" in base else f"destination.port"
+            ])
+        elif field_name.endswith("_type"):
+            base = field_name[:-5]
+            suggestions.extend([
+                f"{base}.type",
+                "event.type"
+            ])
+        elif field_name.endswith("_category"):
+            base = field_name[:-9]
+            suggestions.extend([
+                f"{base}.category",
+                "event.category"
+            ])
+        
+        return suggestions 
