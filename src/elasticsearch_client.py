@@ -143,11 +143,12 @@ class ElasticsearchClient:
         time_range_hours: int = 24,
         indices: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
+        fields: Optional[List[str]] = None,
         page: int = 1,
         page_size: int = 100,
         include_summary: bool = True
     ) -> tuple[List[Dict[str, Any]], int]:
-        """Query DShield events from Elasticsearch with pagination support."""
+        """Query DShield events from Elasticsearch with pagination support and field selection."""
         
         if not self.client:
             await self.connect()
@@ -160,58 +161,117 @@ class ElasticsearchClient:
             else:
                 indices = self.fallback_indices
         
-        filters = filters or {}
+        # Build query with time range
+        query = {
+            "bool": {
+                "must": [
+                    {
+                        "range": {
+                            "@timestamp": {
+                                "gte": f"now-{time_range_hours}h",
+                                "lte": "now"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
         
-        # Calculate time range
-        end_time = datetime.utcnow()
-        start_time = end_time - timedelta(hours=time_range_hours)
+        # Add additional filters
+        if filters:
+            for key, value in filters.items():
+                if key == "@timestamp":
+                    # Handle custom timestamp filtering
+                    query["bool"]["must"].append({"range": {"@timestamp": value}})
+                elif isinstance(value, dict):
+                    # Handle nested filters (e.g., "source_ip": {"eq": "1.2.3.4"})
+                    for sub_key, sub_value in value.items():
+                        if sub_key == "eq":
+                            query["bool"]["must"].append({"term": {key: sub_value}})
+                        elif sub_key == "in":
+                            query["bool"]["must"].append({"terms": {key: sub_value}})
+                        elif sub_key == "gte":
+                            query["bool"]["must"].append({"range": {key: {"gte": sub_value}}})
+                        elif sub_key == "lte":
+                            query["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
+                else:
+                    # Simple term match
+                    query["bool"]["must"].append({"term": {key: value}})
         
-        # Build DShield-specific query
-        query = self._build_dshield_query(start_time, end_time, filters)
+        # Build search body
+        search_body = {
+            "query": query,
+            "from_": (page - 1) * page_size,
+            "size": min(page_size, 1000)  # Limit max page size
+        }
         
-        # Calculate pagination
-        from_index = (page - 1) * page_size
-        actual_size = min(page_size, self.max_results)
+        # Add field selection if specified
+        if fields:
+            search_body["_source"] = fields
         
-        logger.info("Querying DShield events",
-                   indices=indices,
-                   time_range_hours=time_range_hours,
-                   page=page,
-                   page_size=actual_size,
-                   from_index=from_index)
+        # Add sorting by timestamp
+        search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
         
         try:
+            # Execute search
             response = await self.client.search(
-                index=indices,
-                body=query,
-                size=actual_size,
-                from_=from_index,
-                timeout=f"{self.timeout}s"
+                index=",".join(indices),
+                body=search_body
             )
             
+            # Extract results
+            hits = response.get("hits", {})
+            total_count = hits.get("total", {}).get("value", 0)
+            documents = hits.get("hits", [])
+            
+            # Parse events
             events = []
-            for hit in response['hits']['hits']:
-                event = self._parse_dshield_event(hit, indices)
+            for doc in documents:
+                event = self._parse_dshield_event(doc, indices)
                 if event:
                     events.append(event)
             
-            total_count = response['hits']['total']['value']
-            
-            logger.info("DShield events query completed",
-                       total_hits=total_count,
-                       returned_events=len(events),
-                       page=page,
-                       page_size=actual_size)
+            logger.info(f"Retrieved {len(events)} events from {len(indices)} indices", 
+                       total_count=total_count, page=page, page_size=page_size)
             
             return events, total_count
             
-        except RequestError as e:
-            logger.error("Elasticsearch query error", error=str(e))
-            raise
         except Exception as e:
-            logger.error("Unexpected error during query", error=str(e))
+            logger.error(f"Error querying DShield events: {str(e)}")
             raise
 
+    async def execute_aggregation_query(
+        self,
+        index: List[str],
+        query: Dict[str, Any],
+        aggregation_query: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Execute an aggregation query against Elasticsearch."""
+        
+        if not self.client:
+            await self.connect()
+        
+        try:
+            # Build the complete search body
+            search_body = {
+                "query": query,
+                **aggregation_query
+            }
+            
+            # Execute search with aggregations
+            response = await self.client.search(
+                index=",".join(index),
+                body=search_body
+            )
+            
+            logger.info(f"Executed aggregation query on {len(index)} indices")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error executing aggregation query: {str(e)}")
+            raise
+    
     async def query_dshield_attacks(
         self,
         time_range_hours: int = 24,
