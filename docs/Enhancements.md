@@ -117,13 +117,32 @@ query_dshield_events(
     fallback_strategy="aggregate"  # fall back to aggregations
 )
 '''
-## 7. Template/Preset Queries
-Pre-built queries for common analysis patterns
-'''python
-get_ssh_brute_force_analysis(time_range_hours=24)
-get_port_scan_analysis(source_ip="1.2.3.4")
-get_campaign_analysis(indicators=["ssh_key", "malware_hash"])
-'''
+## 7. Query Performance Metrics (Done)
+Track and return detailed query performance metrics for all queries.
+
+**Status:** ✅ Complete as of 2025-07-05
+
+**Implementation:** See [docs/performance_metrics.md](performance_metrics.md)
+
+**Key Features:**
+- Tracks query time, indices scanned, documents examined, query complexity, optimizations applied, and more
+- Metrics included in `pagination_metadata` and aggregation responses
+- Works for all query types: simple, complex, paginated, cursor-based, and aggregation
+- Enables visibility into backend performance and optimization effectiveness
+
+**Example Response:**
+```json
+{
+  "pagination_metadata": { ... },
+  "performance_metrics": {
+    "query_time_ms": 1234,
+    "optimization_applied": ["pagination", "field_reduction"],
+    "indices_scanned": 5,
+    "total_documents_examined": 10000,
+    "query_complexity": "complex"
+  }
+}
+```
 ## 8. Enhanced Export Options
 # Different output formats
 '''python
