@@ -47,19 +47,19 @@ class ElasticsearchClient:
 
         # DShield specific field mappings
         self.dshield_field_mappings = {
-            'timestamp': ['@timestamp', 'timestamp', 'time', 'date'],
-            'source_ip': ['source.ip', 'src_ip', 'srcip', 'sourceip', 'attacker_ip', 'attackerip'],
-            'destination_ip': ['destination.ip', 'dst_ip', 'dstip', 'destinationip', 'target_ip', 'targetip'],
-            'source_port': ['source.port', 'src_port', 'srcport', 'sourceport', 'attacker_port'],
-            'destination_port': ['destination.port', 'dst_port', 'dstport', 'destinationport', 'target_port'],
-            'protocol': ['network.protocol', 'protocol', 'proto', 'transport_protocol'],
-            'event_type': ['event.type', 'event_type', 'type', 'attack_type', 'dshield_type'],
-            'severity': ['event.severity', 'severity', 'level', 'risk_level', 'threat_level'],
+            'timestamp': ['@timestamp', 'timestamp', 'time', 'date', 'event.ingested'],
+            'source_ip': ['source.ip', 'src_ip', 'srcip', 'sourceip', 'attacker_ip', 'attackerip', 'src', 'client_ip', 'ip.src', 'ip_source'],
+            'destination_ip': ['destination.ip', 'dst_ip', 'dstip', 'destinationip', 'target_ip', 'targetip', 'dst', 'server_ip', 'ip.dst', 'ip_destination'],
+            'source_port': ['source.port', 'src_port', 'srcport', 'sourceport', 'attacker_port', 'sport', 'client_port', 'port.src', 'port_source'],
+            'destination_port': ['destination.port', 'dst_port', 'dstport', 'destinationport', 'target_port', 'dport', 'server_port', 'port.dst', 'port_destination'],
+            'protocol': ['network.protocol', 'protocol', 'proto', 'transport_protocol', 'event.protocol', 'ip.proto'],
+            'event_type': ['event.type', 'event_type', 'type', 'attack_type', 'dshield_type', 'event.kind', 'event.outcome'],
+            'severity': ['event.severity', 'severity', 'level', 'risk_level', 'threat_level', 'event.level'],
             'category': ['event.category', 'event_category', 'category', 'attack_category'],
-            'description': ['event.description', 'message', 'description', 'summary', 'attack_description'],
-            'country': ['geoip.country_name', 'country', 'country_name', 'attacker_country'],
-            'asn': ['asn', 'as_number', 'autonomous_system', 'attacker_asn'],
-            'organization': ['org', 'organization', 'org_name', 'attacker_org'],
+            'description': ['event.description', 'message', 'description', 'summary', 'attack_description', 'event.original'],
+            'country': ['geoip.country_name', 'country', 'country_name', 'attacker_country', 'source.geo.country_name'],
+            'asn': ['asn', 'as_number', 'autonomous_system', 'attacker_asn', 'source.geo.asn'],
+            'organization': ['org', 'organization', 'org_name', 'attacker_org', 'source.geo.organization_name'],
             'reputation_score': ['reputation', 'reputation_score', 'dshield_score', 'threat_score'],
             'attack_count': ['count', 'attack_count', 'hits', 'attempts'],
             'first_seen': ['firstseen', 'first_seen', 'first_seen_date'],
@@ -143,9 +143,11 @@ class ElasticsearchClient:
         time_range_hours: int = 24,
         indices: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
-        size: int = 1000
-    ) -> List[Dict[str, Any]]:
-        """Query DShield events from Elasticsearch."""
+        page: int = 1,
+        page_size: int = 100,
+        include_summary: bool = True
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """Query DShield events from Elasticsearch with pagination support."""
         
         if not self.client:
             await self.connect()
@@ -167,16 +169,23 @@ class ElasticsearchClient:
         # Build DShield-specific query
         query = self._build_dshield_query(start_time, end_time, filters)
         
+        # Calculate pagination
+        from_index = (page - 1) * page_size
+        actual_size = min(page_size, self.max_results)
+        
         logger.info("Querying DShield events",
                    indices=indices,
                    time_range_hours=time_range_hours,
-                   size=size)
+                   page=page,
+                   page_size=actual_size,
+                   from_index=from_index)
         
         try:
             response = await self.client.search(
                 index=indices,
                 body=query,
-                size=min(size, self.max_results),
+                size=actual_size,
+                from_=from_index,
                 timeout=f"{self.timeout}s"
             )
             
@@ -186,11 +195,15 @@ class ElasticsearchClient:
                 if event:
                     events.append(event)
             
-            logger.info("DShield events query completed",
-                       total_hits=response['hits']['total']['value'],
-                       returned_events=len(events))
+            total_count = response['hits']['total']['value']
             
-            return events
+            logger.info("DShield events query completed",
+                       total_hits=total_count,
+                       returned_events=len(events),
+                       page=page,
+                       page_size=actual_size)
+            
+            return events, total_count
             
         except RequestError as e:
             logger.error("Elasticsearch query error", error=str(e))
@@ -198,20 +211,89 @@ class ElasticsearchClient:
         except Exception as e:
             logger.error("Unexpected error during query", error=str(e))
             raise
-    
+
     async def query_dshield_attacks(
         self,
         time_range_hours: int = 24,
-        size: int = 1000
-    ) -> List[Dict[str, Any]]:
-        """Query DShield attack data specifically."""
+        page: int = 1,
+        page_size: int = 100,
+        include_summary: bool = True
+    ) -> tuple[List[Dict[str, Any]], int]:
+        """Query DShield attack events with pagination support."""
         
-        return await self.query_dshield_events(
-            time_range_hours=time_range_hours,
-            indices=["dshield-attacks-*", "dshield-*"],
-            filters={"event.category": "attack"},
-            size=size
-        )
+        if not self.client:
+            await self.connect()
+        
+        # Calculate time range
+        end_time = datetime.utcnow()
+        start_time = end_time - timedelta(hours=time_range_hours)
+        
+        # Build attack-specific query
+        query = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "range": {
+                                "@timestamp": {
+                                    "gte": start_time.isoformat(),
+                                    "lte": end_time.isoformat()
+                                }
+                            }
+                        }
+                    ],
+                    "filter": [
+                        {"exists": {"field": "source.ip"}},
+                        {"exists": {"field": "destination.ip"}}
+                    ]
+                }
+            },
+            "sort": [
+                {"@timestamp": {"order": "desc"}}
+            ]
+        }
+        
+        # Calculate pagination
+        from_index = (page - 1) * page_size
+        actual_size = min(page_size, self.max_results)
+        
+        logger.info("Querying DShield attacks",
+                   time_range_hours=time_range_hours,
+                   page=page,
+                   page_size=actual_size,
+                   from_index=from_index)
+        
+        try:
+            response = await self.client.search(
+                index=["dshield-attacks-*", "dshield-*"],
+                body=query,
+                size=actual_size,
+                from_=from_index,
+                timeout=f"{self.timeout}s"
+            )
+            
+            attacks = []
+            for hit in response['hits']['hits']:
+                attack = self._parse_dshield_event(hit, ["dshield-attacks-*", "dshield-*"])
+                if attack:
+                    attacks.append(attack)
+            
+            total_count = response['hits']['total']['value']
+            
+            logger.info("DShield attacks query completed",
+                       total_hits=total_count,
+                       returned_attacks=len(attacks),
+                       page=page,
+                       page_size=actual_size)
+            
+            return attacks, total_count
+            
+        except RequestError as e:
+            logger.error("Elasticsearch attack query error", error=str(e))
+            raise
+        except Exception as e:
+            logger.error("Unexpected error during attack query", error=str(e))
+            raise
     
     async def query_dshield_reputation(
         self,
@@ -473,6 +555,7 @@ class ElasticsearchClient:
         """Parse Elasticsearch hit into DShield event."""
         try:
             source = hit['_source']
+            self.log_unmapped_fields(source)
             
             # Extract timestamp using DShield field mappings
             timestamp = self._extract_field_mapped(source, 'timestamp')
@@ -547,14 +630,27 @@ class ElasticsearchClient:
             return None
     
     def _extract_field_mapped(self, source: Dict[str, Any], field_type: str, default: Any = None) -> Any:
-        """Extract field value using DShield field mappings."""
+        """Extract field value using DShield field mappings. Logs unmapped fields for review."""
+        mapped = False
         if field_type in self.dshield_field_mappings:
             field_names = self.dshield_field_mappings[field_type]
             for field in field_names:
                 value = source.get(field)
                 if value is not None:
+                    mapped = True
                     return value
+        if not mapped:
+            logger.debug(f"Field type '{field_type}' not mapped in document.", available_fields=list(source.keys()))
         return default
+
+    def log_unmapped_fields(self, source: Dict[str, Any]):
+        """Log any fields in the source document that are not mapped to any known field type."""
+        mapped_fields = set()
+        for field_list in self.dshield_field_mappings.values():
+            mapped_fields.update(field_list)
+        unmapped = [f for f in source.keys() if f not in mapped_fields]
+        if unmapped:
+            logger.info("Unmapped fields detected in document", unmapped_fields=unmapped)
     
     def _compile_geo_stats(self, geo_data: List[Dict[str, Any]]) -> Dict[str, int]:
         """Compile geographic statistics from geo data."""
@@ -574,12 +670,32 @@ class ElasticsearchClient:
         size: int = 1000
     ) -> List[Dict[str, Any]]:
         """Backward compatibility method - redirects to query_dshield_events."""
-        return await self.query_dshield_events(
+        events, _ = await self.query_dshield_events(
             time_range_hours=time_range_hours,
             indices=indices,
             filters=filters,
-            size=size
+            page_size=size
         )
+        return events
+
+    def _generate_pagination_info(self, page: int, page_size: int, total_count: int) -> Dict[str, Any]:
+        """Generate pagination information for response."""
+        total_pages = (total_count + page_size - 1) // page_size
+        has_next = page < total_pages
+        has_previous = page > 1
+        
+        return {
+            "current_page": page,
+            "page_size": page_size,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "has_next": has_next,
+            "has_previous": has_previous,
+            "next_page": page + 1 if has_next else None,
+            "previous_page": page - 1 if has_previous else None,
+            "start_index": (page - 1) * page_size + 1,
+            "end_index": min(page * page_size, total_count)
+        }
     
     async def get_index_mapping(self, index_pattern: str) -> Dict[str, Any]:
         """Get mapping for an index pattern."""

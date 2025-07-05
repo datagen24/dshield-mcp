@@ -69,7 +69,7 @@ class DShieldMCPServer:
             return [
                 {
                     "name": "query_dshield_events",
-                    "description": "Query DShield events from Elasticsearch SIEM",
+                    "description": "Query DShield events from Elasticsearch SIEM with pagination support",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -85,13 +85,25 @@ class DShieldMCPServer:
                             "filters": {
                                 "type": "object",
                                 "description": "Additional query filters"
+                            },
+                            "page": {
+                                "type": "integer",
+                                "description": "Page number for pagination (default: 1)"
+                            },
+                            "page_size": {
+                                "type": "integer",
+                                "description": "Number of results per page (default: 100, max: 1000)"
+                            },
+                            "include_summary": {
+                                "type": "boolean",
+                                "description": "Include summary statistics with results (default: true)"
                             }
                         }
                     }
                 },
                 {
                     "name": "query_dshield_attacks",
-                    "description": "Query DShield attack data specifically",
+                    "description": "Query DShield attack data specifically with pagination",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -99,9 +111,17 @@ class DShieldMCPServer:
                                 "type": "integer",
                                 "description": "Time range in hours to query (default: 24)"
                             },
-                            "size": {
+                            "page": {
                                 "type": "integer",
-                                "description": "Maximum number of results (default: 1000)"
+                                "description": "Page number for pagination (default: 1)"
+                            },
+                            "page_size": {
+                                "type": "integer",
+                                "description": "Number of results per page (default: 100, max: 1000)"
+                            },
+                            "include_summary": {
+                                "type": "boolean",
+                                "description": "Include summary statistics with results (default: true)"
                             }
                         }
                     }
@@ -406,24 +426,53 @@ class DShieldMCPServer:
         time_range_hours = arguments.get("time_range_hours", 24)
         indices = arguments.get("indices")
         filters = arguments.get("filters", {})
+        page = arguments.get("page", 1)
+        page_size = arguments.get("page_size", 100)
+        include_summary = arguments.get("include_summary", True)
         
         logger.info("Querying DShield events", 
                    time_range_hours=time_range_hours, 
-                   indices=indices)
+                   indices=indices, 
+                   page=page, 
+                   page_size=page_size, 
+                   include_summary=include_summary)
         
         try:
-            events = await self.elastic_client.query_dshield_events(
+            events, total_count = await self.elastic_client.query_dshield_events(
                 time_range_hours=time_range_hours,
                 indices=indices,
-                filters=filters
+                filters=filters,
+                page=page,
+                page_size=page_size,
+                include_summary=include_summary
             )
             
             processed_events = self.data_processor.process_security_events(events)
             
+            # Generate pagination info
+            pagination_info = self.elastic_client._generate_pagination_info(page, page_size, total_count)
+            
+            response_text = f"Found {total_count} DShield events in the last {time_range_hours} hours.\n"
+            response_text += f"Showing page {page} of {pagination_info['total_pages']} (results {pagination_info['start_index']}-{pagination_info['end_index']}).\n\n"
+            
+            if include_summary and processed_events:
+                # Add summary information
+                summary = self.data_processor.generate_security_summary(processed_events)
+                response_text += f"Page Summary:\n"
+                response_text += f"- Events on this page: {len(processed_events)}\n"
+                response_text += f"- High risk events: {summary.get('high_risk_events', 0)}\n"
+                response_text += f"- Unique source IPs: {len(summary.get('unique_source_ips', []))}\n"
+                response_text += f"- Attack patterns: {list(summary.get('attack_patterns', {}).keys())}\n\n"
+            
+            response_text += "Event Details:\n" + json.dumps(processed_events, indent=2, default=str)
+            
+            # Add pagination info to response
+            if pagination_info['has_next'] or pagination_info['has_previous']:
+                response_text += f"\n\nPagination Info:\n" + json.dumps(pagination_info, indent=2)
+            
             return [{
                 "type": "text",
-                "text": f"Found {len(processed_events)} DShield events in the last {time_range_hours} hours:\n\n" + 
-                       json.dumps(processed_events, indent=2, default=str)
+                "text": response_text
             }]
         except Exception as e:
             logger.error("Failed to query DShield events", error=str(e))
@@ -435,22 +484,55 @@ class DShieldMCPServer:
     async def _query_dshield_attacks(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield attack data specifically."""
         time_range_hours = arguments.get("time_range_hours", 24)
-        size = arguments.get("size", 1000)
+        page = arguments.get("page", 1)
+        page_size = arguments.get("page_size", 100)
+        include_summary = arguments.get("include_summary", True)
         
         logger.info("Querying DShield attacks", 
                    time_range_hours=time_range_hours, 
-                   size=size)
+                   page=page, 
+                   page_size=page_size, 
+                   include_summary=include_summary)
         
-        attacks = await self.elastic_client.query_dshield_attacks(
-            time_range_hours=time_range_hours,
-            size=size
-        )
-        
-        return [{
-            "type": "text",
-            "text": f"Found {len(attacks)} DShield attacks in the last {time_range_hours} hours:\n\n" + 
-                   json.dumps(attacks, indent=2, default=str)
-        }]
+        try:
+            attacks, total_count = await self.elastic_client.query_dshield_attacks(
+                time_range_hours=time_range_hours,
+                page=page,
+                page_size=page_size,
+                include_summary=include_summary
+            )
+            
+            # Generate pagination info
+            pagination_info = self.elastic_client._generate_pagination_info(page, page_size, total_count)
+            
+            response_text = f"Found {total_count} DShield attacks in the last {time_range_hours} hours.\n"
+            response_text += f"Showing page {page} of {pagination_info['total_pages']} (results {pagination_info['start_index']}-{pagination_info['end_index']}).\n\n"
+            
+            if include_summary and attacks:
+                # Add summary information
+                summary = self.data_processor.generate_security_summary(attacks)
+                response_text += f"Page Summary:\n"
+                response_text += f"- Attacks on this page: {len(attacks)}\n"
+                response_text += f"- High risk attacks: {summary.get('high_risk_events', 0)}\n"
+                response_text += f"- Unique attacker IPs: {len(summary.get('unique_source_ips', []))}\n"
+                response_text += f"- Attack patterns: {list(summary.get('attack_patterns', {}).keys())}\n\n"
+            
+            response_text += "Attack Details:\n" + json.dumps(attacks, indent=2, default=str)
+            
+            # Add pagination info to response
+            if pagination_info['has_next'] or pagination_info['has_previous']:
+                response_text += f"\n\nPagination Info:\n" + json.dumps(pagination_info, indent=2)
+            
+            return [{
+                "type": "text",
+                "text": response_text
+            }]
+        except Exception as e:
+            logger.error("Failed to query DShield attacks", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error querying DShield attacks: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
+            }]
     
     async def _query_dshield_reputation(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield reputation data."""
