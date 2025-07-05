@@ -194,6 +194,17 @@ python config.py
 deactivate
 ```
 
+## 📚 Documentation
+
+For comprehensive documentation, see the [docs/](docs/) folder:
+
+- **[Documentation Index](docs/README.md)** - Complete documentation overview
+- **[Usage Guide](docs/USAGE.md)** - Detailed usage examples and API reference
+- **[Changelog](docs/CHANGELOG.md)** - Version history and changes
+- **[Release Notes](docs/RELEASE_NOTES_v1.0.md)** - Current release information
+- **[Enhancements](docs/Enhancements.md)** - Planned features and roadmap
+- **[Implementation Guides](docs/)** - Technical implementation details
+
 ## Development Setup
 
 For development work, install additional development dependencies:
