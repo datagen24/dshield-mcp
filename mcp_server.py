@@ -69,7 +69,7 @@ class DShieldMCPServer:
             return [
                 {
                     "name": "query_dshield_events",
-                    "description": "Query DShield events from Elasticsearch SIEM with pagination support",
+                    "description": "Query DShield events from Elasticsearch SIEM with enhanced pagination support",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -118,6 +118,19 @@ class DShieldMCPServer:
                             "page_size": {
                                 "type": "integer",
                                 "description": "Number of results per page (default: 100, max: 1000)"
+                            },
+                            "sort_by": {
+                                "type": "string",
+                                "description": "Field to sort by (default: '@timestamp')"
+                            },
+                            "sort_order": {
+                                "type": "string",
+                                "enum": ["asc", "desc"],
+                                "description": "Sort order (default: 'desc')"
+                            },
+                            "cursor": {
+                                "type": "string",
+                                "description": "Cursor token for cursor-based pagination (better for large datasets)"
                             },
                             "include_summary": {
                                 "type": "boolean",
@@ -568,6 +581,9 @@ class DShieldMCPServer:
         fields = arguments.get("fields")
         page = arguments.get("page", 1)
         page_size = arguments.get("page_size", 100)
+        sort_by = arguments.get("sort_by", "@timestamp")
+        sort_order = arguments.get("sort_order", "desc")
+        cursor = arguments.get("cursor")
         include_summary = arguments.get("include_summary", True)
         
         logger.info("Querying DShield events", 
@@ -617,38 +633,49 @@ class DShieldMCPServer:
                 filters = time_filters
             
             # Query events with pagination and field selection
-            events, total_count = await self.elastic_client.query_dshield_events(
+            events, total_count, pagination_info = await self.elastic_client.query_dshield_events(
                 time_range_hours=time_range_hours,
                 indices=indices,
                 filters=filters,
                 fields=fields,
                 page=page,
                 page_size=page_size,
+                sort_by=sort_by,
+                sort_order=sort_order,
+                cursor=cursor,
                 include_summary=include_summary
             )
             
             if not events:
                 return [{
                     "type": "text",
-                    "text": f"No DShield events found for the specified criteria.\n\nQuery Parameters:\n- Time Range: {start_time.isoformat()} to {end_time.isoformat()}\n- Page: {page}\n- Page Size: {page_size}\n- Fields: {fields or 'All'}\n- Filters: {filters}"
+                    "text": f"No DShield events found for the specified criteria.\n\nQuery Parameters:\n- Time Range: {start_time.isoformat()} to {end_time.isoformat()}\n- Page: {page}\n- Page Size: {page_size}\n- Sort: {sort_by} {sort_order}\n- Fields: {fields or 'All'}\n- Filters: {filters}"
                 }]
             
-            # Generate pagination info
-            pagination_info = self.elastic_client._generate_pagination_info(page, page_size, total_count)
-            
-            # Format response
-            response_text = f"DShield Events (Page {page} of {pagination_info['total_pages']}):\n\n"
-            response_text += f"Total Events: {total_count}\n"
+            # Format response with enhanced pagination info
+            response_text = f"DShield Events (Page {pagination_info['page_number']} of {pagination_info['total_pages']}):\n\n"
+            response_text += f"Total Events: {pagination_info['total_available']:,}\n"
             response_text += f"Events on this page: {len(events)}\n"
-            response_text += f"Page Size: {page_size}\n\n"
+            response_text += f"Page Size: {pagination_info['page_size']}\n"
+            response_text += f"Sort: {pagination_info['sort_by']} {pagination_info['sort_order']}\n\n"
             
+            # Enhanced navigation information
             if pagination_info['has_previous'] or pagination_info['has_next']:
                 response_text += "Navigation:\n"
                 if pagination_info['has_previous']:
-                    response_text += f"- Previous: page {pagination_info['previous_page']}\n"
+                    if 'previous_page' in pagination_info:
+                        response_text += f"- Previous: page {pagination_info['previous_page']}\n"
+                    if 'cursor' in pagination_info and not cursor:
+                        response_text += f"- Previous cursor: {pagination_info['cursor']}\n"
                 if pagination_info['has_next']:
-                    response_text += f"- Next: page {pagination_info['next_page']}\n"
+                    if 'next_page' in pagination_info:
+                        response_text += f"- Next: page {pagination_info['next_page']}\n"
+                    if 'next_page_token' in pagination_info:
+                        response_text += f"- Next cursor: {pagination_info['next_page_token']}\n"
                 response_text += "\n"
+            
+            # Add pagination metadata for programmatic access
+            response_text += f"Pagination Metadata:\n{json.dumps(pagination_info, indent=2)}\n\n"
             
             # Add events
             response_text += "Events:\n" + json.dumps(events, indent=2, default=str)
