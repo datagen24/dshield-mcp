@@ -179,11 +179,11 @@ python examples/basic_usage.py
 # Data dictionary usage example
 python examples/data_dictionary_usage.py
 
-# Test installation
-python test_installation.py
+# Test installation (in dev_tools folder)
+cd dev_tools && python test_installation.py
 
-# Test data dictionary functionality
-python test_data_dictionary.py
+# Test data dictionary functionality (in dev_tools folder)
+cd dev_tools && python test_data_dictionary.py
 
 # Configure settings
 python config.py
@@ -193,6 +193,17 @@ python config.py
 ```bash
 deactivate
 ```
+
+## 📚 Documentation
+
+For comprehensive documentation, see the [docs/](docs/) folder:
+
+- **[Documentation Index](docs/README.md)** - Complete documentation overview
+- **[Usage Guide](docs/USAGE.md)** - Detailed usage examples and API reference
+- **[Changelog](docs/CHANGELOG.md)** - Version history and changes
+- **[Release Notes](docs/RELEASE_NOTES_v1.0.md)** - Current release information
+- **[Enhancements](docs/Enhancements.md)** - Planned features and roadmap
+- **[Implementation Guides](docs/)** - Technical implementation details
 
 ## Development Setup
 
@@ -215,6 +226,28 @@ pip install -r requirements-dev.txt
 - **Linting**: `flake8`
 - **Type Checking**: `mypy`
 - **Documentation**: `sphinx`
+
+### Development Scripts
+
+Development and testing scripts are located in the `dev_tools/` folder:
+
+```bash
+# Navigate to development tools
+cd dev_tools
+
+# Run core functionality tests
+python test_mcp_server.py
+python test_installation.py
+
+# Run feature tests
+python test_enhanced_features.py
+python test_streaming.py
+
+# Debug tools
+python debug_elasticsearch.py
+```
+
+**Note**: The `dev_tools/` folder is excluded from releases and contains scripts for development and debugging purposes only. See `dev_tools/README.md` for detailed documentation.
 
 ## Configuration
 
@@ -278,8 +311,8 @@ Test your 1Password setup:
 # Activate virtual environment
 source venv/bin/activate
 
-# Test 1Password integration
-python test_op_integration.py
+# Test 1Password integration (in dev_tools folder)
+cd dev_tools && python test_op_integration.py
 ```
 
 #### Security Benefits

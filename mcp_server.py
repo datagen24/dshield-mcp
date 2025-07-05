@@ -69,13 +69,33 @@ class DShieldMCPServer:
             return [
                 {
                     "name": "query_dshield_events",
-                    "description": "Query DShield events from Elasticsearch SIEM",
+                    "description": "Query DShield events from Elasticsearch SIEM with pagination support",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
                             "time_range_hours": {
                                 "type": "integer",
                                 "description": "Time range in hours to query (default: 24)"
+                            },
+                            "time_range": {
+                                "type": "object",
+                                "description": "Exact time range with start and end timestamps",
+                                "properties": {
+                                    "start": {"type": "string", "format": "date-time"},
+                                    "end": {"type": "string", "format": "date-time"}
+                                }
+                            },
+                            "relative_time": {
+                                "type": "string",
+                                "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
+                            },
+                            "time_window": {
+                                "type": "object",
+                                "description": "Time window around a specific timestamp",
+                                "properties": {
+                                    "around": {"type": "string", "format": "date-time"},
+                                    "window_minutes": {"type": "integer"}
+                                }
                             },
                             "indices": {
                                 "type": "array",
@@ -85,13 +105,30 @@ class DShieldMCPServer:
                             "filters": {
                                 "type": "object",
                                 "description": "Additional query filters"
+                            },
+                            "fields": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Specific fields to return (reduces payload size)"
+                            },
+                            "page": {
+                                "type": "integer",
+                                "description": "Page number for pagination (default: 1)"
+                            },
+                            "page_size": {
+                                "type": "integer",
+                                "description": "Number of results per page (default: 100, max: 1000)"
+                            },
+                            "include_summary": {
+                                "type": "boolean",
+                                "description": "Include summary statistics with results (default: true)"
                             }
                         }
                     }
                 },
                 {
-                    "name": "query_dshield_attacks",
-                    "description": "Query DShield attack data specifically",
+                    "name": "query_dshield_aggregations",
+                    "description": "Get aggregated summary data without full records",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
@@ -99,9 +136,124 @@ class DShieldMCPServer:
                                 "type": "integer",
                                 "description": "Time range in hours to query (default: 24)"
                             },
-                            "size": {
+                            "time_range": {
+                                "type": "object",
+                                "description": "Exact time range with start and end timestamps",
+                                "properties": {
+                                    "start": {"type": "string", "format": "date-time"},
+                                    "end": {"type": "string", "format": "date-time"}
+                                }
+                            },
+                            "relative_time": {
+                                "type": "string",
+                                "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
+                            },
+                            "group_by": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Fields to group by (e.g., ['source_ip', 'destination_port'])"
+                            },
+                            "metrics": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Metrics to calculate (e.g., ['count', 'unique_sessions', 'avg_duration'])"
+                            },
+                            "filters": {
+                                "type": "object",
+                                "description": "Additional query filters"
+                            },
+                            "top_n": {
                                 "type": "integer",
-                                "description": "Maximum number of results (default: 1000)"
+                                "description": "Number of top results to return (default: 50)"
+                            },
+                            "sort_by": {
+                                "type": "string",
+                                "description": "Field to sort by (default: 'count')"
+                            },
+                            "sort_order": {
+                                "type": "string",
+                                "enum": ["asc", "desc"],
+                                "description": "Sort order (default: 'desc')"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "stream_dshield_events",
+                    "description": "Stream DShield events for very large datasets with chunked processing",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "time_range_hours": {
+                                "type": "integer",
+                                "description": "Time range in hours to query (default: 24)"
+                            },
+                            "time_range": {
+                                "type": "object",
+                                "description": "Exact time range with start and end timestamps",
+                                "properties": {
+                                    "start": {"type": "string", "format": "date-time"},
+                                    "end": {"type": "string", "format": "date-time"}
+                                }
+                            },
+                            "relative_time": {
+                                "type": "string",
+                                "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
+                            },
+                            "indices": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "DShield Elasticsearch indices to query"
+                            },
+                            "filters": {
+                                "type": "object",
+                                "description": "Additional query filters"
+                            },
+                            "fields": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Specific fields to return (reduces payload size)"
+                            },
+                            "chunk_size": {
+                                "type": "integer",
+                                "description": "Number of events per chunk (default: 500, max: 1000)"
+                            },
+                            "max_chunks": {
+                                "type": "integer",
+                                "description": "Maximum number of chunks to return (default: 20)"
+                            },
+                            "include_summary": {
+                                "type": "boolean",
+                                "description": "Include summary statistics with results (default: true)"
+                            },
+                            "stream_id": {
+                                "type": "string",
+                                "description": "Optional stream ID for resuming interrupted streams"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "query_dshield_attacks",
+                    "description": "Query DShield attack data specifically with pagination",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "time_range_hours": {
+                                "type": "integer",
+                                "description": "Time range in hours to query (default: 24)"
+                            },
+                            "page": {
+                                "type": "integer",
+                                "description": "Page number for pagination (default: 1)"
+                            },
+                            "page_size": {
+                                "type": "integer",
+                                "description": "Number of results per page (default: 100, max: 1000)"
+                            },
+                            "include_summary": {
+                                "type": "boolean",
+                                "description": "Include summary statistics with results (default: true)"
                             }
                         }
                     }
@@ -287,6 +439,10 @@ class DShieldMCPServer:
             try:
                 if name == "query_dshield_events":
                     return await self._query_dshield_events(arguments)
+                elif name == "query_dshield_aggregations":
+                    return await self._query_dshield_aggregations(arguments)
+                elif name == "stream_dshield_events":
+                    return await self._stream_dshield_events(arguments)
                 elif name == "query_dshield_attacks":
                     return await self._query_dshield_attacks(arguments)
                 elif name == "query_dshield_reputation":
@@ -404,26 +560,102 @@ class DShieldMCPServer:
     async def _query_dshield_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield events from Elasticsearch."""
         time_range_hours = arguments.get("time_range_hours", 24)
+        time_range = arguments.get("time_range")
+        relative_time = arguments.get("relative_time")
+        time_window = arguments.get("time_window")
         indices = arguments.get("indices")
         filters = arguments.get("filters", {})
+        fields = arguments.get("fields")
+        page = arguments.get("page", 1)
+        page_size = arguments.get("page_size", 100)
+        include_summary = arguments.get("include_summary", True)
         
         logger.info("Querying DShield events", 
                    time_range_hours=time_range_hours, 
-                   indices=indices)
+                   indices=indices, 
+                   fields=fields,
+                   page=page, 
+                   page_size=page_size, 
+                   include_summary=include_summary)
         
         try:
-            events = await self.elastic_client.query_dshield_events(
+            # Determine time range based on arguments
+            if time_range:
+                start_time = datetime.fromisoformat(time_range["start"])
+                end_time = datetime.fromisoformat(time_range["end"])
+            elif relative_time:
+                time_delta = {"last_6_hours": timedelta(hours=6),
+                              "last_24_hours": timedelta(hours=24),
+                              "last_7_days": timedelta(days=7)}
+                if relative_time in time_delta:
+                    start_time = datetime.now() - time_delta[relative_time]
+                    end_time = datetime.now()
+                else:
+                    raise ValueError(f"Unsupported relative_time: {relative_time}")
+            elif time_window:
+                center_time = datetime.fromisoformat(time_window["around"])
+                window_minutes = time_window.get("window_minutes", 30)
+                half_window = timedelta(minutes=window_minutes // 2)
+                start_time = center_time - half_window
+                end_time = center_time + half_window
+            else:
+                start_time = datetime.now() - timedelta(hours=time_range_hours)
+                end_time = datetime.now()
+            
+            # Add time range to filters
+            time_filters = {
+                "@timestamp": {
+                    "gte": start_time.isoformat(),
+                    "lte": end_time.isoformat()
+                }
+            }
+            
+            # Merge time filters with existing filters
+            if filters:
+                filters.update(time_filters)
+            else:
+                filters = time_filters
+            
+            # Query events with pagination and field selection
+            events, total_count = await self.elastic_client.query_dshield_events(
                 time_range_hours=time_range_hours,
                 indices=indices,
-                filters=filters
+                filters=filters,
+                fields=fields,
+                page=page,
+                page_size=page_size,
+                include_summary=include_summary
             )
             
-            processed_events = self.data_processor.process_security_events(events)
+            if not events:
+                return [{
+                    "type": "text",
+                    "text": f"No DShield events found for the specified criteria.\n\nQuery Parameters:\n- Time Range: {start_time.isoformat()} to {end_time.isoformat()}\n- Page: {page}\n- Page Size: {page_size}\n- Fields: {fields or 'All'}\n- Filters: {filters}"
+                }]
+            
+            # Generate pagination info
+            pagination_info = self.elastic_client._generate_pagination_info(page, page_size, total_count)
+            
+            # Format response
+            response_text = f"DShield Events (Page {page} of {pagination_info['total_pages']}):\n\n"
+            response_text += f"Total Events: {total_count}\n"
+            response_text += f"Events on this page: {len(events)}\n"
+            response_text += f"Page Size: {page_size}\n\n"
+            
+            if pagination_info['has_previous'] or pagination_info['has_next']:
+                response_text += "Navigation:\n"
+                if pagination_info['has_previous']:
+                    response_text += f"- Previous: page {pagination_info['previous_page']}\n"
+                if pagination_info['has_next']:
+                    response_text += f"- Next: page {pagination_info['next_page']}\n"
+                response_text += "\n"
+            
+            # Add events
+            response_text += "Events:\n" + json.dumps(events, indent=2, default=str)
             
             return [{
                 "type": "text",
-                "text": f"Found {len(processed_events)} DShield events in the last {time_range_hours} hours:\n\n" + 
-                       json.dumps(processed_events, indent=2, default=str)
+                "text": response_text
             }]
         except Exception as e:
             logger.error("Failed to query DShield events", error=str(e))
@@ -432,25 +664,315 @@ class DShieldMCPServer:
                 "text": f"Error querying DShield events: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
             }]
     
+    async def _query_dshield_aggregations(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get aggregated summary data without full records."""
+        time_range_hours = arguments.get("time_range_hours", 24)
+        time_range = arguments.get("time_range")
+        relative_time = arguments.get("relative_time")
+        group_by = arguments.get("group_by", [])
+        metrics = arguments.get("metrics", ["count"])
+        filters = arguments.get("filters", {})
+        top_n = arguments.get("top_n", 50)
+        sort_by = arguments.get("sort_by", "count")
+        sort_order = arguments.get("sort_order", "desc")
+
+        logger.info("Querying DShield aggregations",
+                   time_range_hours=time_range_hours,
+                   group_by=group_by,
+                   metrics=metrics,
+                   top_n=top_n,
+                   sort_by=sort_by,
+                   sort_order=sort_order)
+
+        try:
+            # Determine time range based on arguments
+            if time_range:
+                start_time = datetime.fromisoformat(time_range["start"])
+                end_time = datetime.fromisoformat(time_range["end"])
+            elif relative_time:
+                time_delta = {"last_6_hours": timedelta(hours=6),
+                              "last_24_hours": timedelta(hours=24),
+                              "last_7_days": timedelta(days=7)}
+                if relative_time in time_delta:
+                    start_time = datetime.now() - time_delta[relative_time]
+                    end_time = datetime.now()
+                else:
+                    raise ValueError(f"Unsupported relative_time: {relative_time}")
+            elif time_range_hours:
+                start_time = datetime.now() - timedelta(hours=time_range_hours)
+                end_time = datetime.now()
+            else:
+                raise ValueError("Time range not specified")
+
+            # Add time range filters to the main query
+            filters["@timestamp"] = {
+                "gte": start_time.isoformat(),
+                "lte": end_time.isoformat()
+            }
+
+            # Add filters from arguments
+            for key, value in filters.items():
+                if isinstance(value, dict):
+                    # Handle nested filters (e.g., "source_ip": {"eq": "1.2.3.4"})
+                    for sub_key, sub_value in value.items():
+                        filters[f"{key}.{sub_key}"] = sub_value
+                    del filters[key] # Remove original nested filter
+
+            # Construct the aggregation query
+            aggregation_query = {
+                "size": 0, # We only want aggregation results, not documents
+                "aggs": {
+                    "group_by_agg": {
+                        "terms": {
+                            "field": group_by,
+                            "size": top_n
+                        },
+                        "aggs": {
+                            "metrics_agg": {
+                                "sum": {"field": "bytes_sent"},
+                                "avg": {"field": "duration"},
+                                "count": {"value": 1}
+                            }
+                        }
+                    }
+                }
+            }
+
+            # Add sort if specified
+            if sort_by:
+                aggregation_query["aggs"]["group_by_agg"]["terms"]["order"] = {sort_by: {"order": sort_order}}
+
+            # Execute the aggregation query
+            aggregation_results = await self.elastic_client.execute_aggregation_query(
+                index=indices,
+                query=filters,
+                aggregation_query=aggregation_query
+            )
+
+            # Process aggregation results
+            processed_aggregations = {}
+            for bucket in aggregation_results.get("aggregations", {}).get("group_by_agg", {}).get("buckets", []):
+                key = bucket["key"]
+                metrics_data = bucket["metrics_agg"]
+                processed_aggregations[key] = {
+                    "count": metrics_data.get("count", 0),
+                    "sum_bytes_sent": metrics_data.get("sum_bytes_sent", 0),
+                    "avg_duration": metrics_data.get("avg_duration", 0)
+                }
+
+            # Add summary information
+            summary = {
+                "total_count": aggregation_results.get("hits", {}).get("total", {}).get("value", 0),
+                "total_bytes_sent": aggregation_results.get("aggregations", {}).get("group_by_agg", {}).get("sum_of_sum_bytes_sent", 0),
+                "avg_duration": aggregation_results.get("aggregations", {}).get("group_by_agg", {}).get("avg_of_avg_duration", 0)
+            }
+
+            response_text = f"DShield Aggregated Statistics (Last {time_range_hours} hours):\n\n"
+            response_text += f"- Total Events: {summary['total_count']}\n"
+            response_text += f"- Total Bytes Sent: {summary['total_bytes_sent']}\n"
+            response_text += f"- Average Duration: {summary['avg_duration']}\n\n"
+
+            response_text += "Detailed Aggregations:\n" + json.dumps(processed_aggregations, indent=2, default=str)
+
+            return [{
+                "type": "text",
+                "text": response_text
+            }]
+        except Exception as e:
+            logger.error("Failed to query DShield aggregations", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error querying DShield aggregations: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
+            }]
+    
+    async def _stream_dshield_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Stream DShield events for very large datasets with chunked processing."""
+        time_range_hours = arguments.get("time_range_hours", 24)
+        time_range = arguments.get("time_range")
+        relative_time = arguments.get("relative_time")
+        indices = arguments.get("indices")
+        filters = arguments.get("filters", {})
+        fields = arguments.get("fields")
+        chunk_size = arguments.get("chunk_size", 500)
+        max_chunks = arguments.get("max_chunks", 20)
+        include_summary = arguments.get("include_summary", True)
+        stream_id = arguments.get("stream_id")
+
+        logger.info("Streaming DShield events",
+                   time_range_hours=time_range_hours,
+                   indices=indices,
+                   fields=fields,
+                   chunk_size=chunk_size,
+                   max_chunks=max_chunks,
+                   include_summary=include_summary,
+                   stream_id=stream_id)
+
+        try:
+            # Determine time range based on arguments
+            if time_range:
+                start_time = datetime.fromisoformat(time_range["start"])
+                end_time = datetime.fromisoformat(time_range["end"])
+            elif relative_time:
+                time_delta = {"last_6_hours": timedelta(hours=6),
+                              "last_24_hours": timedelta(hours=24),
+                              "last_7_days": timedelta(days=7)}
+                if relative_time in time_delta:
+                    start_time = datetime.now() - time_delta[relative_time]
+                    end_time = datetime.now()
+                else:
+                    raise ValueError(f"Unsupported relative_time: {relative_time}")
+            else:
+                start_time = datetime.now() - timedelta(hours=time_range_hours)
+                end_time = datetime.now()
+
+            # Add time range to filters
+            time_filters = {
+                "@timestamp": {
+                    "gte": start_time.isoformat(),
+                    "lte": end_time.isoformat()
+                }
+            }
+            if filters:
+                filters.update(time_filters)
+            else:
+                filters = time_filters
+
+            # Initialize stream state
+            stream_state = {
+                "current_chunk_index": 0,
+                "total_events_processed": 0,
+                "last_event_id": None
+            }
+
+            # Collect all chunks into a single response
+            all_chunks = []
+            current_stream_id = stream_id
+
+            # Fetch events in chunks
+            for chunk_index in range(max_chunks):
+                logger.info(f"Fetching chunk {chunk_index + 1}/{max_chunks}",
+                           start_time=start_time.isoformat(),
+                           end_time=end_time.isoformat(),
+                           chunk_size=chunk_size,
+                           stream_id=current_stream_id)
+
+                events, total_count, last_event_id = await self.elastic_client.stream_dshield_events(
+                    time_range_hours=time_range_hours,
+                    indices=indices,
+                    filters=filters,
+                    fields=fields,
+                    chunk_size=chunk_size,
+                    stream_id=current_stream_id
+                )
+
+                if not events:
+                    logger.info(f"No more events in chunk {chunk_index + 1}. Ending stream.")
+                    break
+
+                # Update stream state
+                stream_state["current_chunk_index"] = chunk_index + 1
+                stream_state["total_events_processed"] += len(events)
+                stream_state["last_event_id"] = last_event_id
+
+                # Create chunk summary
+                chunk_summary = {
+                    "chunk_index": chunk_index + 1,
+                    "events_count": len(events),
+                    "total_count": total_count,
+                    "stream_id": last_event_id,
+                    "events": events
+                }
+
+                all_chunks.append(chunk_summary)
+
+                # Update stream_id for next chunk
+                current_stream_id = last_event_id
+
+                # If we've reached the end, break
+                if not last_event_id:
+                    break
+
+            # Create comprehensive response
+            response_text = f"DShield Event Streaming Results:\n\n"
+            response_text += f"Time Range: {start_time.isoformat()} to {end_time.isoformat()}\n"
+            response_text += f"Total Chunks Processed: {stream_state['current_chunk_index']}\n"
+            response_text += f"Total Events Processed: {stream_state['total_events_processed']}\n"
+            response_text += f"Chunk Size: {chunk_size}\n"
+            response_text += f"Max Chunks: {max_chunks}\n"
+            response_text += f"Final Stream ID: {stream_state['last_event_id']}\n\n"
+
+            if include_summary:
+                response_text += "Stream Summary:\n"
+                response_text += f"- Chunks returned: {len(all_chunks)}\n"
+                response_text += f"- Events per chunk: {[chunk['events_count'] for chunk in all_chunks]}\n"
+                response_text += f"- Stream IDs: {[chunk['stream_id'] for chunk in all_chunks if chunk['stream_id']]}\n\n"
+
+            response_text += "Chunk Details:\n" + json.dumps(all_chunks, indent=2, default=str)
+
+            return [{
+                "type": "text",
+                "text": response_text
+            }]
+
+        except Exception as e:
+            logger.error("Failed to stream DShield events", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error streaming DShield events: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
+            }]
+    
     async def _query_dshield_attacks(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield attack data specifically."""
         time_range_hours = arguments.get("time_range_hours", 24)
-        size = arguments.get("size", 1000)
+        page = arguments.get("page", 1)
+        page_size = arguments.get("page_size", 100)
+        include_summary = arguments.get("include_summary", True)
         
         logger.info("Querying DShield attacks", 
                    time_range_hours=time_range_hours, 
-                   size=size)
+                   page=page, 
+                   page_size=page_size, 
+                   include_summary=include_summary)
         
-        attacks = await self.elastic_client.query_dshield_attacks(
-            time_range_hours=time_range_hours,
-            size=size
-        )
-        
-        return [{
-            "type": "text",
-            "text": f"Found {len(attacks)} DShield attacks in the last {time_range_hours} hours:\n\n" + 
-                   json.dumps(attacks, indent=2, default=str)
-        }]
+        try:
+            attacks, total_count = await self.elastic_client.query_dshield_attacks(
+                time_range_hours=time_range_hours,
+                page=page,
+                page_size=page_size,
+                include_summary=include_summary
+            )
+            
+            # Generate pagination info
+            pagination_info = self.elastic_client._generate_pagination_info(page, page_size, total_count)
+            
+            response_text = f"Found {total_count} DShield attacks in the last {time_range_hours} hours.\n"
+            response_text += f"Showing page {page} of {pagination_info['total_pages']} (results {pagination_info['start_index']}-{pagination_info['end_index']}).\n\n"
+            
+            if include_summary and attacks:
+                # Add summary information
+                summary = self.data_processor.generate_security_summary(attacks)
+                response_text += f"Page Summary:\n"
+                response_text += f"- Attacks on this page: {len(attacks)}\n"
+                response_text += f"- High risk attacks: {summary.get('high_risk_events', 0)}\n"
+                response_text += f"- Unique attacker IPs: {len(summary.get('unique_source_ips', []))}\n"
+                response_text += f"- Attack patterns: {list(summary.get('attack_patterns', {}).keys())}\n\n"
+            
+            response_text += "Attack Details:\n" + json.dumps(attacks, indent=2, default=str)
+            
+            # Add pagination info to response
+            if pagination_info['has_next'] or pagination_info['has_previous']:
+                response_text += f"\n\nPagination Info:\n" + json.dumps(pagination_info, indent=2)
+            
+            return [{
+                "type": "text",
+                "text": response_text
+            }]
+        except Exception as e:
+            logger.error("Failed to query DShield attacks", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error querying DShield attacks: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
+            }]
     
     async def _query_dshield_reputation(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield reputation data."""
