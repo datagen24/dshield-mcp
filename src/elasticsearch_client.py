@@ -146,9 +146,16 @@ class ElasticsearchClient:
         fields: Optional[List[str]] = None,
         page: int = 1,
         page_size: int = 100,
-        include_summary: bool = True
-    ) -> tuple[List[Dict[str, Any]], int]:
-        """Query DShield events from Elasticsearch with pagination support and field selection."""
+        include_summary: bool = True,
+        sort_by: str = "@timestamp",
+        sort_order: str = "desc",
+        cursor: Optional[str] = None
+    ) -> tuple[List[Dict[str, Any]], int, Dict[str, Any]]:
+        """Query DShield events from Elasticsearch with enhanced pagination support.
+        
+        Supports both traditional page-based pagination and cursor-based pagination
+        for better performance with massive datasets.
+        """
         
         if not self.client:
             await self.connect()
@@ -198,10 +205,9 @@ class ElasticsearchClient:
                     # Simple term match
                     query["bool"]["must"].append({"term": {key: value}})
         
-        # Build search body
+        # Build search body with enhanced pagination
         search_body = {
             "query": query,
-            "from_": (page - 1) * page_size,
             "size": min(page_size, 1000)  # Limit max page size
         }
         
@@ -209,8 +215,22 @@ class ElasticsearchClient:
         if fields:
             search_body["_source"] = fields
         
-        # Add sorting by timestamp
-        search_body["sort"] = [{"@timestamp": {"order": "desc"}}]
+        # Enhanced sorting - use only the primary sort field
+        # Cursor-based pagination will handle consistency through search_after
+        search_body["sort"] = [{sort_by: {"order": sort_order}}]
+        
+        # Handle pagination method
+        if cursor:
+            # Cursor-based pagination (search_after) - better for large datasets
+            try:
+                # Parse cursor: single field value (timestamp)
+                search_body["search_after"] = [cursor]
+            except (ValueError, AttributeError):
+                # Fallback to page-based if cursor format is invalid
+                search_body["from_"] = (page - 1) * page_size
+        else:
+            # Traditional page-based pagination
+            search_body["from_"] = (page - 1) * page_size
         
         try:
             # Execute search
@@ -226,15 +246,43 @@ class ElasticsearchClient:
             
             # Parse events
             events = []
+            next_cursor = None
+            
             for doc in documents:
                 event = self._parse_dshield_event(doc, indices)
                 if event:
                     events.append(event)
             
-            logger.info(f"Retrieved {len(events)} events from {len(indices)} indices", 
-                       total_count=total_count, page=page, page_size=page_size)
+            # Generate next cursor for cursor-based pagination
+            if documents and cursor:
+                last_hit = documents[-1]
+                sort_values = last_hit.get("sort", [])
+                if len(sort_values) >= 1:
+                    # Create cursor from sort values (single field now)
+                    next_cursor = f"{sort_values[0]}"
+                else:
+                    # Fallback: use timestamp from the last document
+                    last_source = last_hit.get("_source", {})
+                    timestamp = last_source.get("@timestamp")
+                    if timestamp:
+                        next_cursor = f"{timestamp}"
             
-            return events, total_count
+            # Generate enhanced pagination info
+            pagination_info = self._generate_enhanced_pagination_info(
+                page=page,
+                page_size=page_size,
+                total_count=total_count,
+                cursor=cursor,
+                next_cursor=next_cursor,
+                sort_by=sort_by,
+                sort_order=sort_order
+            )
+            
+            logger.info(f"Retrieved {len(events)} events from {len(indices)} indices", 
+                       total_count=total_count, page=page, page_size=page_size,
+                       pagination_method="cursor" if cursor else "page")
+            
+            return events, total_count, pagination_info
             
         except Exception as e:
             logger.error(f"Error querying DShield events: {str(e)}")
@@ -877,6 +925,56 @@ class ElasticsearchClient:
             "start_index": (page - 1) * page_size + 1,
             "end_index": min(page * page_size, total_count)
         }
+    
+    def _generate_enhanced_pagination_info(
+        self, 
+        page: int, 
+        page_size: int, 
+        total_count: int,
+        cursor: Optional[str] = None,
+        next_cursor: Optional[str] = None,
+        sort_by: str = "@timestamp",
+        sort_order: str = "desc"
+    ) -> Dict[str, Any]:
+        """Generate enhanced pagination information for response.
+        
+        Provides comprehensive pagination details including cursor tokens,
+        total available count, and sorting information for massive datasets.
+        """
+        total_pages = (total_count + page_size - 1) // page_size
+        has_next = page < total_pages or next_cursor is not None
+        has_previous = page > 1 or cursor is not None
+        
+        pagination_info = {
+            "page_size": page_size,
+            "page_number": page,
+            "total_results": total_count,
+            "total_available": total_count,  # For consistency with critical needs
+            "has_more": has_next,
+            "total_pages": total_pages,
+            "has_previous": has_previous,
+            "has_next": has_next,
+            "start_index": (page - 1) * page_size + 1,
+            "end_index": min(page * page_size, total_count),
+            "sort_by": sort_by,
+            "sort_order": sort_order
+        }
+        
+        # Add cursor information for cursor-based pagination
+        if cursor:
+            pagination_info["cursor"] = cursor
+        if next_cursor:
+            pagination_info["next_page_token"] = next_cursor
+            pagination_info["cursor"] = next_cursor
+        
+        # Add page navigation for traditional pagination
+        if not cursor:
+            if has_next:
+                pagination_info["next_page"] = page + 1
+            if has_previous:
+                pagination_info["previous_page"] = page - 1
+        
+        return pagination_info
     
     async def get_index_mapping(self, index_pattern: str) -> Dict[str, Any]:
         """Get mapping for an index pattern."""
