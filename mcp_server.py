@@ -132,6 +132,24 @@ class DShieldMCPServer:
                                 "type": "string",
                                 "description": "Cursor token for cursor-based pagination (better for large datasets)"
                             },
+                            "optimization": {
+                                "type": "string",
+                                "enum": ["auto", "none"],
+                                "description": "Smart query optimization mode (default: 'auto')"
+                            },
+                            "fallback_strategy": {
+                                "type": "string",
+                                "enum": ["aggregate", "sample", "error"],
+                                "description": "Fallback strategy when optimization fails (default: 'aggregate')"
+                            },
+                            "max_result_size_mb": {
+                                "type": "number",
+                                "description": "Maximum result size in MB before optimization (default: 10.0)"
+                            },
+                            "query_timeout_seconds": {
+                                "type": "integer",
+                                "description": "Query timeout in seconds (default: 30)"
+                            },
                             "include_summary": {
                                 "type": "boolean",
                                 "description": "Include summary statistics with results (default: true)"
@@ -585,6 +603,10 @@ class DShieldMCPServer:
         sort_order = arguments.get("sort_order", "desc")
         cursor = arguments.get("cursor")
         include_summary = arguments.get("include_summary", True)
+        optimization = arguments.get("optimization", "auto")
+        fallback_strategy = arguments.get("fallback_strategy", "aggregate")
+        max_result_size_mb = arguments.get("max_result_size_mb", 10.0)
+        query_timeout_seconds = arguments.get("query_timeout_seconds", 30)
         
         logger.info("Querying DShield events", 
                    time_range_hours=time_range_hours, 
@@ -592,7 +614,11 @@ class DShieldMCPServer:
                    fields=fields,
                    page=page, 
                    page_size=page_size, 
-                   include_summary=include_summary)
+                   include_summary=include_summary,
+                   optimization=optimization,
+                   fallback_strategy=fallback_strategy,
+                   max_result_size_mb=max_result_size_mb,
+                   query_timeout_seconds=query_timeout_seconds)
         
         try:
             # Determine time range based on arguments
@@ -643,7 +669,11 @@ class DShieldMCPServer:
                 sort_by=sort_by,
                 sort_order=sort_order,
                 cursor=cursor,
-                include_summary=include_summary
+                include_summary=include_summary,
+                optimization=optimization,
+                fallback_strategy=fallback_strategy,
+                max_result_size_mb=max_result_size_mb,
+                query_timeout_seconds=query_timeout_seconds
             )
             
             if not events:
