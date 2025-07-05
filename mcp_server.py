@@ -179,6 +179,61 @@ class DShieldMCPServer:
                     }
                 },
                 {
+                    "name": "stream_dshield_events",
+                    "description": "Stream DShield events for very large datasets with chunked processing",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "time_range_hours": {
+                                "type": "integer",
+                                "description": "Time range in hours to query (default: 24)"
+                            },
+                            "time_range": {
+                                "type": "object",
+                                "description": "Exact time range with start and end timestamps",
+                                "properties": {
+                                    "start": {"type": "string", "format": "date-time"},
+                                    "end": {"type": "string", "format": "date-time"}
+                                }
+                            },
+                            "relative_time": {
+                                "type": "string",
+                                "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
+                            },
+                            "indices": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "DShield Elasticsearch indices to query"
+                            },
+                            "filters": {
+                                "type": "object",
+                                "description": "Additional query filters"
+                            },
+                            "fields": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Specific fields to return (reduces payload size)"
+                            },
+                            "chunk_size": {
+                                "type": "integer",
+                                "description": "Number of events per chunk (default: 500, max: 1000)"
+                            },
+                            "max_chunks": {
+                                "type": "integer",
+                                "description": "Maximum number of chunks to return (default: 20)"
+                            },
+                            "include_summary": {
+                                "type": "boolean",
+                                "description": "Include summary statistics with results (default: true)"
+                            },
+                            "stream_id": {
+                                "type": "string",
+                                "description": "Optional stream ID for resuming interrupted streams"
+                            }
+                        }
+                    }
+                },
+                {
                     "name": "query_dshield_attacks",
                     "description": "Query DShield attack data specifically with pagination",
                     "inputSchema": {
@@ -386,6 +441,8 @@ class DShieldMCPServer:
                     return await self._query_dshield_events(arguments)
                 elif name == "query_dshield_aggregations":
                     return await self._query_dshield_aggregations(arguments)
+                elif name == "stream_dshield_events":
+                    return await self._stream_dshield_events(arguments)
                 elif name == "query_dshield_attacks":
                     return await self._query_dshield_attacks(arguments)
                 elif name == "query_dshield_reputation":
@@ -726,6 +783,142 @@ class DShieldMCPServer:
             return [{
                 "type": "text",
                 "text": f"Error querying DShield aggregations: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
+            }]
+    
+    async def _stream_dshield_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Stream DShield events for very large datasets with chunked processing."""
+        time_range_hours = arguments.get("time_range_hours", 24)
+        time_range = arguments.get("time_range")
+        relative_time = arguments.get("relative_time")
+        indices = arguments.get("indices")
+        filters = arguments.get("filters", {})
+        fields = arguments.get("fields")
+        chunk_size = arguments.get("chunk_size", 500)
+        max_chunks = arguments.get("max_chunks", 20)
+        include_summary = arguments.get("include_summary", True)
+        stream_id = arguments.get("stream_id")
+
+        logger.info("Streaming DShield events",
+                   time_range_hours=time_range_hours,
+                   indices=indices,
+                   fields=fields,
+                   chunk_size=chunk_size,
+                   max_chunks=max_chunks,
+                   include_summary=include_summary,
+                   stream_id=stream_id)
+
+        try:
+            # Determine time range based on arguments
+            if time_range:
+                start_time = datetime.fromisoformat(time_range["start"])
+                end_time = datetime.fromisoformat(time_range["end"])
+            elif relative_time:
+                time_delta = {"last_6_hours": timedelta(hours=6),
+                              "last_24_hours": timedelta(hours=24),
+                              "last_7_days": timedelta(days=7)}
+                if relative_time in time_delta:
+                    start_time = datetime.now() - time_delta[relative_time]
+                    end_time = datetime.now()
+                else:
+                    raise ValueError(f"Unsupported relative_time: {relative_time}")
+            else:
+                start_time = datetime.now() - timedelta(hours=time_range_hours)
+                end_time = datetime.now()
+
+            # Add time range to filters
+            time_filters = {
+                "@timestamp": {
+                    "gte": start_time.isoformat(),
+                    "lte": end_time.isoformat()
+                }
+            }
+            if filters:
+                filters.update(time_filters)
+            else:
+                filters = time_filters
+
+            # Initialize stream state
+            stream_state = {
+                "current_chunk_index": 0,
+                "total_events_processed": 0,
+                "last_event_id": None
+            }
+
+            # Collect all chunks into a single response
+            all_chunks = []
+            current_stream_id = stream_id
+
+            # Fetch events in chunks
+            for chunk_index in range(max_chunks):
+                logger.info(f"Fetching chunk {chunk_index + 1}/{max_chunks}",
+                           start_time=start_time.isoformat(),
+                           end_time=end_time.isoformat(),
+                           chunk_size=chunk_size,
+                           stream_id=current_stream_id)
+
+                events, total_count, last_event_id = await self.elastic_client.stream_dshield_events(
+                    time_range_hours=time_range_hours,
+                    indices=indices,
+                    filters=filters,
+                    fields=fields,
+                    chunk_size=chunk_size,
+                    stream_id=current_stream_id
+                )
+
+                if not events:
+                    logger.info(f"No more events in chunk {chunk_index + 1}. Ending stream.")
+                    break
+
+                # Update stream state
+                stream_state["current_chunk_index"] = chunk_index + 1
+                stream_state["total_events_processed"] += len(events)
+                stream_state["last_event_id"] = last_event_id
+
+                # Create chunk summary
+                chunk_summary = {
+                    "chunk_index": chunk_index + 1,
+                    "events_count": len(events),
+                    "total_count": total_count,
+                    "stream_id": last_event_id,
+                    "events": events
+                }
+
+                all_chunks.append(chunk_summary)
+
+                # Update stream_id for next chunk
+                current_stream_id = last_event_id
+
+                # If we've reached the end, break
+                if not last_event_id:
+                    break
+
+            # Create comprehensive response
+            response_text = f"DShield Event Streaming Results:\n\n"
+            response_text += f"Time Range: {start_time.isoformat()} to {end_time.isoformat()}\n"
+            response_text += f"Total Chunks Processed: {stream_state['current_chunk_index']}\n"
+            response_text += f"Total Events Processed: {stream_state['total_events_processed']}\n"
+            response_text += f"Chunk Size: {chunk_size}\n"
+            response_text += f"Max Chunks: {max_chunks}\n"
+            response_text += f"Final Stream ID: {stream_state['last_event_id']}\n\n"
+
+            if include_summary:
+                response_text += "Stream Summary:\n"
+                response_text += f"- Chunks returned: {len(all_chunks)}\n"
+                response_text += f"- Events per chunk: {[chunk['events_count'] for chunk in all_chunks]}\n"
+                response_text += f"- Stream IDs: {[chunk['stream_id'] for chunk in all_chunks if chunk['stream_id']]}\n\n"
+
+            response_text += "Chunk Details:\n" + json.dumps(all_chunks, indent=2, default=str)
+
+            return [{
+                "type": "text",
+                "text": response_text
+            }]
+
+        except Exception as e:
+            logger.error("Failed to stream DShield events", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error streaming DShield events: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
             }]
     
     async def _query_dshield_attacks(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:

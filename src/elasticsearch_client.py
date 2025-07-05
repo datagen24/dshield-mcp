@@ -271,6 +271,127 @@ class ElasticsearchClient:
         except Exception as e:
             logger.error(f"Error executing aggregation query: {str(e)}")
             raise
+
+    async def stream_dshield_events(
+        self,
+        time_range_hours: int = 24,
+        indices: Optional[List[str]] = None,
+        filters: Optional[Dict[str, Any]] = None,
+        fields: Optional[List[str]] = None,
+        chunk_size: int = 500,
+        stream_id: Optional[str] = None
+    ) -> tuple[List[Dict[str, Any]], int, Optional[str]]:
+        """Stream DShield events with cursor-based pagination for large datasets."""
+        
+        if not self.client:
+            await self.connect()
+        
+        # Use DShield indices if available, otherwise fallback
+        if indices is None:
+            available_indices = await self.get_available_indices()
+            if available_indices:
+                indices = available_indices
+            else:
+                indices = self.fallback_indices
+        
+        # Build query with time range
+        query = {
+            "bool": {
+                "must": [
+                    {
+                        "range": {
+                            "@timestamp": {
+                                "gte": f"now-{time_range_hours}h",
+                                "lte": "now"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+        
+        # Add additional filters
+        if filters:
+            for key, value in filters.items():
+                if key == "@timestamp":
+                    # Handle custom timestamp filtering
+                    query["bool"]["must"].append({"range": {"@timestamp": value}})
+                elif isinstance(value, dict):
+                    # Handle nested filters
+                    for sub_key, sub_value in value.items():
+                        if sub_key == "eq":
+                            query["bool"]["must"].append({"term": {key: sub_value}})
+                        elif sub_key == "in":
+                            query["bool"]["must"].append({"terms": {key: sub_value}})
+                        elif sub_key == "gte":
+                            query["bool"]["must"].append({"range": {key: {"gte": sub_value}}})
+                        elif sub_key == "lte":
+                            query["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
+                else:
+                    # Simple term match
+                    query["bool"]["must"].append({"term": {key: value}})
+        
+        # Build search body with cursor-based pagination
+        search_body = {
+            "query": query,
+            "size": min(chunk_size, 1000),  # Limit max chunk size
+            "sort": [
+                {"@timestamp": {"order": "desc"}},
+                {"_id": {"order": "desc"}}  # Secondary sort for consistent pagination
+            ]
+        }
+        
+        # Add field selection if specified
+        if fields:
+            search_body["_source"] = fields
+        
+        # Add search_after for cursor-based pagination
+        if stream_id:
+            # Parse the stream_id to get the search_after values
+            try:
+                # stream_id format: "timestamp_sort_value|_id_sort_value"
+                timestamp_val, id_val = stream_id.split("|")
+                search_body["search_after"] = [timestamp_val, id_val]
+            except (ValueError, AttributeError):
+                logger.warning(f"Invalid stream_id format: {stream_id}. Starting from beginning.")
+        
+        try:
+            # Execute search
+            response = await self.client.search(
+                index=",".join(indices),
+                body=search_body
+            )
+            
+            # Extract results
+            hits = response.get("hits", {})
+            total_count = hits.get("total", {}).get("value", 0)
+            documents = hits.get("hits", [])
+            
+            # Parse events
+            events = []
+            last_event_id = None
+            
+            for doc in documents:
+                event = self._parse_dshield_event(doc, indices)
+                if event:
+                    events.append(event)
+            
+            # Generate next stream_id for cursor-based pagination
+            if documents:
+                last_hit = documents[-1]
+                sort_values = last_hit.get("sort", [])
+                if len(sort_values) >= 2:
+                    # Create stream_id from sort values
+                    last_event_id = f"{sort_values[0]}|{sort_values[1]}"
+            
+            logger.info(f"Streamed {len(events)} events from {len(indices)} indices", 
+                       total_count=total_count, chunk_size=chunk_size, stream_id=stream_id)
+            
+            return events, total_count, last_event_id
+            
+        except Exception as e:
+            logger.error(f"Error streaming DShield events: {str(e)}")
+            raise
     
     async def query_dshield_attacks(
         self,
