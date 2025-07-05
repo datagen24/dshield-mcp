@@ -7,7 +7,7 @@ import asyncio
 import json
 import os
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
 from urllib.parse import urlparse
 
 import structlog
@@ -146,11 +146,15 @@ class ElasticsearchClient:
         fields: Optional[List[str]] = None,
         page: int = 1,
         page_size: int = 100,
-        include_summary: bool = True,
         sort_by: str = "@timestamp",
         sort_order: str = "desc",
-        cursor: Optional[str] = None
-    ) -> tuple[List[Dict[str, Any]], int, Dict[str, Any]]:
+        cursor: Optional[str] = None,
+        include_summary: bool = True,
+        optimization: str = "auto",
+        fallback_strategy: str = "aggregate",
+        max_result_size_mb: float = 10.0,
+        query_timeout_seconds: int = 30
+    ) -> Tuple[List[Dict[str, Any]], int, Dict[str, Any]]:
         """Query DShield events from Elasticsearch with enhanced pagination support.
         
         Supports both traditional page-based pagination and cursor-based pagination
@@ -168,20 +172,73 @@ class ElasticsearchClient:
             else:
                 indices = self.fallback_indices
         
-        # Build query with time range
-        query = {
-            "bool": {
-                "must": [
-                    {
-                        "range": {
-                            "@timestamp": {
-                                "gte": f"now-{time_range_hours}h",
-                                "lte": "now"
+        # Smart Query Optimization
+        optimization_applied = None
+        original_page_size = page_size
+        original_fields = fields
+        
+        if optimization == "auto":
+            # Step 1: Estimate result size
+            estimated_size_mb = await self._estimate_query_size(
+                time_range_hours, indices, filters, fields, page_size
+            )
+            
+            logger.info(f"Estimated query size: {estimated_size_mb:.2f} MB")
+            
+            # Step 2: Apply optimizations if needed
+            if estimated_size_mb > max_result_size_mb:
+                logger.warning(f"Estimated size ({estimated_size_mb:.2f} MB) exceeds limit ({max_result_size_mb} MB)")
+                
+                # Try field reduction first
+                if fields and len(fields) > 3:
+                    reduced_fields = self._optimize_fields(fields)
+                    fields = reduced_fields
+                    optimization_applied = "field_reduction"
+                    logger.info(f"Applied field reduction: {reduced_fields}")
+                    
+                    # Re-estimate with reduced fields
+                    estimated_size_mb = await self._estimate_query_size(
+                        time_range_hours, indices, filters, fields, page_size
+                    )
+                
+                # Try page size reduction if still too large
+                if estimated_size_mb > max_result_size_mb and page_size > 10:
+                    original_page_size = page_size
+                    page_size = max(10, int(page_size * 0.5))
+                    optimization_applied = f"{optimization_applied}_page_reduction" if optimization_applied else "page_reduction"
+                    logger.info(f"Applied page size reduction: {page_size}")
+                    
+                    # Re-estimate with reduced page size
+                    estimated_size_mb = await self._estimate_query_size(
+                        time_range_hours, indices, filters, fields, page_size
+                    )
+                
+                # If still too large, apply fallback strategy
+                if estimated_size_mb > max_result_size_mb:
+                    logger.warning(f"Query still too large after optimizations, applying fallback: {fallback_strategy}")
+                    return await self._apply_fallback_strategy(
+                        fallback_strategy, time_range_hours, indices, filters, 
+                        sort_by, sort_order, optimization_applied
+                    )
+        
+        # Build search query with timeout
+        search_body = {
+            "timeout": f"{query_timeout_seconds}s",
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "range": {
+                                "@timestamp": {
+                                    "gte": f"now-{time_range_hours}h",
+                                    "lte": "now"
+                                }
                             }
                         }
-                    }
-                ]
-            }
+                    ]
+                }
+            },
+            "size": page_size
         }
         
         # Add additional filters
@@ -189,34 +246,23 @@ class ElasticsearchClient:
             for key, value in filters.items():
                 if key == "@timestamp":
                     # Handle custom timestamp filtering
-                    query["bool"]["must"].append({"range": {"@timestamp": value}})
+                    search_body["query"]["bool"]["must"].append({"range": {"@timestamp": value}})
                 elif isinstance(value, dict):
                     # Handle nested filters (e.g., "source_ip": {"eq": "1.2.3.4"})
                     for sub_key, sub_value in value.items():
                         if sub_key == "eq":
-                            query["bool"]["must"].append({"term": {key: sub_value}})
+                            search_body["query"]["bool"]["must"].append({"term": {key: sub_value}})
                         elif sub_key == "in":
-                            query["bool"]["must"].append({"terms": {key: sub_value}})
+                            search_body["query"]["bool"]["must"].append({"terms": {key: sub_value}})
                         elif sub_key == "gte":
-                            query["bool"]["must"].append({"range": {key: {"gte": sub_value}}})
+                            search_body["query"]["bool"]["must"].append({"range": {key: {"gte": sub_value}}})
                         elif sub_key == "lte":
-                            query["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
+                            search_body["query"]["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
                 else:
                     # Simple term match
-                    query["bool"]["must"].append({"term": {key: value}})
+                    search_body["query"]["bool"]["must"].append({"term": {key: value}})
         
         # Build search body with enhanced pagination
-        search_body = {
-            "query": query,
-            "size": min(page_size, 1000)  # Limit max page size
-        }
-        
-        # Add field selection if specified
-        if fields:
-            search_body["_source"] = fields
-        
-        # Enhanced sorting - use only the primary sort field
-        # Cursor-based pagination will handle consistency through search_after
         search_body["sort"] = [{sort_by: {"order": sort_order}}]
         
         # Handle pagination method
@@ -287,6 +333,333 @@ class ElasticsearchClient:
         except Exception as e:
             logger.error(f"Error querying DShield events: {str(e)}")
             raise
+
+    async def _estimate_query_size(
+        self, 
+        time_range_hours: int, 
+        indices: List[str], 
+        filters: Optional[Dict[str, Any]], 
+        fields: Optional[List[str]], 
+        page_size: int
+    ) -> float:
+        """Estimate the size of query results in MB."""
+        try:
+            # Build a count query to get total documents
+            count_body = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "range": {
+                                    "@timestamp": {
+                                        "gte": f"now-{time_range_hours}h",
+                                        "lte": "now"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+            
+            # Add filters if provided
+            if filters:
+                for key, value in filters.items():
+                    if key == "@timestamp":
+                        count_body["query"]["bool"]["must"].append({"range": {"@timestamp": value}})
+                    elif isinstance(value, dict):
+                        for sub_key, sub_value in value.items():
+                            if sub_key == "eq":
+                                count_body["query"]["bool"]["must"].append({"term": {key: sub_value}})
+                            elif sub_key == "in":
+                                count_body["query"]["bool"]["must"].append({"terms": {key: sub_value}})
+                            elif sub_key == "gte":
+                                count_body["query"]["bool"]["must"].append({"range": {key: {"gte": sub_value}}})
+                            elif sub_key == "lte":
+                                count_body["query"]["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
+                    else:
+                        count_body["query"]["bool"]["must"].append({"term": {key: value}})
+            
+            # Get total count
+            count_response = await self.client.count(
+                index=",".join(indices),
+                body=count_body
+            )
+            
+            total_docs = count_response["count"]
+            
+            # Estimate size per document based on fields
+            if fields:
+                # Conservative estimate: 1KB per field per document
+                bytes_per_doc = len(fields) * 1024
+            else:
+                # Conservative estimate: 5KB per document for all fields
+                bytes_per_doc = 5 * 1024
+            
+            # Calculate total size for requested page
+            total_bytes = min(total_docs, page_size) * bytes_per_doc
+            total_mb = total_bytes / (1024 * 1024)
+            
+            return total_mb
+            
+        except Exception as e:
+            logger.warning(f"Could not estimate query size: {e}")
+            # Return conservative estimate
+            return page_size * 0.005  # 5KB per document estimate
+
+    def _optimize_fields(self, fields: List[str]) -> List[str]:
+        """Optimize field selection by keeping only essential fields."""
+        # Priority fields that are most important for analysis
+        priority_fields = [
+            "@timestamp", "source_ip", "destination_ip", "source_port", 
+            "destination_port", "event.category", "event.type", "severity"
+        ]
+        
+        # Keep priority fields first, then add others up to a reasonable limit
+        optimized = []
+        
+        # Add priority fields that are in the original list
+        for field in priority_fields:
+            if field in fields and field not in optimized:
+                optimized.append(field)
+        
+        # Add remaining fields up to a limit
+        remaining_fields = [f for f in fields if f not in optimized]
+        optimized.extend(remaining_fields[:5])  # Keep max 5 additional fields
+        
+        return optimized
+
+    async def _apply_fallback_strategy(
+        self,
+        strategy: str,
+        time_range_hours: int,
+        indices: List[str],
+        filters: Optional[Dict[str, Any]],
+        sort_by: str,
+        sort_order: str,
+        optimization_applied: Optional[str]
+    ) -> Tuple[List[Dict[str, Any]], int, Dict[str, Any]]:
+        """Apply fallback strategy when query optimization fails."""
+        
+        if strategy == "aggregate":
+            # Return aggregation results instead of individual events
+            logger.info("Applying aggregation fallback strategy")
+            
+            # Create aggregation query
+            agg_body = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "range": {
+                                    "@timestamp": {
+                                        "gte": f"now-{time_range_hours}h",
+                                        "lte": "now"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "size": 0,  # No individual documents
+                "aggs": {
+                    "top_sources": {
+                        "terms": {
+                            "field": "source_ip",
+                            "size": 50
+                        }
+                    },
+                    "top_destinations": {
+                        "terms": {
+                            "field": "destination_port",
+                            "size": 50
+                        }
+                    },
+                    "event_types": {
+                        "terms": {
+                            "field": "event.category",
+                            "size": 20
+                        }
+                    },
+                    "timeline": {
+                        "date_histogram": {
+                            "field": "@timestamp",
+                            "calendar_interval": "1h"
+                        }
+                    }
+                }
+            }
+            
+            # Add filters if provided
+            if filters:
+                for key, value in filters.items():
+                    if key == "@timestamp":
+                        agg_body["query"]["bool"]["must"].append({"range": {"@timestamp": value}})
+                    elif isinstance(value, dict):
+                        for sub_key, sub_value in value.items():
+                            if sub_key == "eq":
+                                agg_body["query"]["bool"]["must"].append({"term": {key: sub_value}})
+                            elif sub_key == "in":
+                                agg_body["query"]["bool"]["must"].append({"terms": {key: sub_value}})
+                            elif sub_key == "gte":
+                                agg_body["query"]["bool"]["must"].append({"range": {key: {"gte": sub_value}}})
+                            elif sub_key == "lte":
+                                agg_body["query"]["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
+                    else:
+                        agg_body["query"]["bool"]["must"].append({"term": {key: value}})
+            
+            response = await self.client.search(
+                index=",".join(indices),
+                body=agg_body
+            )
+            
+            # Convert aggregation results to event-like format
+            events = []
+            aggs = response.get("aggregations", {})
+            
+            # Add summary events for each aggregation
+            if "top_sources" in aggs:
+                for bucket in aggs["top_sources"]["buckets"]:
+                    events.append({
+                        "id": f"agg_source_{bucket['key']}",
+                        "timestamp": datetime.now().isoformat(),
+                        "source_ip": bucket["key"],
+                        "event_type": "aggregation",
+                        "category": ["summary", "source_analysis"],
+                        "description": f"Top source IP: {bucket['key']} with {bucket['doc_count']} events",
+                        "raw_data": {
+                            "aggregation_type": "top_sources",
+                            "doc_count": bucket["doc_count"]
+                        }
+                    })
+            
+            if "top_destinations" in aggs:
+                for bucket in aggs["top_destinations"]["buckets"]:
+                    events.append({
+                        "id": f"agg_dest_{bucket['key']}",
+                        "timestamp": datetime.now().isoformat(),
+                        "destination_port": bucket["key"],
+                        "event_type": "aggregation",
+                        "category": ["summary", "destination_analysis"],
+                        "description": f"Top destination port: {bucket['key']} with {bucket['doc_count']} events",
+                        "raw_data": {
+                            "aggregation_type": "top_destinations",
+                            "doc_count": bucket["doc_count"]
+                        }
+                    })
+            
+            # Create pagination info for aggregation results
+            pagination_info = {
+                "page_size": len(events),
+                "page_number": 1,
+                "total_results": len(events),
+                "total_available": len(events),
+                "has_more": False,
+                "total_pages": 1,
+                "has_previous": False,
+                "has_next": False,
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+                "optimization_applied": optimization_applied,
+                "fallback_strategy": strategy,
+                "note": "Results from aggregation fallback due to large dataset"
+            }
+            
+            return events, len(events), pagination_info
+            
+        elif strategy == "sample":
+            # Return a small sample of events
+            logger.info("Applying sampling fallback strategy")
+            
+            sample_body = {
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "range": {
+                                    "@timestamp": {
+                                        "gte": f"now-{time_range_hours}h",
+                                        "lte": "now"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "size": 10,  # Small sample
+                "sort": [{sort_by: {"order": sort_order}}]
+            }
+            
+            # Add filters if provided
+            if filters:
+                for key, value in filters.items():
+                    if key == "@timestamp":
+                        sample_body["query"]["bool"]["must"].append({"range": {"@timestamp": value}})
+                    elif isinstance(value, dict):
+                        for sub_key, sub_value in value.items():
+                            if sub_key == "eq":
+                                sample_body["query"]["bool"]["must"].append({"term": {key: sub_value}})
+                            elif sub_key == "in":
+                                sample_body["query"]["bool"]["must"].append({"terms": {key: sub_value}})
+                            elif sub_key == "gte":
+                                sample_body["query"]["bool"]["must"].append({"range": {key: {"gte": sub_value}}})
+                            elif sub_key == "lte":
+                                sample_body["query"]["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
+                    else:
+                        sample_body["query"]["bool"]["must"].append({"term": {key: value}})
+            
+            response = await self.client.search(
+                index=",".join(indices),
+                body=sample_body
+            )
+            
+            # Extract and process results the same way as main query
+            hits = response.get("hits", {})
+            total_count = hits.get("total", {}).get("value", 0)
+            documents = hits.get("hits", [])
+            
+            events = []
+            for doc in documents:
+                event = self._parse_dshield_event(doc, indices)
+                if event:
+                    events.append(event)
+            
+            pagination_info = {
+                "page_size": 10,
+                "page_number": 1,
+                "total_results": len(events),
+                "total_available": total_count,
+                "has_more": total_count > 10,
+                "total_pages": 1,
+                "has_previous": False,
+                "has_next": total_count > 10,
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+                "optimization_applied": optimization_applied,
+                "fallback_strategy": strategy,
+                "note": f"Sample of {len(events)} events from {total_count} total (dataset too large)"
+            }
+            
+            return events, total_count, pagination_info
+        
+        else:
+            # Default: return empty result with warning
+            logger.warning(f"Unknown fallback strategy: {strategy}")
+            return [], 0, {
+                "page_size": 0,
+                "page_number": 1,
+                "total_results": 0,
+                "total_available": 0,
+                "has_more": False,
+                "total_pages": 1,
+                "has_previous": False,
+                "has_next": False,
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+                "optimization_applied": optimization_applied,
+                "fallback_strategy": strategy,
+                "note": f"Query failed - unknown fallback strategy: {strategy}"
+            }
 
     async def execute_aggregation_query(
         self,
