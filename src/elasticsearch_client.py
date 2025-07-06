@@ -61,10 +61,10 @@ class ElasticsearchClient:
         self.dshield_field_mappings = {
             'timestamp': ['@timestamp', 'timestamp', 'time', 'date', 'event.ingested'],
             'source_ip': [
-                'source.ip', 'src_ip', 'srcip', 'sourceip', 'attacker_ip', 'attackerip', 'src', 'client_ip', 'ip.src', 'ip_source', 'source.address'
+                'source.ip', 'src_ip', 'srcip', 'sourceip', 'attacker_ip', 'attackerip', 'src', 'client_ip', 'ip.src', 'ip_source', 'source.address', 'related.ip'
             ],
             'destination_ip': [
-                'destination.ip', 'dst_ip', 'dstip', 'destinationip', 'target_ip', 'targetip', 'dst', 'server_ip', 'ip.dst', 'ip_destination', 'destination.address'
+                'destination.ip', 'dst_ip', 'dstip', 'destinationip', 'target_ip', 'targetip', 'dst', 'server_ip', 'ip.dst', 'ip_destination', 'destination.address', 'related.ip'
             ],
             'source_port': [
                 'source.port', 'src_port', 'srcport', 'sourceport', 'attacker_port', 'sport', 'client_port', 'port.src', 'port_source'
