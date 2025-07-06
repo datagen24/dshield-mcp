@@ -10,9 +10,9 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 import structlog
 
-from .campaign_analyzer import CampaignAnalyzer, Campaign, CampaignEvent, CorrelationMethod
-from .elasticsearch_client import ElasticsearchClient
-from .user_config import get_user_config
+from campaign_analyzer import CampaignAnalyzer, Campaign, CampaignEvent, CorrelationMethod
+from elasticsearch_client import ElasticsearchClient
+from user_config import get_user_config
 
 logger = structlog.get_logger(__name__)
 
@@ -451,7 +451,7 @@ class CampaignMCPTools:
         
         try:
             # Query recent events
-            recent_events, _ = await self.es_client.query_dshield_events(
+            recent_events, _, _ = await self.es_client.query_dshield_events(
                 time_range_hours=time_window_hours,
                 page_size=1000
             )

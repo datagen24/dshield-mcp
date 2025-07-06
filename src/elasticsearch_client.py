@@ -13,9 +13,9 @@ from urllib.parse import urlparse
 import structlog
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.exceptions import RequestError, TransportError
-from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
-from .config_loader import get_config, ConfigError
-from .user_config import get_user_config
+from models import SecurityEvent, ElasticsearchQuery, QueryFilter
+from config_loader import get_config, ConfigError
+from user_config import get_user_config
 
 logger = structlog.get_logger(__name__)
 
@@ -274,8 +274,11 @@ class ElasticsearchClient:
                         elif sub_key == "lte":
                             search_body["query"]["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
                 else:
-                    # Simple term match
-                    search_body["query"]["bool"]["must"].append({"term": {key: value}})
+                    # Handle arrays with terms, single values with term
+                    if isinstance(value, (list, tuple)):
+                        search_body["query"]["bool"]["must"].append({"terms": {key: value}})
+                    else:
+                        search_body["query"]["bool"]["must"].append({"term": {key: value}})
         
         # Build search body with enhanced pagination
         search_body["sort"] = [{sort_by: {"order": sort_order}}]
@@ -926,12 +929,13 @@ class ElasticsearchClient:
         if ip_addresses:
             filters["source.ip"] = ip_addresses
         
-        return await self.query_dshield_events(
+        events, _, _ = await self.query_dshield_events(
             time_range_hours=24,
             indices=["dshield-reputation-*", "dshield-*"],
             filters=filters,
-            size=size
+            page_size=size
         )
+        return events
     
     async def query_dshield_top_attackers(
         self,
@@ -940,12 +944,13 @@ class ElasticsearchClient:
     ) -> List[Dict[str, Any]]:
         """Query DShield top attackers data."""
         
-        return await self.query_dshield_events(
+        events, _, _ = await self.query_dshield_events(
             time_range_hours=hours,
             indices=["dshield-top-*", "dshield-summary-*"],
             filters={"event.type": "top_attacker"},
-            size=limit
+            page_size=limit
         )
+        return events
     
     async def query_dshield_geographic_data(
         self,
@@ -958,12 +963,13 @@ class ElasticsearchClient:
         if countries:
             filters["geoip.country_name"] = countries
         
-        return await self.query_dshield_events(
+        events, _, _ = await self.query_dshield_events(
             time_range_hours=24,
             indices=["dshield-geo-*", "dshield-*"],
             filters=filters,
-            size=size
+            page_size=size
         )
+        return events
     
     async def query_dshield_port_data(
         self,
@@ -976,12 +982,13 @@ class ElasticsearchClient:
         if ports:
             filters["destination.port"] = ports
         
-        return await self.query_dshield_events(
+        events, _, _ = await self.query_dshield_events(
             time_range_hours=24,
             indices=["dshield-ports-*", "dshield-*"],
             filters=filters,
-            size=size
+            page_size=size
         )
+        return events
     
     async def query_events_by_ip(
         self,
@@ -1048,10 +1055,10 @@ class ElasticsearchClient:
         
         try:
             # Query summary data
-            summary_events = await self.query_dshield_events(
+            summary_events, _, _ = await self.query_dshield_events(
                 time_range_hours=time_range_hours,
                 indices=["dshield-summary-*", "dshield-statistics-*"],
-                size=100
+                page_size=100
             )
             
             # Query top attackers

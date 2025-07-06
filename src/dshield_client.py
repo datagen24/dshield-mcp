@@ -14,10 +14,10 @@ import aiohttp
 import structlog
 from dotenv import load_dotenv
 
-from .models import ThreatIntelligence
-from .config_loader import get_config, ConfigError
-from .op_secrets import OnePasswordSecrets
-from .user_config import get_user_config
+from models import ThreatIntelligence
+from config_loader import get_config, ConfigError
+from op_secrets import OnePasswordSecrets
+from user_config import get_user_config
 
 # Load environment variables
 load_dotenv()
