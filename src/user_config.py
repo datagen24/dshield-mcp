@@ -93,6 +93,21 @@ class LoggingSettings:
     max_log_size_mb: int = 100
 
 
+@dataclass
+class CampaignSettings:
+    """User-configurable campaign analysis settings."""
+    correlation_window_minutes: int = 30
+    min_confidence_threshold: float = 0.7
+    max_campaign_events: int = 10000
+    enable_geospatial_correlation: bool = True
+    enable_infrastructure_correlation: bool = True
+    enable_behavioral_correlation: bool = True
+    enable_temporal_correlation: bool = True
+    enable_ip_correlation: bool = True
+    max_expansion_depth: int = 3
+    expansion_timeout_seconds: int = 300
+
+
 class UserConfigManager:
     """Manages user-configurable settings with validation and environment variable support."""
     
@@ -114,6 +129,7 @@ class UserConfigManager:
         self.performance_settings = PerformanceSettings()
         self.security_settings = SecuritySettings()
         self.logging_settings = LoggingSettings()
+        self.campaign_settings = CampaignSettings()
         
         # Load user configuration
         self._load_user_config()
@@ -208,6 +224,18 @@ class UserConfigManager:
         self.logging_settings.enable_performance_logging = os.getenv("ENABLE_PERFORMANCE_LOGGING", str(self.logging_settings.enable_performance_logging)).lower() == "true"
         self.logging_settings.log_sensitive_data = os.getenv("LOG_SENSITIVE_DATA", str(self.logging_settings.log_sensitive_data)).lower() == "true"
         self.logging_settings.max_log_size_mb = int(os.getenv("MAX_LOG_SIZE_MB", self.logging_settings.max_log_size_mb))
+        
+        # Campaign Settings
+        self.campaign_settings.correlation_window_minutes = int(os.getenv("CORRELATION_WINDOW_MINUTES", self.campaign_settings.correlation_window_minutes))
+        self.campaign_settings.min_confidence_threshold = float(os.getenv("MIN_CONFIDENCE_THRESHOLD", self.campaign_settings.min_confidence_threshold))
+        self.campaign_settings.max_campaign_events = int(os.getenv("MAX_CAMPAIGN_EVENTS", self.campaign_settings.max_campaign_events))
+        self.campaign_settings.enable_geospatial_correlation = os.getenv("ENABLE_GEOSPATIAL_CORRELATION", str(self.campaign_settings.enable_geospatial_correlation)).lower() == "true"
+        self.campaign_settings.enable_infrastructure_correlation = os.getenv("ENABLE_INFRASTRUCTURE_CORRELATION", str(self.campaign_settings.enable_infrastructure_correlation)).lower() == "true"
+        self.campaign_settings.enable_behavioral_correlation = os.getenv("ENABLE_BEHAVIORAL_CORRELATION", str(self.campaign_settings.enable_behavioral_correlation)).lower() == "true"
+        self.campaign_settings.enable_temporal_correlation = os.getenv("ENABLE_TEMPORAL_CORRELATION", str(self.campaign_settings.enable_temporal_correlation)).lower() == "true"
+        self.campaign_settings.enable_ip_correlation = os.getenv("ENABLE_IP_CORRELATION", str(self.campaign_settings.enable_ip_correlation)).lower() == "true"
+        self.campaign_settings.max_expansion_depth = int(os.getenv("MAX_EXPANSION_DEPTH", self.campaign_settings.max_expansion_depth))
+        self.campaign_settings.expansion_timeout_seconds = int(os.getenv("EXPANSION_TIMEOUT_SECONDS", self.campaign_settings.expansion_timeout_seconds))
     
     def _apply_user_config(self, user_config: Dict[str, Any]):
         """Apply user configuration file settings."""
@@ -272,6 +300,20 @@ class UserConfigManager:
             self.logging_settings.enable_performance_logging = logging_config.get("enable_performance_logging", self.logging_settings.enable_performance_logging)
             self.logging_settings.log_sensitive_data = logging_config.get("log_sensitive_data", self.logging_settings.log_sensitive_data)
             self.logging_settings.max_log_size_mb = logging_config.get("max_log_size_mb", self.logging_settings.max_log_size_mb)
+        
+        # Campaign Settings
+        if "campaign" in user_config:
+            campaign_config = user_config["campaign"]
+            self.campaign_settings.correlation_window_minutes = campaign_config.get("correlation_window_minutes", self.campaign_settings.correlation_window_minutes)
+            self.campaign_settings.min_confidence_threshold = campaign_config.get("min_confidence_threshold", self.campaign_settings.min_confidence_threshold)
+            self.campaign_settings.max_campaign_events = campaign_config.get("max_campaign_events", self.campaign_settings.max_campaign_events)
+            self.campaign_settings.enable_geospatial_correlation = campaign_config.get("enable_geospatial_correlation", self.campaign_settings.enable_geospatial_correlation)
+            self.campaign_settings.enable_infrastructure_correlation = campaign_config.get("enable_infrastructure_correlation", self.campaign_settings.enable_infrastructure_correlation)
+            self.campaign_settings.enable_behavioral_correlation = campaign_config.get("enable_behavioral_correlation", self.campaign_settings.enable_behavioral_correlation)
+            self.campaign_settings.enable_temporal_correlation = campaign_config.get("enable_temporal_correlation", self.campaign_settings.enable_temporal_correlation)
+            self.campaign_settings.enable_ip_correlation = campaign_config.get("enable_ip_correlation", self.campaign_settings.enable_ip_correlation)
+            self.campaign_settings.max_expansion_depth = campaign_config.get("max_expansion_depth", self.campaign_settings.max_expansion_depth)
+            self.campaign_settings.expansion_timeout_seconds = campaign_config.get("expansion_timeout_seconds", self.campaign_settings.expansion_timeout_seconds)
     
     def _validate_settings(self):
         """Validate all settings and log warnings for invalid values."""
@@ -321,6 +363,18 @@ class UserConfigManager:
         if self.logging_settings.max_log_size_mb <= 0:
             errors.append("max_log_size_mb must be positive")
         
+        # Campaign Settings Validation
+        if self.campaign_settings.correlation_window_minutes <= 0:
+            errors.append("correlation_window_minutes must be positive")
+        if not 0.0 <= self.campaign_settings.min_confidence_threshold <= 1.0:
+            errors.append("min_confidence_threshold must be between 0.0 and 1.0")
+        if self.campaign_settings.max_campaign_events <= 0:
+            errors.append("max_campaign_events must be positive")
+        if self.campaign_settings.max_expansion_depth <= 0:
+            errors.append("max_expansion_depth must be positive")
+        if self.campaign_settings.expansion_timeout_seconds <= 0:
+            errors.append("expansion_timeout_seconds must be positive")
+        
         # Log errors and warnings
         if errors:
             raise ValueError(f"Configuration validation errors: {'; '.join(errors)}")
@@ -337,7 +391,8 @@ class UserConfigManager:
             "streaming": self.streaming_settings,
             "performance": self.performance_settings,
             "security": self.security_settings,
-            "logging": self.logging_settings
+            "logging": self.logging_settings,
+            "campaign": self.campaign_settings
         }
         
         if category not in settings_map:
@@ -357,7 +412,8 @@ class UserConfigManager:
             "streaming": self.streaming_settings,
             "performance": self.performance_settings,
             "security": self.security_settings,
-            "logging": self.logging_settings
+            "logging": self.logging_settings,
+            "campaign": self.campaign_settings
         }
         
         if category not in settings_map:
@@ -420,6 +476,18 @@ class UserConfigManager:
                 "enable_performance_logging": self.logging_settings.enable_performance_logging,
                 "log_sensitive_data": self.logging_settings.log_sensitive_data,
                 "max_log_size_mb": self.logging_settings.max_log_size_mb
+            },
+            "campaign": {
+                "correlation_window_minutes": self.campaign_settings.correlation_window_minutes,
+                "min_confidence_threshold": self.campaign_settings.min_confidence_threshold,
+                "max_campaign_events": self.campaign_settings.max_campaign_events,
+                "enable_geospatial_correlation": self.campaign_settings.enable_geospatial_correlation,
+                "enable_infrastructure_correlation": self.campaign_settings.enable_infrastructure_correlation,
+                "enable_behavioral_correlation": self.campaign_settings.enable_behavioral_correlation,
+                "enable_temporal_correlation": self.campaign_settings.enable_temporal_correlation,
+                "enable_ip_correlation": self.campaign_settings.enable_ip_correlation,
+                "max_expansion_depth": self.campaign_settings.max_expansion_depth,
+                "expansion_timeout_seconds": self.campaign_settings.expansion_timeout_seconds
             }
         }
     
@@ -488,7 +556,19 @@ class UserConfigManager:
             "ENABLE_QUERY_LOGGING": str(self.logging_settings.enable_query_logging),
             "ENABLE_PERFORMANCE_LOGGING": str(self.logging_settings.enable_performance_logging),
             "LOG_SENSITIVE_DATA": str(self.logging_settings.log_sensitive_data),
-            "MAX_LOG_SIZE_MB": str(self.logging_settings.max_log_size_mb)
+            "MAX_LOG_SIZE_MB": str(self.logging_settings.max_log_size_mb),
+            
+            # Campaign Settings
+            "CORRELATION_WINDOW_MINUTES": str(self.campaign_settings.correlation_window_minutes),
+            "MIN_CONFIDENCE_THRESHOLD": str(self.campaign_settings.min_confidence_threshold),
+            "MAX_CAMPAIGN_EVENTS": str(self.campaign_settings.max_campaign_events),
+            "ENABLE_GEOSPATIAL_CORRELATION": str(self.campaign_settings.enable_geospatial_correlation),
+            "ENABLE_INFRASTRUCTURE_CORRELATION": str(self.campaign_settings.enable_infrastructure_correlation),
+            "ENABLE_BEHAVIORAL_CORRELATION": str(self.campaign_settings.enable_behavioral_correlation),
+            "ENABLE_TEMPORAL_CORRELATION": str(self.campaign_settings.enable_temporal_correlation),
+            "ENABLE_IP_CORRELATION": str(self.campaign_settings.enable_ip_correlation),
+            "MAX_EXPANSION_DEPTH": str(self.campaign_settings.max_expansion_depth),
+            "EXPANSION_TIMEOUT_SECONDS": str(self.campaign_settings.expansion_timeout_seconds)
         }
 
 

@@ -314,3 +314,71 @@ query_dshield_events(filters={"source.ip": "141.98.80.135"})  # ✅ 10,000 event
 - Field suggestions: ✅ (helpful alternatives)
 - Query consistency: ✅ (identical results)
 - Comprehensive mapping: ✅ (50+ field variations)
+
+## 16. Campaign Analysis (Done)
+Advanced threat hunting and investigation capabilities for coordinated attack campaigns.
+
+**Status:** ✅ Complete as of 2025-07-06
+
+**Implementation:** See [CAMPAIGN_ANALYSIS_IMPLEMENTATION.md](CAMPAIGN_ANALYSIS_IMPLEMENTATION.md)
+
+**Key Features:**
+- **Multi-Stage Correlation Engine**: 7-stage correlation pipeline (IP, infrastructure, behavioral, temporal, geospatial, signature, network)
+- **7 MCP Tools**: Complete campaign investigation toolkit
+- **Enhanced Behavioral Analysis**: Attack sequence detection, user agent patterns, payload signatures
+- **Network Correlation**: Subnet-based analysis using `ipaddress` module
+- **Campaign Data Models**: Campaign, CampaignEvent, and IndicatorRelationship classes
+- **IOC Expansion**: Multiple strategies (comprehensive, infrastructure, temporal, network)
+- **Timeline Building**: Configurable granularity with TTP analysis
+- **Campaign Comparison**: Similarity analysis and attribution
+- **Real-time Detection**: Ongoing campaign detection with configurable thresholds
+- **User Configuration Integration**: Campaign settings in configuration system
+
+**MCP Tools Implemented:**
+1. `analyze_campaign` - Core campaign analysis from seed indicators
+2. `expand_campaign_indicators` - IOC expansion with multiple strategies
+3. `get_campaign_timeline` - Detailed attack timeline building
+4. `compare_campaigns` - Campaign similarity and attribution analysis
+5. `detect_ongoing_campaigns` - Real-time campaign detection
+6. `search_campaigns` - Campaign search by criteria
+7. `get_campaign_details` - Comprehensive campaign information
+
+**Test Results:**
+- All 11 tests passing (100% success rate)
+- Multi-stage correlation: ✅
+- MCP tool integration: ✅
+- User configuration: ✅
+- Error handling: ✅
+- Performance metrics: ✅
+
+**Production Ready:**
+- Ready for live DShield SIEM integration
+- Handles enterprise-scale event volumes (10,000+ events)
+- Configurable thresholds and parameters
+- Comprehensive error handling and logging
+- Performance optimization and monitoring
+
+**Example Usage:**
+```python
+# Analyze suspicious IP campaign
+campaign = await analyze_campaign(
+    seed_indicators=["192.168.1.100"],
+    time_range_hours=168,
+    correlation_methods=["ip_correlation", "temporal_correlation", "network_correlation"],
+    min_confidence=0.7
+)
+
+# Expand campaign indicators
+expanded = await expand_campaign_indicators(
+    campaign_id="campaign_abc123",
+    expansion_depth=3,
+    expansion_strategy="comprehensive"
+)
+
+# Detect ongoing campaigns
+ongoing = await detect_ongoing_campaigns(
+    time_window_hours=24,
+    min_event_threshold=15,
+    correlation_threshold=0.8
+)
+```
