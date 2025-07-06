@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from .models import ThreatIntelligence
 from .config_loader import get_config, ConfigError
 from .op_secrets import OnePasswordSecrets
+from .user_config import get_user_config
 
 # Load environment variables
 load_dotenv()
@@ -53,6 +54,13 @@ class DShieldClient:
         # Cache for IP reputation data
         self.cache: Dict[str, Dict[str, Any]] = {}
         self.cache_ttl = int(cache_ttl)
+        
+        # Load user configuration
+        user_config = get_user_config()
+        self.enable_caching = user_config.get_setting("performance", "enable_caching")
+        self.max_cache_size = user_config.get_setting("performance", "max_cache_size")
+        self.request_timeout = user_config.get_setting("performance", "request_timeout_seconds")
+        self.enable_performance_logging = user_config.get_setting("logging", "enable_performance_logging")
         
         # Headers for API requests
         self.headers = {

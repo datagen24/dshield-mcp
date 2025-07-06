@@ -142,6 +142,10 @@ copy .env.example .env
    DSHIELD_API_URL=https://dshield.org/api
    ```
 
+### Advanced User Configuration
+
+See [docs/README.md](docs/README.md) (User Configuration Management section) for advanced settings, environment variable overrides, and runtime customization.
+
 ### Running the Application
 
 #### Activate Virtual Environment

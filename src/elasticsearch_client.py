@@ -15,6 +15,7 @@ from elasticsearch import AsyncElasticsearch
 from elasticsearch.exceptions import RequestError, TransportError
 from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
 from .config_loader import get_config, ConfigError
+from .user_config import get_user_config
 
 logger = structlog.get_logger(__name__)
 
@@ -37,6 +38,17 @@ class ElasticsearchClient:
         self.ca_certs = es_config.get("ca_certs", None)
         self.timeout = int(es_config.get("timeout", 30))
         self.max_results = int(es_config.get("max_results", 1000))
+        
+        # Load user configuration
+        user_config = get_user_config()
+        self.default_page_size = user_config.get_setting("query", "default_page_size")
+        self.max_page_size = user_config.get_setting("query", "max_page_size")
+        self.default_timeout = user_config.get_setting("query", "default_timeout_seconds")
+        self.max_timeout = user_config.get_setting("query", "max_timeout_seconds")
+        self.enable_smart_optimization = user_config.get_setting("query", "enable_smart_optimization")
+        self.fallback_strategy = user_config.get_setting("query", "fallback_strategy")
+        self.max_query_complexity = user_config.get_setting("query", "max_query_complexity")
+        self.enable_performance_logging = user_config.get_setting("logging", "enable_performance_logging")
 
         # Index patterns
         patterns = es_config.get("index_patterns", {})
@@ -1275,14 +1287,26 @@ class ElasticsearchClient:
         time_range_hours: int = 24,
         indices: Optional[List[str]] = None,
         filters: Optional[Dict[str, Any]] = None,
-        size: int = 1000
+        size: Optional[int] = None,
+        timeout: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """Backward compatibility method - redirects to query_dshield_events."""
+        # Use user configuration defaults
+        if size is None:
+            size = self.default_page_size
+        if timeout is None:
+            timeout = self.default_timeout
+        
+        # Validate against user configuration limits
+        size = min(size, self.max_page_size)
+        timeout = min(timeout, self.max_timeout)
+        
         events, _ = await self.query_dshield_events(
             time_range_hours=time_range_hours,
             indices=indices,
             filters=filters,
-            page_size=size
+            page_size=size,
+            query_timeout_seconds=timeout
         )
         return events
 

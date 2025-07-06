@@ -31,7 +31,8 @@ This folder contains comprehensive documentation for the DShield MCP service.
 2. Check implementation guides for technical details:
    - **[PAGINATION_IMPLEMENTATION.md](PAGINATION_IMPLEMENTATION.md)**
    - **[STREAMING_IMPLEMENTATION.md](STREAMING_IMPLEMENTATION.md)**
-
+   - **[performance_metrics.md](performance_metrics.md)**
+   
 ### **Releases**
 1. **[RELEASE_NOTES_v1.0.md](RELEASE_NOTES_v1.0.md)** - Current release information
 2. **[CHANGELOG.md](CHANGELOG.md)** - Complete version history
@@ -85,3 +86,46 @@ When adding new documentation:
 - Release notes
 - Migration guides
 - Breaking changes 
+
+## User Configuration Management
+
+DShield MCP supports robust user configuration management, allowing you to customize query, pagination, streaming, performance, security, and logging settings. This system uses a layered approach:
+
+- **user_config.yaml**: Place this file in the project root, `config/`, or `~/.dshield-mcp/`. See `user_config.example.yaml` for all available options and documentation.
+- **Environment Variables**: Any setting in `user_config.yaml` can be overridden by an environment variable (see the example file for variable names).
+- **Precedence**: Environment variables > user_config.yaml > built-in defaults.
+- **Validation**: All settings are validated for correctness. Invalid values are rejected with clear errors.
+
+### Example: user_config.yaml
+
+```yaml
+query:
+  default_page_size: 100
+  max_page_size: 1000
+  enable_smart_optimization: true
+  fallback_strategy: "aggregate"
+  # ...
+pagination:
+  default_method: "page"
+  # ...
+# See user_config.example.yaml for all options
+```
+
+### Example: Environment Variable Override
+
+```bash
+export DEFAULT_PAGE_SIZE=50
+export ENABLE_SMART_OPTIMIZATION=false
+```
+
+### Integration
+- All core MCP components (Elasticsearch client, DShield client, server) use the user configuration system for their settings.
+- You can update settings at runtime via the `UserConfigManager` API.
+- Configuration is validated on load and update; errors are reported immediately.
+
+### Template
+- Copy `user_config.example.yaml` to `user_config.yaml` and customize as needed.
+- See inline comments in the example file for documentation of each setting.
+
+### Testing
+- Run `python dev_tools/test_user_configuration.py` to verify configuration management and integration. 

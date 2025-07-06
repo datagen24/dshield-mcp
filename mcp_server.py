@@ -24,6 +24,7 @@ from src.data_processor import DataProcessor
 from src.context_injector import ContextInjector
 from src.models import SecurityEvent, ThreatIntelligence, AttackReport, DShieldStatistics
 from src.data_dictionary import DataDictionary
+from src.user_config import get_user_config
 
 # Configure structured logging
 structlog.configure(
@@ -56,6 +57,9 @@ class DShieldMCPServer:
         self.dshield_client = None
         self.data_processor = None
         self.context_injector = None
+        
+        # Load user configuration
+        self.user_config = get_user_config()
         
         # Register tools
         self._register_tools()
@@ -636,7 +640,23 @@ class DShieldMCPServer:
         # Initialize context injector
         self.context_injector = ContextInjector()
         
-        logger.info("DShield MCP Server initialized successfully")
+        # Log user configuration summary
+        logger.info("DShield MCP Server initialized successfully", 
+                   user_config_summary={
+                       "query_settings": {
+                           "default_page_size": self.user_config.get_setting("query", "default_page_size"),
+                           "enable_smart_optimization": self.user_config.get_setting("query", "enable_smart_optimization"),
+                           "fallback_strategy": self.user_config.get_setting("query", "fallback_strategy")
+                       },
+                       "performance_settings": {
+                           "enable_caching": self.user_config.get_setting("performance", "enable_caching"),
+                           "enable_connection_pooling": self.user_config.get_setting("performance", "enable_connection_pooling")
+                       },
+                       "security_settings": {
+                           "rate_limit": self.user_config.get_setting("security", "rate_limit_requests_per_minute"),
+                           "max_query_results": self.user_config.get_setting("security", "max_query_results")
+                       }
+                   })
     
     async def _query_dshield_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield events from Elasticsearch."""
@@ -648,15 +668,15 @@ class DShieldMCPServer:
         filters = arguments.get("filters", {})
         fields = arguments.get("fields")
         page = arguments.get("page", 1)
-        page_size = arguments.get("page_size", 100)
+        page_size = arguments.get("page_size", self.user_config.get_setting("query", "default_page_size"))
         sort_by = arguments.get("sort_by", "@timestamp")
         sort_order = arguments.get("sort_order", "desc")
         cursor = arguments.get("cursor")
         include_summary = arguments.get("include_summary", True)
-        optimization = arguments.get("optimization", "auto")
-        fallback_strategy = arguments.get("fallback_strategy", "aggregate")
+        optimization = arguments.get("optimization", "auto" if self.user_config.get_setting("query", "enable_smart_optimization") else "none")
+        fallback_strategy = arguments.get("fallback_strategy", self.user_config.get_setting("query", "fallback_strategy"))
         max_result_size_mb = arguments.get("max_result_size_mb", 10.0)
-        query_timeout_seconds = arguments.get("query_timeout_seconds", 30)
+        query_timeout_seconds = arguments.get("query_timeout_seconds", self.user_config.get_setting("query", "default_timeout_seconds"))
         
         logger.info("Querying DShield events", 
                    time_range_hours=time_range_hours, 
