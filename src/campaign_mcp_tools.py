@@ -671,34 +671,38 @@ class CampaignMCPTools:
     async def _get_seed_events(self, indicators: List[str], time_range_hours: int) -> List[Dict[str, Any]]:
         """Get seed events from indicators."""
         all_events = []
+        # Dynamically get all possible IP fields from the ElasticsearchClient field mappings
+        ip_fields = []
+        try:
+            ip_fields = ElasticsearchClient().dshield_field_mappings['source_ip'] + ElasticsearchClient().dshield_field_mappings['destination_ip']
+        except Exception as e:
+            logger.warning(f"Could not load IP field mappings: {e}")
+            ip_fields = ["source.ip", "destination.ip"]
         
         for indicator in indicators:
             try:
-                # Query for events containing this indicator
+                should_clauses = []
+                # Add all IP fields as term queries
+                for field in ip_fields:
+                    should_clauses.append({"term": {field: indicator}})
+                # Add url and user agent wildcards
+                should_clauses.append({"wildcard": {"url.original": f"*{indicator}*"}})
+                should_clauses.append({"wildcard": {"user_agent.original": f"*{indicator}*"}})
                 filters = {
                     "query": {
                         "bool": {
-                            "should": [
-                                {"term": {"source.ip": indicator}},
-                                {"term": {"destination.ip": indicator}},
-                                {"wildcard": {"url.original": f"*{indicator}*"}},
-                                {"wildcard": {"user_agent.original": f"*{indicator}*"}}
-                            ]
+                            "should": should_clauses
                         }
                     }
                 }
-                
                 events, _ = await self.es_client.query_dshield_events(
                     time_range_hours=time_range_hours,
                     filters=filters,
                     page_size=100
                 )
-                
                 all_events.extend(events)
-                
             except Exception as e:
                 logger.warning(f"Failed to get events for indicator {indicator}: {e}")
-        
         return all_events
     
     def _extract_iocs_from_campaign(self, campaign_events: List[CampaignEvent]) -> List[str]:
