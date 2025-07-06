@@ -677,32 +677,71 @@ class CampaignMCPTools:
             ip_fields = ElasticsearchClient().dshield_field_mappings['source_ip'] + ElasticsearchClient().dshield_field_mappings['destination_ip']
         except Exception as e:
             logger.warning(f"Could not load IP field mappings: {e}")
-            ip_fields = ["source.ip", "destination.ip"]
+            ip_fields = ["source.ip", "destination.ip", "related.ip"]
         
         for indicator in indicators:
             try:
-                should_clauses = []
-                # Add all IP fields as term queries
+                # Try each IP field individually with a simple filter (like the working debug script)
                 for field in ip_fields:
-                    should_clauses.append({"term": {field: indicator}})
-                # Add url and user agent wildcards
-                should_clauses.append({"wildcard": {"url.original": f"*{indicator}*"}})
-                should_clauses.append({"wildcard": {"user_agent.original": f"*{indicator}*"}})
-                filters = {
-                    "query": {
-                        "bool": {
-                            "should": should_clauses
-                        }
-                    }
-                }
-                events, _ = await self.es_client.query_dshield_events(
-                    time_range_hours=time_range_hours,
-                    filters=filters,
-                    page_size=100
-                )
-                all_events.extend(events)
+                    try:
+                        # Use simple filter approach that we know works
+                        filters = {field: indicator}
+                        
+                        # DEBUG: Log the filters being sent
+                        import json
+                        logger.debug(f"_get_seed_events: Querying with simple filter for indicator {indicator}, field {field}: {json.dumps(filters, indent=2)}")
+                        
+                        events, _, _ = await self.es_client.query_dshield_events(
+                            time_range_hours=time_range_hours,
+                            filters=filters,
+                            page_size=100
+                        )
+                        
+                        if events:
+                            logger.debug(f"_get_seed_events: Found {len(events)} events for indicator {indicator} in field {field}")
+                            all_events.extend(events)
+                            # If we found events for this field, no need to try other fields for this indicator
+                            break
+                        else:
+                            logger.debug(f"_get_seed_events: No events found for indicator {indicator} in field {field}")
+                            
+                    except Exception as field_error:
+                        logger.warning(f"Failed to query field {field} for indicator {indicator}: {field_error}")
+                        continue
+                
+                # Also try URL and user agent wildcards if no IP events found
+                if not any(event for event in all_events if event.get('source_ip') == indicator or event.get('destination_ip') == indicator):
+                    try:
+                        # Try URL wildcard
+                        url_filters = {"url.original": f"*{indicator}*"}
+                        events, _, _ = await self.es_client.query_dshield_events(
+                            time_range_hours=time_range_hours,
+                            filters=url_filters,
+                            page_size=100
+                        )
+                        if events:
+                            all_events.extend(events)
+                            continue
+                    except Exception as url_error:
+                        logger.warning(f"Failed to query URL for indicator {indicator}: {url_error}")
+                    
+                    try:
+                        # Try user agent wildcard
+                        ua_filters = {"user_agent.original": f"*{indicator}*"}
+                        events, _, _ = await self.es_client.query_dshield_events(
+                            time_range_hours=time_range_hours,
+                            filters=ua_filters,
+                            page_size=100
+                        )
+                        if events:
+                            all_events.extend(events)
+                    except Exception as ua_error:
+                        logger.warning(f"Failed to query user agent for indicator {indicator}: {ua_error}")
+                        
             except Exception as e:
                 logger.warning(f"Failed to get events for indicator {indicator}: {e}")
+        
+        logger.info(f"_get_seed_events: Total events found for all indicators: {len(all_events)}")
         return all_events
     
     def _extract_iocs_from_campaign(self, campaign_events: List[CampaignEvent]) -> List[str]:
