@@ -10,6 +10,7 @@ This folder contains comprehensive documentation for the DShield MCP service.
 ### **Implementation Guides**
 - **[PAGINATION_IMPLEMENTATION.md](PAGINATION_IMPLEMENTATION.md)** - Detailed guide for pagination implementation
 - **[STREAMING_IMPLEMENTATION.md](STREAMING_IMPLEMENTATION.md)** - Comprehensive streaming functionality guide
+- **[CAMPAIGN_ANALYSIS_IMPLEMENTATION.md](CAMPAIGN_ANALYSIS_IMPLEMENTATION.md)** - Advanced campaign analysis and correlation engine (multi-stage, MCP tools, production scale)
 
 ### **User Guides**
 - **[USAGE.md](USAGE.md)** - Detailed usage examples and API reference
@@ -31,6 +32,7 @@ This folder contains comprehensive documentation for the DShield MCP service.
 2. Check implementation guides for technical details:
    - **[PAGINATION_IMPLEMENTATION.md](PAGINATION_IMPLEMENTATION.md)**
    - **[STREAMING_IMPLEMENTATION.md](STREAMING_IMPLEMENTATION.md)**
+   - **[CAMPAIGN_ANALYSIS_IMPLEMENTATION.md](CAMPAIGN_ANALYSIS_IMPLEMENTATION.md)**
    - **[performance_metrics.md](performance_metrics.md)**
    
 ### **Releases**
@@ -47,7 +49,8 @@ docs/
 ├── RELEASE_NOTES_v1.0.md        # Release notes
 ├── Enhancements.md              # Feature roadmap
 ├── PAGINATION_IMPLEMENTATION.md # Pagination technical guide
-└── STREAMING_IMPLEMENTATION.md  # Streaming technical guide
+├── STREAMING_IMPLEMENTATION.md  # Streaming technical guide
+├── CAMPAIGN_ANALYSIS_IMPLEMENTATION.md # Campaign analysis implementation guide
 ```
 
 ## 🔗 Related Resources
