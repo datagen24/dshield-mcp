@@ -29,6 +29,7 @@ The campaign analysis functionality has several critical issues that prevent pro
 - **Steps to Reproduce:** Run `test_campaign_analysis_debug.py`
 - **Expected:** All relevant fields should be properly mapped
 - **Actual:** Many fields return None or default values
+- **GitHub Issue:** [#26](https://github.com/datagen24/dsheild-mcp/issues/26)
 
 #### BUG-002: API Parameter Mismatch in query_dshield_events
 - **Status:** FIXED ✅
@@ -45,6 +46,7 @@ The campaign analysis functionality has several critical issues that prevent pro
 - **Expected:** Functions should accept standard parameter names
 - **Actual:** Parameter name mismatches cause function failures
 - **Fix:** Updated all functions to use `page_size` parameter and handle 3-tuple return values
+- **GitHub Issue:** [#28](https://github.com/datagen24/dsheild-mcp/issues/28)
 
 ### 🔶 MEDIUM PRIORITY
 
@@ -59,6 +61,7 @@ The campaign analysis functionality has several critical issues that prevent pro
 - **Steps to Reproduce:** Run `test_analyze_campaign_function()`
 - **Expected:** Should return campaign analysis with events
 - **Actual:** Returns "No seed events found" error
+- **GitHub Issue:** [#27](https://github.com/datagen24/dsheild-mcp/issues/27)
 
 #### BUG-004: detect_ongoing_campaigns Tuple Unpacking Error
 - **Status:** FIXED ✅
@@ -75,6 +78,7 @@ The campaign analysis functionality has several critical issues that prevent pro
 - **Expected:** Should return campaign detection results
 - **Actual:** Tuple unpacking error
 - **Fix:** Updated tuple unpacking to handle 3 return values from `query_dshield_events`
+- **GitHub Issue:** [#29](https://github.com/datagen24/dsheild-mcp/issues/29)
 
 #### BUG-005: IP Enrichment Query Syntax Error
 - **Status:** FIXED ✅
@@ -91,6 +95,7 @@ The campaign analysis functionality has several critical issues that prevent pro
 - **Expected:** Should return IP reputation data
 - **Actual:** Query syntax error prevents function execution
 - **Fix:** Updated query builder to use `terms` for arrays and `term` for single values
+- **GitHub Issue:** [#30](https://github.com/datagen24/dsheild-mcp/issues/30)
 
 ### ✅ WORKING COMPONENTS
 
