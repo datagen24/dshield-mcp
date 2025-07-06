@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Issue**: [#24](https://github.com/datagen24/dsheild-mcp/issues/24)
   - **PR**: [#25](https://github.com/datagen24/dsheild-mcp/pull/25)
 
+- **MCP Server Initialization Error**: Fixed JavaScript-style boolean values causing initialization failure
+  - Resolves `"name 'true' is not defined"` error in tools/list method
+  - Changes JavaScript-style `true` to Python-style `True` in required field definitions
+  - Affects 6 campaign analysis tool definitions: analyze_campaign, expand_campaign_indicators, 
+    get_campaign_timeline, compare_campaigns, search_campaigns, get_campaign_details
+  - Ensures Claude can properly initialize and use the DShield MCP server
+  - **Impact**: MCP server now initializes correctly and all tools are accessible
+
 ### Added
 - Future enhancements and features in development
 

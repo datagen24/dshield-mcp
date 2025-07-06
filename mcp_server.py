@@ -528,7 +528,7 @@ class DShieldMCPServer:
                                 "type": "array",
                                 "items": {"type": "string"},
                                 "description": "List of seed indicators (IPs, domains, etc.)",
-                                "required": true
+                                "required": True
                             },
                             "time_range_hours": {
                                 "type": "integer",
@@ -563,7 +563,7 @@ class DShieldMCPServer:
                             "campaign_id": {
                                 "type": "string",
                                 "description": "Campaign ID to expand",
-                                "required": true
+                                "required": True
                             },
                             "expansion_depth": {
                                 "type": "integer",
@@ -594,7 +594,7 @@ class DShieldMCPServer:
                             "campaign_id": {
                                 "type": "string",
                                 "description": "Campaign ID to analyze",
-                                "required": true
+                                "required": True
                             },
                             "timeline_granularity": {
                                 "type": "string",
@@ -622,7 +622,7 @@ class DShieldMCPServer:
                                 "type": "array",
                                 "items": {"type": "string"},
                                 "description": "List of campaign IDs to compare",
-                                "required": true
+                                "required": True
                             },
                             "comparison_metrics": {
                                 "type": "array",
@@ -670,7 +670,7 @@ class DShieldMCPServer:
                             "search_criteria": {
                                 "type": "object",
                                 "description": "Search criteria (indicators, time_range, confidence, etc.)",
-                                "required": true
+                                "required": True
                             },
                             "time_range_hours": {
                                 "type": "integer",
@@ -696,7 +696,7 @@ class DShieldMCPServer:
                             "campaign_id": {
                                 "type": "string",
                                 "description": "Campaign ID to retrieve",
-                                "required": true
+                                "required": True
                             },
                             "include_full_timeline": {
                                 "type": "boolean",

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 import structlog
 from dotenv import load_dotenv
 
-from .models import SecurityEvent, ThreatIntelligence, AttackReport, SecuritySummary
+from models import SecurityEvent, ThreatIntelligence, AttackReport, SecuritySummary
 
 # Load environment variables
 load_dotenv()
