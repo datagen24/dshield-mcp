@@ -57,29 +57,32 @@ class ElasticsearchClient:
             self.dshield_indices.extend(patterns.get(group, []))
         self.fallback_indices = patterns.get("fallback", [])
 
-        # DShield specific field mappings
+        # DShield specific field mappings - focused on actual available fields
         self.dshield_field_mappings = {
             'timestamp': ['@timestamp', 'timestamp', 'time', 'date', 'event.ingested'],
-            'source_ip': ['source.ip', 'src_ip', 'srcip', 'sourceip', 'attacker_ip', 'attackerip', 'src', 'client_ip', 'ip.src', 'ip_source'],
-            'destination_ip': ['destination.ip', 'dst_ip', 'dstip', 'destinationip', 'target_ip', 'targetip', 'dst', 'server_ip', 'ip.dst', 'ip_destination'],
+            'source_ip': ['source.ip', 'src_ip', 'srcip', 'sourceip', 'attacker_ip', 'attackerip', 'src', 'client_ip', 'ip.src', 'ip_source', 'source.address'],
+            'destination_ip': ['destination.ip', 'dst_ip', 'dstip', 'destinationip', 'target_ip', 'targetip', 'dst', 'server_ip', 'ip.dst', 'ip_destination', 'destination.address'],
             'source_port': ['source.port', 'src_port', 'srcport', 'sourceport', 'attacker_port', 'sport', 'client_port', 'port.src', 'port_source'],
             'destination_port': ['destination.port', 'dst_port', 'dstport', 'destinationport', 'target_port', 'dport', 'server_port', 'port.dst', 'port_destination'],
-            'protocol': ['network.protocol', 'protocol', 'proto', 'transport_protocol', 'event.protocol', 'ip.proto'],
-            'event_type': ['event.type', 'event_type', 'type', 'attack_type', 'dshield_type', 'event.kind', 'event.outcome'],
+            'event_type': ['event.type', 'type', 'eventtype', 'event_type', 'event.category'],
+            'category': ['event.category', 'category', 'eventcategory', 'event_category'],
             'severity': ['event.severity', 'severity', 'level', 'risk_level', 'threat_level', 'event.level'],
-            'category': ['event.category', 'event_category', 'category', 'attack_category'],
             'description': ['event.description', 'message', 'description', 'summary', 'attack_description', 'event.original'],
-            'country': ['geoip.country_name', 'country', 'country_name', 'attacker_country', 'source.geo.country_name'],
+            'protocol': ['network.protocol', 'protocol', 'proto', 'transport_protocol', 'event.protocol', 'ip.proto'],
+            'country': ['source.geo.country_name', 'country', 'country_name', 'geo.country', 'source.country'],
             'asn': ['asn', 'as_number', 'autonomous_system', 'attacker_asn', 'source.geo.asn'],
             'organization': ['org', 'organization', 'org_name', 'attacker_org', 'source.geo.organization_name'],
             'reputation_score': ['reputation', 'reputation_score', 'dshield_score', 'threat_score'],
             'attack_count': ['count', 'attack_count', 'hits', 'attempts'],
             'first_seen': ['firstseen', 'first_seen', 'first_seen_date'],
             'last_seen': ['lastseen', 'last_seen', 'last_seen_date'],
-            'tags': ['tags', 'attack_tags', 'threat_tags', 'dshield_tags'],
+            'tags': ['tags', 'event.tags', 'labels', 'categories'],
             'attack_types': ['attacks', 'attack_types', 'attack_methods'],
-            'port': ['port', 'target_port', 'service_port'],
-            'service': ['service', 'service_name', 'target_service']
+            # HTTP-specific fields for derivation
+            'http_method': ['http.request.method', 'http_method', 'method', 'request_method'],
+            'http_status': ['http.response.status_code', 'http_status', 'status_code', 'response_status'],
+            'http_version': ['http.version', 'http_version', 'version'],
+            'user_agent': ['user_agent.original', 'user_agent', 'useragent', 'agent']
         }
         
     async def connect(self):
@@ -1204,15 +1207,39 @@ class ElasticsearchClient:
             event_category = self._extract_field_mapped(source, 'category', 'other')
             severity = self._extract_field_mapped(source, 'severity', 'medium')
             
-            # Extract description using DShield field mappings
-            description = self._extract_field_mapped(
-                source, 
-                'description',
-                f"{event_type} event from {source_ip or 'unknown'} to {destination_ip or 'unknown'}"
-            )
+            # Extract HTTP fields for description derivation
+            http_method = self._extract_field_mapped(source, 'http_method')
+            http_status = self._extract_field_mapped(source, 'http_status')
+            user_agent = self._extract_field_mapped(source, 'user_agent')
+            
+            # Extract description using DShield field mappings with better fallback
+            description = self._extract_field_mapped(source, 'description')
+            
+            # Derive description from HTTP fields if not directly available
+            if not description:
+                if http_method and http_status:
+                    description = f"HTTP {http_method} request with status {http_status}"
+                elif http_method:
+                    description = f"HTTP {http_method} request"
+                elif user_agent:
+                    description = f"Request with user agent: {user_agent[:50]}..."
+                else:
+                    description = f"{event_type} event from {source_ip or 'unknown'} to {destination_ip or 'unknown'}"
             
             # Extract protocol using DShield field mappings
             protocol = self._extract_field_mapped(source, 'protocol')
+            
+            # Derive protocol from HTTP fields if not directly available
+            if not protocol:
+                http_version = self._extract_field_mapped(source, 'http_version')
+                if http_version:
+                    protocol = 'http'
+                elif source_port == 443 or destination_port == 443:
+                    protocol = 'https'
+                elif source_port == 80 or destination_port == 80:
+                    protocol = 'http'
+                else:
+                    protocol = 'unknown'
             
             # Extract DShield-specific fields
             country = self._extract_field_mapped(source, 'country')
@@ -1224,6 +1251,20 @@ class ElasticsearchClient:
             last_seen = self._extract_field_mapped(source, 'last_seen')
             tags = self._extract_field_mapped(source, 'tags', [])
             attack_types = self._extract_field_mapped(source, 'attack_types', [])
+            
+            # Ensure tags and attack_types are lists
+            if not isinstance(tags, list):
+                tags = [tags] if tags else []
+            if not isinstance(attack_types, list):
+                attack_types = [attack_types] if attack_types else []
+            
+            # Provide fallback values for critical fields
+            if not severity:
+                severity = 'medium'
+            if not event_category:
+                event_category = 'other'
+            if not event_type:
+                event_type = 'unknown'
             
             event = {
                 'id': hit['_id'],
@@ -1257,17 +1298,33 @@ class ElasticsearchClient:
             return None
     
     def _extract_field_mapped(self, source: Dict[str, Any], field_type: str, default: Any = None) -> Any:
-        """Extract field value using DShield field mappings. Logs unmapped fields for review."""
+        """Extract field value using DShield field mappings. Supports dot notation as both top-level key and nested fields."""
         mapped = False
+        tried_fields = []
         if field_type in self.dshield_field_mappings:
             field_names = self.dshield_field_mappings[field_type]
             for field in field_names:
-                value = source.get(field)
-                if value is not None:
-                    mapped = True
-                    return value
+                tried_fields.append(field)
+                # First, check if the field exists as a top-level key (including dot notation)
+                if field in source:
+                    value = source[field]
+                    if value is not None:
+                        mapped = True
+                        return value
+                # Next, support dot notation for nested fields
+                if "." in field:
+                    value = source
+                    for part in field.split("."):
+                        if isinstance(value, dict) and part in value:
+                            value = value[part]
+                        else:
+                            value = None
+                            break
+                    if value is not None:
+                        mapped = True
+                        return value
         if not mapped:
-            logger.debug(f"Field type '{field_type}' not mapped in document.", available_fields=list(source.keys()))
+            logger.debug(f"Field type '{field_type}' not mapped in document.", tried_fields=tried_fields, available_fields=list(source.keys()))
         return default
 
     def log_unmapped_fields(self, source: Dict[str, Any]):
