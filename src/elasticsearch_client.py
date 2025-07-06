@@ -13,9 +13,9 @@ from urllib.parse import urlparse
 import structlog
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.exceptions import RequestError, TransportError
-from models import SecurityEvent, ElasticsearchQuery, QueryFilter
-from config_loader import get_config, ConfigError
-from user_config import get_user_config
+from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
+from .config_loader import get_config, ConfigError
+from .user_config import get_user_config
 
 logger = structlog.get_logger(__name__)
 

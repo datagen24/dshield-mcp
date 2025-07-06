@@ -13,8 +13,8 @@ from pathlib import Path
 import structlog
 from dotenv import load_dotenv
 
-from config_loader import get_config, ConfigError
-from op_secrets import OnePasswordSecrets
+from .config_loader import get_config, ConfigError
+from .op_secrets import OnePasswordSecrets
 
 logger = structlog.get_logger(__name__)
 

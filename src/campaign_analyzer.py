@@ -13,9 +13,9 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from enum import Enum
 import structlog
 
-from models import SecurityEvent
-from elasticsearch_client import ElasticsearchClient
-from user_config import get_user_config
+from .models import SecurityEvent
+from .elasticsearch_client import ElasticsearchClient
+from .user_config import get_user_config
 
 logger = structlog.get_logger(__name__)
 
