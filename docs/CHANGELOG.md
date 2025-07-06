@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Future enhancements and features in development
+
+## [1.5.0] - 2025-07-06
+
+### Added
 - **Campaign Analysis Engine**: Advanced threat hunting and investigation capabilities for coordinated attack campaigns
   - Multi-stage correlation pipeline (7 stages: IP, infrastructure, behavioral, temporal, geospatial, signature, network)
   - 7 MCP tools for campaign investigation and analysis
@@ -127,11 +132,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Version History
 
 - **1.0.0**: Initial release with basic DShield MCP functionality
-- **Unreleased**: Enhanced with comprehensive feature set including pagination, performance metrics, smart optimization, field mapping fixes, session context chunking, campaign analysis, and data dictionary capabilities
+- **1.5.0**: Major feature release with comprehensive feature set including pagination, performance metrics, smart optimization, field mapping fixes, session context chunking, campaign analysis, and data dictionary capabilities
+- **Unreleased**: Future enhancements and features in development
 
 ## Completed Features Summary
 
-### High Priority Enhancements (All Complete)
+### High Priority Enhancements (All Complete in v1.5.0)
 1. ✅ **Pagination Support** - Robust pagination for large datasets
 2. ✅ **Field Selection/Projection** - Enhanced query capabilities  
 3. ✅ **Enhanced Time Range Handling** - Flexible time range queries
@@ -142,13 +148,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 8. ✅ **Field Mapping Bug Fix** - Intelligent field mapping (Issue #17)
 9. ✅ **Campaign Analysis** - Advanced threat hunting and investigation capabilities
 
-### Additional Completed Features
+### Additional Completed Features (v1.5.0)
 - ✅ **User Configuration Management** - Layered configuration system
 - ✅ **Data Dictionary Module** - Comprehensive field documentation and examples
 - ✅ **Model Optimization** - AI model prompts and data patterns
 - ✅ **Index Pattern Optimization** - Performance improvements for Elasticsearch connections
 
-### Production Readiness
+### Production Readiness (v1.5.0)
 All completed features are production-ready and tested with:
 - Comprehensive test coverage (100% pass rates)
 - Enterprise-scale data handling (10,000+ events)
