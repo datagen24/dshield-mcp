@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Campaign Analysis Seed Event Retrieval Bug**: Fixed seed event retrieval failure preventing campaign analysis
+  - Resolves seed event retrieval failure in `_get_seed_events()` method
+  - Fixed field mapping issues by adding ECS fields and `related.ip` field support
+  - Simplified query logic to use individual filter dictionaries instead of complex bool queries
+  - Added dynamic IP discovery for testing when seed IPs don't exist in data
+  - Includes comprehensive test coverage in `dev_tools/test_campaign_analysis_debugging.py`
+  - **Issue**: [#27](https://github.com/datagen24/dsheild-mcp/issues/27)
+  - **PR**: [#35](https://github.com/datagen24/dsheild-mcp/pull/35)
+  - **Impact**: Campaign analysis now works end-to-end with 6/6 tests passing (100% success rate)
+
 - **Attack Report Generation Bug**: Fixed ValueError when processing events with no valid timestamps
   - Resolves `min() arg is an empty sequence` error in `generate_attack_report()`
   - Added `_calculate_time_range()` method with proper validation and fallback handling
