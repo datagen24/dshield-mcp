@@ -25,6 +25,8 @@ from src.context_injector import ContextInjector
 from src.models import SecurityEvent, ThreatIntelligence, AttackReport, DShieldStatistics
 from src.data_dictionary import DataDictionary
 from src.user_config import get_user_config
+from src.campaign_analyzer import CampaignAnalyzer
+from src.campaign_mcp_tools import CampaignMCPTools
 
 # Configure structured logging
 structlog.configure(
@@ -57,6 +59,8 @@ class DShieldMCPServer:
         self.dshield_client = None
         self.data_processor = None
         self.context_injector = None
+        self.campaign_analyzer = None
+        self.campaign_tools = None
         
         # Load user configuration
         self.user_config = get_user_config()
@@ -513,6 +517,201 @@ class DShieldMCPServer:
                             }
                         }
                     }
+                },
+                {
+                    "name": "analyze_campaign",
+                    "description": "Analyze attack campaigns from seed indicators with multi-stage correlation",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "seed_indicators": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of seed indicators (IPs, domains, etc.)",
+                                "required": true
+                            },
+                            "time_range_hours": {
+                                "type": "integer",
+                                "description": "Time range in hours to analyze (default: 168 = 1 week)"
+                            },
+                            "correlation_methods": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Correlation methods: ip_correlation, infrastructure_correlation, behavioral_correlation, temporal_correlation, geospatial_correlation, signature_correlation"
+                            },
+                            "min_confidence": {
+                                "type": "number",
+                                "description": "Minimum confidence threshold (0.0-1.0, default: 0.7)"
+                            },
+                            "include_timeline": {
+                                "type": "boolean",
+                                "description": "Include detailed timeline (default: true)"
+                            },
+                            "include_relationships": {
+                                "type": "boolean",
+                                "description": "Include indicator relationships (default: true)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "expand_campaign_indicators",
+                    "description": "Expand IOCs to find related indicators and infrastructure",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "campaign_id": {
+                                "type": "string",
+                                "description": "Campaign ID to expand",
+                                "required": true
+                            },
+                            "expansion_depth": {
+                                "type": "integer",
+                                "description": "Maximum expansion depth (default: 3)"
+                            },
+                            "expansion_strategy": {
+                                "type": "string",
+                                "enum": ["comprehensive", "infrastructure", "temporal"],
+                                "description": "Expansion strategy (default: comprehensive)"
+                            },
+                            "include_passive_dns": {
+                                "type": "boolean",
+                                "description": "Include passive DNS data (default: true)"
+                            },
+                            "include_threat_intel": {
+                                "type": "boolean",
+                                "description": "Include threat intelligence data (default: true)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "get_campaign_timeline",
+                    "description": "Build detailed attack timelines with TTP analysis",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "campaign_id": {
+                                "type": "string",
+                                "description": "Campaign ID to analyze",
+                                "required": true
+                            },
+                            "timeline_granularity": {
+                                "type": "string",
+                                "enum": ["minute", "hourly", "daily"],
+                                "description": "Timeline granularity (default: hourly)"
+                            },
+                            "include_event_details": {
+                                "type": "boolean",
+                                "description": "Include detailed event information (default: true)"
+                            },
+                            "include_ttp_analysis": {
+                                "type": "boolean",
+                                "description": "Include TTP analysis (default: true)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "compare_campaigns",
+                    "description": "Compare multiple campaigns for similarities and patterns",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "campaign_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of campaign IDs to compare",
+                                "required": true
+                            },
+                            "comparison_metrics": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Metrics to compare: ttps, infrastructure, timing, geography, sophistication"
+                            },
+                            "include_visualization_data": {
+                                "type": "boolean",
+                                "description": "Include visualization data (default: true)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "detect_ongoing_campaigns",
+                    "description": "Real-time detection of active campaigns",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "time_window_hours": {
+                                "type": "integer",
+                                "description": "Time window for detection (default: 24 hours)"
+                            },
+                            "min_event_threshold": {
+                                "type": "integer",
+                                "description": "Minimum events for campaign detection (default: 15)"
+                            },
+                            "correlation_threshold": {
+                                "type": "number",
+                                "description": "Minimum correlation threshold (0.0-1.0, default: 0.8)"
+                            },
+                            "include_alert_data": {
+                                "type": "boolean",
+                                "description": "Include alert data (default: true)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "search_campaigns",
+                    "description": "Search existing campaigns by criteria",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "search_criteria": {
+                                "type": "object",
+                                "description": "Search criteria (indicators, time_range, confidence, etc.)",
+                                "required": true
+                            },
+                            "time_range_hours": {
+                                "type": "integer",
+                                "description": "Time range for search (default: 168 = 1 week)"
+                            },
+                            "max_results": {
+                                "type": "integer",
+                                "description": "Maximum results to return (default: 50)"
+                            },
+                            "include_summaries": {
+                                "type": "boolean",
+                                "description": "Include campaign summaries (default: true)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "get_campaign_details",
+                    "description": "Get comprehensive campaign information with threat intelligence",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "campaign_id": {
+                                "type": "string",
+                                "description": "Campaign ID to retrieve",
+                                "required": true
+                            },
+                            "include_full_timeline": {
+                                "type": "boolean",
+                                "description": "Include full timeline (default: false)"
+                            },
+                            "include_relationships": {
+                                "type": "boolean",
+                                "description": "Include indicator relationships (default: true)"
+                            },
+                            "include_threat_intel": {
+                                "type": "boolean",
+                                "description": "Include threat intelligence (default: true)"
+                            }
+                        }
+                    }
                 }
             ]
         
@@ -552,6 +751,20 @@ class DShieldMCPServer:
                     return await self._test_elasticsearch_connection(arguments)
                 elif name == "get_data_dictionary":
                     return await self._get_data_dictionary(arguments)
+                elif name == "analyze_campaign":
+                    return await self._analyze_campaign(arguments)
+                elif name == "expand_campaign_indicators":
+                    return await self._expand_campaign_indicators(arguments)
+                elif name == "get_campaign_timeline":
+                    return await self._get_campaign_timeline(arguments)
+                elif name == "compare_campaigns":
+                    return await self._compare_campaigns(arguments)
+                elif name == "detect_ongoing_campaigns":
+                    return await self._detect_ongoing_campaigns(arguments)
+                elif name == "search_campaigns":
+                    return await self._search_campaigns(arguments)
+                elif name == "get_campaign_details":
+                    return await self._get_campaign_details(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
             except Exception as e:
@@ -639,6 +852,10 @@ class DShieldMCPServer:
         
         # Initialize context injector
         self.context_injector = ContextInjector()
+        
+        # Initialize campaign analyzer and tools
+        self.campaign_analyzer = CampaignAnalyzer(self.elastic_client)
+        self.campaign_tools = CampaignMCPTools(self.elastic_client)
         
         # Log user configuration summary
         logger.info("DShield MCP Server initialized successfully", 
@@ -1423,6 +1640,184 @@ class DShieldMCPServer:
     async def _get_dshield_stats(self) -> Dict[str, Any]:
         """Get DShield statistics for resource reading."""
         return await self.elastic_client.get_dshield_statistics(time_range_hours=24)
+    
+    # Campaign Analysis Tool Handlers
+    
+    async def _analyze_campaign(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Analyze attack campaigns from seed indicators."""
+        seed_indicators = arguments["seed_indicators"]
+        time_range_hours = arguments.get("time_range_hours", 168)
+        correlation_methods = arguments.get("correlation_methods")
+        min_confidence = arguments.get("min_confidence", 0.7)
+        include_timeline = arguments.get("include_timeline", True)
+        include_relationships = arguments.get("include_relationships", True)
+        
+        logger.info("Analyzing campaign", 
+                   seed_indicators=seed_indicators,
+                   time_range_hours=time_range_hours,
+                   correlation_methods=correlation_methods)
+        
+        result = await self.campaign_tools.analyze_campaign(
+            seed_indicators=seed_indicators,
+            time_range_hours=time_range_hours,
+            correlation_methods=correlation_methods,
+            min_confidence=min_confidence,
+            include_timeline=include_timeline,
+            include_relationships=include_relationships
+        )
+        
+        return [{
+            "type": "text",
+            "text": "Campaign Analysis Results:\n\n" + 
+                   json.dumps(result, indent=2, default=str)
+        }]
+    
+    async def _expand_campaign_indicators(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Expand IOCs to find related indicators."""
+        campaign_id = arguments["campaign_id"]
+        expansion_depth = arguments.get("expansion_depth", 3)
+        expansion_strategy = arguments.get("expansion_strategy", "comprehensive")
+        include_passive_dns = arguments.get("include_passive_dns", True)
+        include_threat_intel = arguments.get("include_threat_intel", True)
+        
+        logger.info("Expanding campaign indicators",
+                   campaign_id=campaign_id,
+                   expansion_depth=expansion_depth,
+                   expansion_strategy=expansion_strategy)
+        
+        result = await self.campaign_tools.expand_campaign_indicators(
+            campaign_id=campaign_id,
+            expansion_depth=expansion_depth,
+            expansion_strategy=expansion_strategy,
+            include_passive_dns=include_passive_dns,
+            include_threat_intel=include_threat_intel
+        )
+        
+        return [{
+            "type": "text",
+            "text": "Campaign Indicator Expansion Results:\n\n" + 
+                   json.dumps(result, indent=2, default=str)
+        }]
+    
+    async def _get_campaign_timeline(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Build detailed attack timelines."""
+        campaign_id = arguments["campaign_id"]
+        timeline_granularity = arguments.get("timeline_granularity", "hourly")
+        include_event_details = arguments.get("include_event_details", True)
+        include_ttp_analysis = arguments.get("include_ttp_analysis", True)
+        
+        logger.info("Building campaign timeline",
+                   campaign_id=campaign_id,
+                   timeline_granularity=timeline_granularity)
+        
+        result = await self.campaign_tools.get_campaign_timeline(
+            campaign_id=campaign_id,
+            timeline_granularity=timeline_granularity,
+            include_event_details=include_event_details,
+            include_ttp_analysis=include_ttp_analysis
+        )
+        
+        return [{
+            "type": "text",
+            "text": "Campaign Timeline Results:\n\n" + 
+                   json.dumps(result, indent=2, default=str)
+        }]
+    
+    async def _compare_campaigns(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Compare multiple campaigns for similarities."""
+        campaign_ids = arguments["campaign_ids"]
+        comparison_metrics = arguments.get("comparison_metrics")
+        include_visualization_data = arguments.get("include_visualization_data", True)
+        
+        logger.info("Comparing campaigns",
+                   campaign_ids=campaign_ids,
+                   comparison_metrics=comparison_metrics)
+        
+        result = await self.campaign_tools.compare_campaigns(
+            campaign_ids=campaign_ids,
+            comparison_metrics=comparison_metrics,
+            include_visualization_data=include_visualization_data
+        )
+        
+        return [{
+            "type": "text",
+            "text": "Campaign Comparison Results:\n\n" + 
+                   json.dumps(result, indent=2, default=str)
+        }]
+    
+    async def _detect_ongoing_campaigns(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Real-time detection of active campaigns."""
+        time_window_hours = arguments.get("time_window_hours", 24)
+        min_event_threshold = arguments.get("min_event_threshold", 15)
+        correlation_threshold = arguments.get("correlation_threshold", 0.8)
+        include_alert_data = arguments.get("include_alert_data", True)
+        
+        logger.info("Detecting ongoing campaigns",
+                   time_window_hours=time_window_hours,
+                   min_event_threshold=min_event_threshold,
+                   correlation_threshold=correlation_threshold)
+        
+        result = await self.campaign_tools.detect_ongoing_campaigns(
+            time_window_hours=time_window_hours,
+            min_event_threshold=min_event_threshold,
+            correlation_threshold=correlation_threshold,
+            include_alert_data=include_alert_data
+        )
+        
+        return [{
+            "type": "text",
+            "text": "Ongoing Campaign Detection Results:\n\n" + 
+                   json.dumps(result, indent=2, default=str)
+        }]
+    
+    async def _search_campaigns(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Search existing campaigns by criteria."""
+        search_criteria = arguments["search_criteria"]
+        time_range_hours = arguments.get("time_range_hours", 168)
+        max_results = arguments.get("max_results", 50)
+        include_summaries = arguments.get("include_summaries", True)
+        
+        logger.info("Searching campaigns",
+                   search_criteria=search_criteria,
+                   time_range_hours=time_range_hours,
+                   max_results=max_results)
+        
+        result = await self.campaign_tools.search_campaigns(
+            search_criteria=search_criteria,
+            time_range_hours=time_range_hours,
+            max_results=max_results,
+            include_summaries=include_summaries
+        )
+        
+        return [{
+            "type": "text",
+            "text": "Campaign Search Results:\n\n" + 
+                   json.dumps(result, indent=2, default=str)
+        }]
+    
+    async def _get_campaign_details(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get comprehensive campaign information."""
+        campaign_id = arguments["campaign_id"]
+        include_full_timeline = arguments.get("include_full_timeline", False)
+        include_relationships = arguments.get("include_relationships", True)
+        include_threat_intel = arguments.get("include_threat_intel", True)
+        
+        logger.info("Getting campaign details",
+                   campaign_id=campaign_id,
+                   include_full_timeline=include_full_timeline)
+        
+        result = await self.campaign_tools.get_campaign_details(
+            campaign_id=campaign_id,
+            include_full_timeline=include_full_timeline,
+            include_relationships=include_relationships,
+            include_threat_intel=include_threat_intel
+        )
+        
+        return [{
+            "type": "text",
+            "text": "Campaign Details:\n\n" + 
+                   json.dumps(result, indent=2, default=str)
+        }]
     
     async def cleanup(self):
         """Cleanup resources."""

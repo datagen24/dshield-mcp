@@ -1,3 +1,68 @@
+#11 - Campaign Analysis ⭐⭐⭐
+Priority: HIGHEST for Phase 2
+
+Perfect Test Case: Use the 141.98.80.135 campaign we analyzed
+Foundation Ready: Your pagination + chunking + performance metrics = perfect base
+Strategic Value: Transforms individual events into campaign intelligence
+User Impact: Showcase the full power of your platform
+
+Perfect Real-World Validation:
+Use the 141.98.80.135 campaign as your primary test case:
+
+10,000+ events - Tests your pagination scaling
+Multi-day timeline - Tests temporal analysis
+Clear attack patterns - Validates pattern recognition
+Known infrastructure - Tests attribution features
+
+Suggested Technical Architecture:
+`def analyze_attack_campaign(seed_ip, time_window_hours=48):
+# Leverage your existing pagination for data gathering
+events = query_dshield_events(
+filters={"source.ip": seed_ip},
+time_range_hours=time_window_hours,
+page_size=100 # Your pagination handles scale perfectly
+)
+
+# Use your performance metrics for optimization visibility
+with QueryMetrics() as metrics:
+    campaign_analysis = {
+        "campaign_overview": {
+            "total_events": metrics.result_count,
+            "time_span": calculate_time_span(events),
+            "attack_intensity": calculate_intensity(events)
+        },
+        "attack_timeline": build_timeline(events),  # Use your chunking
+        "target_analysis": analyze_targets(events),
+        "ttp_analysis": extract_ttps(events),
+        "infrastructure_map": map_infrastructure(events),
+        "threat_assessment": assess_threat_level(events)
+    }
+
+return {
+    "campaign_analysis": campaign_analysis,
+    "performance_metrics": metrics.finalize()  # Your metrics integration
+}`
+Integration Opportunities:
+`# Campaign Analysis + Performance Metrics
+campaign_result = analyze_campaign(ip="141.98.80.135")
+
+Returns: campaign data + performance metrics + optimization details
+
+Campaign Analysis + Smart Chunking
+
+campaign_timeline = get_campaign_timeline(
+campaign_id="campaign_141_98_80_135",
+chunk_by="daily_phases" # Your chunking logic
+)
+
+Campaign Analysis + Dynamic Configuration
+
+campaign_config = {
+"analysis_depth": "detailed", # Your config system
+"include_geolocation": True,
+"correlation_window_minutes": 30
+}`
+
 # GitHub Issue #11 Comment - Campaign Analysis
 
 ## 🎯 Implementation Plan Complete - Campaign Analysis
