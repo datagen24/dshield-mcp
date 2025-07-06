@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Attack Report Generation Bug**: Fixed ValueError when processing events with no valid timestamps
+  - Resolves `min() arg is an empty sequence` error in `generate_attack_report()`
+  - Added `_calculate_time_range()` method with proper validation and fallback handling
+  - Handles events with no timestamps, malformed timestamps, and empty lists
+  - Includes comprehensive test coverage in `dev_tools/test_attack_report_fix.py`
+  - **Issue**: [#24](https://github.com/datagen24/dsheild-mcp/issues/24)
+  - **PR**: [#25](https://github.com/datagen24/dsheild-mcp/pull/25)
+
 ### Added
 - Future enhancements and features in development
 
