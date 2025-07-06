@@ -173,16 +173,34 @@ export_dshield_analysis(
     include_metadata=True
 )
 '''
-# Advanced Enhancements
-## 9. Real-time Event Streaming
-Subscribe to real-time events
-'''python 
-subscribe_dshield_events(
-    filters={"severity": "high"},
-    callback=alert_handler,
-    buffer_size=100
-)
-'''
+## 9. Smart Chunking with Session Context (Done)
+Stream and chunk events by session context for better event correlation and analysis.
+
+**Status:** ✅ Complete as of 2025-07-06
+
+**Implementation:** See [docs/smart_chunking_session_context.md](smart_chunking_session_context.md)
+
+**Key Features:**
+- Groups events by session context (e.g., source.ip, user.name, session.id)
+- Ensures related events stay together in the same chunk
+- Session summaries and performance metrics included in response
+- Fully integrated with MCP server and client
+- Extensible for future session-aware analytics
+
+**Example Response:**
+```json
+{
+  "events": [ ... ],
+  "total_count": 1000,
+  "next_stream_id": "2025-07-06T10:00:00Z|abc123",
+  "session_context": {
+    "session_fields": ["source.ip", "destination.ip", "user.name", "session.id"],
+    "sessions_in_chunk": 12,
+    "session_summaries": [ ... ],
+    "performance_metrics": { ... }
+  }
+}
+```
 ## 10. Enhanced Threat Intelligence Integration
 Bulk IP enrichment with caching
 '''python 

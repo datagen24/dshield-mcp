@@ -1515,3 +1515,308 @@ class ElasticsearchClient:
             ])
         
         return suggestions 
+
+    def _generate_session_key(self, event: Dict[str, Any], session_fields: List[str]) -> Optional[str]:
+        """
+        Generate a session key from event data using specified session fields.
+        
+        Args:
+            event: The event data
+            session_fields: List of fields to use for session grouping
+            
+        Returns:
+            Session key string or None if no session fields are available
+        """
+        session_values = []
+        
+        for field in session_fields:
+            value = event.get(field)
+            if value:
+                # Convert to string and clean up
+                if isinstance(value, (list, dict)):
+                    value = str(value)
+                session_values.append(f"{field}:{value}")
+        
+        if session_values:
+            return "|".join(session_values)
+        else:
+            return None
+    
+    def _calculate_session_duration(self, first_timestamp: Optional[str], last_timestamp: Optional[str]) -> Optional[float]:
+        """
+        Calculate session duration in minutes.
+        
+        Args:
+            first_timestamp: First event timestamp
+            last_timestamp: Last event timestamp
+            
+        Returns:
+            Duration in minutes or None if timestamps are invalid
+        """
+        if not first_timestamp or not last_timestamp:
+            return None
+        
+        try:
+            # Parse timestamps (assuming ISO format)
+            first_dt = datetime.fromisoformat(first_timestamp.replace('Z', '+00:00'))
+            last_dt = datetime.fromisoformat(last_timestamp.replace('Z', '+00:00'))
+            
+            # Calculate duration in minutes
+            duration = (last_dt - first_dt).total_seconds() / 60
+            return round(duration, 2)
+        except (ValueError, TypeError):
+            return None
+
+    async def stream_dshield_events_with_session_context(
+        self,
+        time_range_hours: int = 24,
+        indices: Optional[List[str]] = None,
+        filters: Optional[Dict[str, Any]] = None,
+        fields: Optional[List[str]] = None,
+        chunk_size: int = 500,
+        session_fields: Optional[List[str]] = None,
+        max_session_gap_minutes: int = 30,
+        include_session_summary: bool = True,
+        stream_id: Optional[str] = None
+    ) -> tuple[List[Dict[str, Any]], int, Optional[str], Dict[str, Any]]:
+        """
+        Stream DShield events with smart session-based chunking.
+        
+        Groups events by session context (e.g., source IP, user session, connection ID)
+        and ensures related events stay together in the same chunk.
+        
+        Args:
+            session_fields: Fields to use for session grouping (e.g., ['source.ip', 'user.name'])
+            max_session_gap_minutes: Maximum time gap within a session before starting new session
+            include_session_summary: Include session metadata in response
+            stream_id: Resume streaming from specific point
+            
+        Returns:
+            Tuple of (events, total_count, next_stream_id, session_context)
+        """
+        if not self.client:
+            await self.connect()
+        
+        # Initialize performance tracking
+        performance_metrics = {
+            "query_time_ms": 0,
+            "optimization_applied": ["session_chunking"],
+            "indices_scanned": 0,
+            "total_documents_examined": 0,
+            "query_complexity": "session_aware",
+            "cache_hit": False,
+            "shards_scanned": 0,
+            "aggregations_used": False,
+            "sessions_processed": 0,
+            "session_chunks_created": 0
+        }
+        
+        try:
+            # Determine indices to query
+            if indices is None:
+                available_indices = await self.get_available_indices()
+                if available_indices:
+                    indices = available_indices
+                else:
+                    indices = self.fallback_indices
+            elif not indices:
+                indices = self.fallback_indices
+                
+            performance_metrics["indices_scanned"] = len(indices)
+            
+            # Default session fields if not specified
+            if session_fields is None:
+                session_fields = ["source.ip", "destination.ip", "user.name", "session.id"]
+            
+            # Build query with time range
+            query = {
+                "bool": {
+                    "must": [
+                        {
+                            "range": {
+                                "@timestamp": {
+                                    "gte": f"now-{time_range_hours}h",
+                                    "lte": "now"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+            
+            # Add filters if provided
+            if filters:
+                mapped_filters = self._map_query_fields(filters)
+                for key, value in mapped_filters.items():
+                    if key == "@timestamp":
+                        query["bool"]["must"].append({"range": {"@timestamp": value}})
+                    elif isinstance(value, dict):
+                        for sub_key, sub_value in value.items():
+                            if sub_key == "eq":
+                                query["bool"]["must"].append({"term": {key: sub_value}})
+                            elif sub_key == "in":
+                                query["bool"]["must"].append({"terms": {key: sub_value}})
+                            elif sub_key == "gte":
+                                query["bool"]["must"].append({"range": {key: {"gte": sub_value}}})
+                            elif sub_key == "lte":
+                                query["bool"]["must"].append({"range": {key: {"lte": sub_value}}})
+                    else:
+                        query["bool"]["must"].append({"term": {key: value}})
+            
+            # Build search body with session-aware sorting
+            search_body = {
+                "query": query,
+                "size": min(chunk_size * 2, 2000),  # Get more events to group by session
+                "sort": [
+                    {"@timestamp": {"order": "desc"}},
+                    {"_id": {"order": "desc"}}
+                ]
+            }
+            
+            # Add field selection if specified
+            if fields:
+                search_body["_source"] = fields
+            
+            # Add search_after for cursor-based pagination
+            if stream_id:
+                try:
+                    timestamp_val, id_val = stream_id.split("|")
+                    search_body["search_after"] = [timestamp_val, id_val]
+                except (ValueError, AttributeError):
+                    logger.warning(f"Invalid stream_id format: {stream_id}. Starting from beginning.")
+            
+            # Execute search with timing
+            query_start = datetime.now()
+            response = await self.client.search(
+                index=",".join(indices),
+                body=search_body
+            )
+            query_end = datetime.now()
+            
+            # Calculate query time
+            performance_metrics["query_time_ms"] = int((query_end - query_start).total_seconds() * 1000)
+            
+            # Extract shard information
+            if "_shards" in response:
+                performance_metrics["shards_scanned"] = response["_shards"].get("total", 0)
+            
+            # Extract results
+            hits = response.get("hits", {})
+            total_count = hits.get("total", {}).get("value", 0)
+            documents = hits.get("hits", [])
+            
+            # Track documents examined
+            performance_metrics["total_documents_examined"] = total_count
+            
+            # Parse events and group by session
+            events = []
+            session_groups = {}
+            session_context = {
+                "session_fields": session_fields,
+                "max_session_gap_minutes": max_session_gap_minutes,
+                "sessions_in_chunk": 0,
+                "session_summaries": []
+            }
+            
+            for doc in documents:
+                event = self._parse_dshield_event(doc, indices)
+                if event:
+                    # Generate session key
+                    session_key = self._generate_session_key(event, session_fields)
+                    
+                    if session_key:
+                        if session_key not in session_groups:
+                            session_groups[session_key] = {
+                                "events": [],
+                                "first_timestamp": None,
+                                "last_timestamp": None,
+                                "session_metadata": {}
+                            }
+                        
+                        session_groups[session_key]["events"].append(event)
+                        
+                        # Track session timestamps
+                        timestamp = event.get("@timestamp")
+                        if timestamp:
+                            if not session_groups[session_key]["first_timestamp"]:
+                                session_groups[session_key]["first_timestamp"] = timestamp
+                            session_groups[session_key]["last_timestamp"] = timestamp
+                        
+                        # Extract session metadata
+                        for field in session_fields:
+                            if field in event:
+                                session_groups[session_key]["session_metadata"][field] = event[field]
+                    else:
+                        # Events without session context go to a default group
+                        if "no_session" not in session_groups:
+                            session_groups["no_session"] = {
+                                "events": [],
+                                "first_timestamp": None,
+                                "last_timestamp": None,
+                                "session_metadata": {"type": "no_session"}
+                            }
+                        session_groups["no_session"]["events"].append(event)
+            
+            # Sort sessions by timestamp and create smart chunks
+            sorted_sessions = sorted(
+                session_groups.items(),
+                key=lambda x: x[1]["last_timestamp"] or "1970-01-01",
+                reverse=True
+            )
+            
+            # Build final event list with session-aware chunking
+            current_chunk_size = 0
+            sessions_in_chunk = 0
+            
+            for session_key, session_data in sorted_sessions:
+                session_events = session_data["events"]
+                
+                # Check if adding this session would exceed chunk size
+                if current_chunk_size + len(session_events) > chunk_size and current_chunk_size > 0:
+                    # Start new chunk
+                    break
+                
+                # Add session events to current chunk
+                events.extend(session_events)
+                current_chunk_size += len(session_events)
+                sessions_in_chunk += 1
+                
+                # Add session summary if requested
+                if include_session_summary:
+                    session_summary = {
+                        "session_key": session_key,
+                        "event_count": len(session_events),
+                        "first_timestamp": session_data["first_timestamp"],
+                        "last_timestamp": session_data["last_timestamp"],
+                        "duration_minutes": self._calculate_session_duration(
+                            session_data["first_timestamp"],
+                            session_data["last_timestamp"]
+                        ),
+                        "metadata": session_data["session_metadata"]
+                    }
+                    session_context["session_summaries"].append(session_summary)
+            
+            session_context["sessions_in_chunk"] = sessions_in_chunk
+            performance_metrics["sessions_processed"] = len(session_groups)
+            performance_metrics["session_chunks_created"] = 1
+            
+            # Generate next stream_id for cursor-based pagination
+            next_stream_id = None
+            if documents:
+                last_hit = documents[-1]
+                sort_values = last_hit.get("sort", [])
+                if len(sort_values) >= 2:
+                    next_stream_id = f"{sort_values[0]}|{sort_values[1]}"
+            
+            # Add performance metrics to session context
+            session_context["performance_metrics"] = performance_metrics
+            
+            logger.info(f"Streamed {len(events)} events in {sessions_in_chunk} sessions from {len(indices)} indices", 
+                       total_count=total_count, chunk_size=chunk_size, stream_id=stream_id,
+                       sessions_processed=len(session_groups), query_time_ms=performance_metrics["query_time_ms"])
+            
+            return events, total_count, next_stream_id, session_context
+            
+        except Exception as e:
+            logger.error(f"Error streaming DShield events with session context: {str(e)}")
+            raise 

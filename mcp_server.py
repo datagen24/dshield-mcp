@@ -158,6 +158,54 @@ class DShieldMCPServer:
                     }
                 },
                 {
+                    "name": "stream_dshield_events_with_session_context",
+                    "description": "Stream DShield events with smart session-based chunking for event correlation",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "time_range_hours": {
+                                "type": "integer",
+                                "description": "Time range in hours to query (default: 24)"
+                            },
+                            "indices": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Specific indices to query (optional)"
+                            },
+                            "filters": {
+                                "type": "object",
+                                "description": "Filter criteria (supports user-friendly field names)"
+                            },
+                            "fields": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Specific fields to return (optional)"
+                            },
+                            "chunk_size": {
+                                "type": "integer",
+                                "description": "Target chunk size (default: 500)"
+                            },
+                            "session_fields": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Fields to use for session grouping (default: ['source.ip', 'destination.ip', 'user.name', 'session.id'])"
+                            },
+                            "max_session_gap_minutes": {
+                                "type": "integer",
+                                "description": "Maximum time gap within a session (default: 30)"
+                            },
+                            "include_session_summary": {
+                                "type": "boolean",
+                                "description": "Include session metadata in response (default: true)"
+                            },
+                            "stream_id": {
+                                "type": "string",
+                                "description": "Resume streaming from specific point"
+                            }
+                        }
+                    }
+                },
+                {
                     "name": "query_dshield_aggregations",
                     "description": "Get aggregated summary data without full records",
                     "inputSchema": {
@@ -474,6 +522,8 @@ class DShieldMCPServer:
                     return await self._query_dshield_aggregations(arguments)
                 elif name == "stream_dshield_events":
                     return await self._stream_dshield_events(arguments)
+                elif name == "stream_dshield_events_with_session_context":
+                    return await self._stream_dshield_events_with_session_context(arguments)
                 elif name == "query_dshield_attacks":
                     return await self._query_dshield_attacks(arguments)
                 elif name == "query_dshield_reputation":
@@ -977,6 +1027,56 @@ class DShieldMCPServer:
                 "type": "text",
                 "text": f"Error streaming DShield events: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running."
             }]
+    
+    async def _stream_dshield_events_with_session_context(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Stream DShield events with smart session-based chunking."""
+        time_range_hours = arguments.get("time_range_hours", 24)
+        indices = arguments.get("indices")
+        filters = arguments.get("filters", {})
+        fields = arguments.get("fields")
+        chunk_size = arguments.get("chunk_size", 500)
+        session_fields = arguments.get("session_fields")
+        max_session_gap_minutes = arguments.get("max_session_gap_minutes", 30)
+        include_session_summary = arguments.get("include_session_summary", True)
+        stream_id = arguments.get("stream_id")
+        
+        logger.info("Streaming DShield events with session context", 
+                   time_range_hours=time_range_hours, 
+                   indices=indices, 
+                   fields=fields,
+                   chunk_size=chunk_size,
+                   session_fields=session_fields,
+                   max_session_gap_minutes=max_session_gap_minutes,
+                   include_session_summary=include_session_summary,
+                   stream_id=stream_id)
+        
+        try:
+            # Stream events with session context
+            events, total_count, next_stream_id, session_context = await self.elastic_client.stream_dshield_events_with_session_context(
+                time_range_hours=time_range_hours,
+                indices=indices,
+                filters=filters,
+                fields=fields,
+                chunk_size=chunk_size,
+                session_fields=session_fields,
+                max_session_gap_minutes=max_session_gap_minutes,
+                include_session_summary=include_session_summary,
+                stream_id=stream_id
+            )
+            
+            # Format response with session context
+            response = {
+                "events": events,
+                "total_count": total_count,
+                "next_stream_id": next_stream_id,
+                "session_context": session_context
+            }
+            
+            return [{"type": "text", "text": json.dumps(response, default=str, indent=2)}]
+            
+        except Exception as e:
+            logger.error("Session context streaming failed", error=str(e))
+            raise
     
     async def _query_dshield_attacks(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield attack data specifically."""
