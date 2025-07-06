@@ -57,13 +57,21 @@ class ElasticsearchClient:
             self.dshield_indices.extend(patterns.get(group, []))
         self.fallback_indices = patterns.get("fallback", [])
 
-        # DShield specific field mappings - focused on actual available fields
+        # DShield specific field mappings - updated to match actual available fields from Elasticsearch
         self.dshield_field_mappings = {
             'timestamp': ['@timestamp', 'timestamp', 'time', 'date', 'event.ingested'],
-            'source_ip': ['source.ip', 'src_ip', 'srcip', 'sourceip', 'attacker_ip', 'attackerip', 'src', 'client_ip', 'ip.src', 'ip_source', 'source.address'],
-            'destination_ip': ['destination.ip', 'dst_ip', 'dstip', 'destinationip', 'target_ip', 'targetip', 'dst', 'server_ip', 'ip.dst', 'ip_destination', 'destination.address'],
-            'source_port': ['source.port', 'src_port', 'srcport', 'sourceport', 'attacker_port', 'sport', 'client_port', 'port.src', 'port_source'],
-            'destination_port': ['destination.port', 'dst_port', 'dstport', 'destinationport', 'target_port', 'dport', 'server_port', 'port.dst', 'port_destination'],
+            'source_ip': [
+                'source.ip', 'src_ip', 'srcip', 'sourceip', 'attacker_ip', 'attackerip', 'src', 'client_ip', 'ip.src', 'ip_source', 'source.address', 'related.ip'
+            ],
+            'destination_ip': [
+                'destination.ip', 'dst_ip', 'dstip', 'destinationip', 'target_ip', 'targetip', 'dst', 'server_ip', 'ip.dst', 'ip_destination', 'destination.address', 'related.ip'
+            ],
+            'source_port': [
+                'source.port', 'src_port', 'srcport', 'sourceport', 'attacker_port', 'sport', 'client_port', 'port.src', 'port_source'
+            ],
+            'destination_port': [
+                'destination.port', 'dst_port', 'dstport', 'destinationport', 'target_port', 'dport', 'server_port', 'port.dst', 'port_destination'
+            ],
             'event_type': ['event.type', 'type', 'eventtype', 'event_type', 'event.category'],
             'category': ['event.category', 'category', 'eventcategory', 'event_category'],
             'severity': ['event.severity', 'severity', 'level', 'risk_level', 'threat_level', 'event.level'],
@@ -78,11 +86,42 @@ class ElasticsearchClient:
             'last_seen': ['lastseen', 'last_seen', 'last_seen_date'],
             'tags': ['tags', 'event.tags', 'labels', 'categories'],
             'attack_types': ['attacks', 'attack_types', 'attack_methods'],
-            # HTTP-specific fields for derivation
+            # Add ECS and observed fields from debug logs
+            'event_kind': ['event.kind'],
+            'event_dataset': ['event.dataset'],
+            'host': ['host'],
+            'region': ['region'],
+            'network_ttl': ['network.ttl'],
+            'event_outcome': ['event.outcome'],
+            'source_geo': ['source.geo'],
+            'interface_alias': ['interface.alias'],
+            'related_host': ['related.host', 'related.hosts'],
+            'source_mac': ['source.mac'],
+            'network_bytes': ['network.bytes'],
+            'event_id': ['event.id'],
+            'input': ['input'],
+            'log': ['log'],
+            'process_id': ['process.id'],
+            'destination_mac': ['destination.mac'],
+            'network_direction': ['network.direction'],
+            'ecs': ['ecs'],
+            'network_type': ['network.type'],
+            'source': ['source'],
+            'interface_name': ['interface.name'],
+            'related_ip': ['related.ip'],
+            'destination': ['destination'],
+            'file_directory': ['file.directory'],
+            'event_code': ['event.code'],
+            'event_duration': ['event.duration'],
+            'event_original': ['event.original'],
+            'destination_geo': ['destination.geo'],
+            'agent': ['agent'],
+            'user_agent': ['user_agent.original', 'user_agent', 'useragent', 'agent'],
+            'url_original': ['url.original'],
+            'url_query': ['url.query'],
             'http_method': ['http.request.method', 'http_method', 'method', 'request_method'],
             'http_status': ['http.response.status_code', 'http_status', 'status_code', 'response_status'],
             'http_version': ['http.version', 'http_version', 'version'],
-            'user_agent': ['user_agent.original', 'user_agent', 'useragent', 'agent']
         }
         
     async def connect(self):
@@ -1323,6 +1362,16 @@ class ElasticsearchClient:
                     if value is not None:
                         mapped = True
                         return value
+        # Try to match nested fields at one level deep if not found above
+        if not mapped:
+            for key in source.keys():
+                if isinstance(source[key], dict):
+                    for field in self.dshield_field_mappings.get(field_type, []):
+                        if field in source[key]:
+                            value = source[key][field]
+                            if value is not None:
+                                mapped = True
+                                return value
         if not mapped:
             logger.debug(f"Field type '{field_type}' not mapped in document.", tried_fields=tried_fields, available_fields=list(source.keys()))
         return default
