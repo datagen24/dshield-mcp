@@ -473,10 +473,7 @@ class DataProcessor:
             'summary': self._generate_executive_summary(events, threat_indicators),
             'total_events': len(events),
             'unique_ips': len(set(str(e.get('source_ip')) if isinstance(e.get('source_ip'), (list, dict)) else e.get('source_ip') for e in events if e.get('source_ip'))),
-            'time_range': {
-                'start': min(e.get('timestamp') for e in events if e.get('timestamp')),
-                'end': max(e.get('timestamp') for e in events if e.get('timestamp'))
-            },
+            'time_range': self._calculate_time_range(events),
             'threat_indicators': threat_indicators,
             'high_risk_ips': self._identify_high_risk_ips(events, threat_intelligence),
             'attack_vectors': attack_vectors,
@@ -996,6 +993,43 @@ class DataProcessor:
             'events': [],
             'threat_intelligence': {}
         }
+    
+    def _calculate_time_range(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Calculate time range from events, handling empty sequences."""
+        # Extract valid timestamps
+        timestamps = []
+        for event in events:
+            timestamp = event.get('timestamp')
+            if timestamp:
+                # Handle both string and datetime timestamps
+                if isinstance(timestamp, str):
+                    try:
+                        # Try to parse ISO format timestamps
+                        if timestamp.endswith('Z'):
+                            timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                        else:
+                            timestamp = datetime.fromisoformat(timestamp)
+                    except ValueError:
+                        # Skip malformed timestamps
+                        continue
+                elif isinstance(timestamp, datetime):
+                    timestamps.append(timestamp)
+                else:
+                    # Skip non-datetime objects
+                    continue
+        
+        if timestamps:
+            return {
+                'start': min(timestamps),
+                'end': max(timestamps)
+            }
+        else:
+            # Return current time as fallback
+            current_time = datetime.utcnow()
+            return {
+                'start': current_time,
+                'end': current_time
+            }
     
     def _create_empty_dshield_statistics(self) -> DShieldStatistics:
         """Create empty DShield statistics."""
