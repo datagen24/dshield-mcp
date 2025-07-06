@@ -159,6 +159,7 @@ results/
 dev_tools/
 test_*.py
 debug_*.py
+!dev_tools/test_user_configuration.py
 
 # Security
 *.pem
