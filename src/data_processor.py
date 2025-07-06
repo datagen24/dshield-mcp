@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set
 
 import structlog
-from models import (
+from .models import (
     SecurityEvent, ThreatIntelligence, AttackReport, SecuritySummary, 
     EventSeverity, EventCategory, DShieldAttack, DShieldReputation, 
     DShieldTopAttacker, DShieldGeographicData, DShieldPortData, DShieldStatistics

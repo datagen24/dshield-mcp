@@ -1,6 +1,6 @@
 import os
 import yaml
-from op_secrets import OnePasswordSecrets
+from .op_secrets import OnePasswordSecrets
 
 class ConfigError(Exception):
     pass

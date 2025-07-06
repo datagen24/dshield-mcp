@@ -10,9 +10,9 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 import structlog
 
-from campaign_analyzer import CampaignAnalyzer, Campaign, CampaignEvent, CorrelationMethod
-from elasticsearch_client import ElasticsearchClient
-from user_config import get_user_config
+from .campaign_analyzer import CampaignAnalyzer, Campaign, CampaignEvent, CorrelationMethod
+from .elasticsearch_client import ElasticsearchClient
+from .user_config import get_user_config
 
 logger = structlog.get_logger(__name__)
 
