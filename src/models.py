@@ -6,7 +6,7 @@ Optimized for DShield SIEM data structures and patterns.
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 import ipaddress
 
 
@@ -86,7 +86,8 @@ class SecurityEvent(BaseModel):
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw event data")
     indices: List[str] = Field(default_factory=list, description="Source indices")
     
-    @validator('source_ip', 'destination_ip')
+    @field_validator('source_ip', 'destination_ip')
+    @classmethod
     def validate_ip_address(cls, v):
         """Validate IP address format."""
         if v is not None:
@@ -96,14 +97,16 @@ class SecurityEvent(BaseModel):
                 raise ValueError(f"Invalid IP address: {v}")
         return v
     
-    @validator('source_port', 'destination_port')
+    @field_validator('source_port', 'destination_port')
+    @classmethod
     def validate_port(cls, v):
         """Validate port number."""
         if v is not None and (v < 1 or v > 65535):
             raise ValueError(f"Invalid port number: {v}")
         return v
     
-    @validator('reputation_score')
+    @field_validator('reputation_score')
+    @classmethod
     def validate_reputation_score(cls, v):
         """Validate reputation score range."""
         if v is not None and (v < 0 or v > 100):
@@ -159,7 +162,8 @@ class DShieldReputation(BaseModel):
     service_count: Optional[int] = Field(None, description="Number of services targeted")
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw threat data")
     
-    @validator('ip_address')
+    @field_validator('ip_address')
+    @classmethod
     def validate_ip_address(cls, v):
         """Validate IP address format."""
         try:
@@ -168,7 +172,8 @@ class DShieldReputation(BaseModel):
             raise ValueError(f"Invalid IP address: {v}")
         return v
     
-    @validator('reputation_score')
+    @field_validator('reputation_score')
+    @classmethod
     def validate_reputation_score(cls, v):
         """Validate reputation score range."""
         if v is not None and (v < 0 or v > 100):
@@ -193,7 +198,8 @@ class DShieldTopAttacker(BaseModel):
     target_services: List[str] = Field(default_factory=list, description="Targeted services")
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw attacker data")
     
-    @validator('ip_address')
+    @field_validator('ip_address')
+    @classmethod
     def validate_ip_address(cls, v):
         """Validate IP address format."""
         try:
@@ -232,7 +238,8 @@ class DShieldPortData(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now, description="Data timestamp")
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw port data")
     
-    @validator('port')
+    @field_validator('port')
+    @classmethod
     def validate_port(cls, v):
         """Validate port number."""
         if v < 1 or v > 65535:
@@ -258,7 +265,8 @@ class ThreatIntelligence(BaseModel):
     service_count: Optional[int] = Field(None, description="Number of services targeted")
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw threat data")
     
-    @validator('ip_address')
+    @field_validator('ip_address')
+    @classmethod
     def validate_ip_address(cls, v):
         """Validate IP address format."""
         try:
@@ -267,7 +275,8 @@ class ThreatIntelligence(BaseModel):
             raise ValueError(f"Invalid IP address: {v}")
         return v
     
-    @validator('reputation_score')
+    @field_validator('reputation_score')
+    @classmethod
     def validate_reputation_score(cls, v):
         """Validate reputation score range."""
         if v is not None and (v < 0 or v > 100):
@@ -359,7 +368,8 @@ class QueryFilter(BaseModel):
     value: Union[str, int, float, bool, List[Any]] = Field(..., description="Filter value")
     operator: str = Field("eq", description="Filter operator (eq, ne, gt, lt, gte, lte, in, not_in)")
     
-    @validator('operator')
+    @field_validator('operator')
+    @classmethod
     def validate_operator(cls, v):
         """Validate filter operator."""
         valid_operators = ["eq", "ne", "gt", "lt", "gte", "lte", "in", "not_in", "exists", "wildcard"]
@@ -378,7 +388,8 @@ class ElasticsearchQuery(BaseModel):
     sort: List[Dict[str, str]] = Field(default_factory=list, description="Sort criteria")
     aggs: Dict[str, Any] = Field(default_factory=dict, description="Aggregations")
     
-    @validator('size')
+    @field_validator('size')
+    @classmethod
     def validate_size(cls, v):
         """Validate result size."""
         if v < 1 or v > 10000:
