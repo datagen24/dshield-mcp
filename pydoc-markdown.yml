@@ -1,0 +1,23 @@
+loaders:
+  - type: python
+    search_path: [src]
+    modules:
+      - campaign_analyzer
+      - campaign_mcp_tools
+      - config_loader
+      - context_injector
+      - data_dictionary
+      - data_processor
+      - dshield_client
+      - elasticsearch_client
+      - models
+      - op_secrets
+      - user_config
+processors:
+  - type: filter
+    documented_only: true
+  - type: smart
+  - type: crossref
+renderer:
+  type: markdown
+  filename: docs/api/markdown/api_documentation.md

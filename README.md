@@ -57,6 +57,31 @@ The system includes a comprehensive data dictionary that helps AI models underst
 - MCP Resource: `dshield://data-dictionary`
 - Server Initialization: Included in experimental capabilities
 
+## Documentation
+
+### API Documentation
+Comprehensive API documentation is available for developers and integrators:
+
+- **[API Reference](docs/API_DOCUMENTATION.md)**: Complete API reference with usage examples
+- **[Generated HTML Docs](docs/api/index.html)**: Auto-generated HTML documentation
+- **[Build Script](scripts/build_api_docs.sh)**: Generate updated API documentation
+
+To generate the latest API documentation:
+```bash
+# Install development dependencies (includes pdoc)
+pip install -r requirements-dev.txt
+
+# Generate API documentation
+./scripts/build_api_docs.sh
+```
+
+### Implementation Documentation
+For detailed implementation information and development history:
+
+- **[Implementation Docs](docs/)**: Comprehensive implementation documentation
+- **[Enhancements](docs/Enhancements.md)**: Feature additions and improvements
+- **[Changelog](docs/CHANGELOG.md)**: Version history and changes
+
 ## Quick Start
 
 ### Prerequisites
