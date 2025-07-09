@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Test Suite: 1Password and Config Loader Mocking**
+  - Fixed persistent test failures caused by real 1Password CLI calls during test runs.
+  - Root cause: Both the DShield client and the config loader instantiated `OnePasswordSecrets` directly, and the config loader's `_resolve_secrets` function recursively resolved all secrets using the real 1Password integration, bypassing test mocks.
+  - Solution: All tests now patch `src.config_loader._resolve_secrets` to return the test config directly, in addition to patching `OnePasswordSecrets` and `get_config`. This ensures no real 1Password resolution occurs during tests.
+  - Impact: Test suite is now fully isolated from external secrets and passes reliably. Enables safe, fast, and repeatable test runs for all modules that depend on secrets/configuration.
+
 - **Campaign Analysis Seed Event Retrieval Bug**: Fixed seed event retrieval failure preventing campaign analysis
   - Resolves seed event retrieval failure in `_get_seed_events()` method
   - Fixed field mapping issues by adding ECS fields and `related.ip` field support
