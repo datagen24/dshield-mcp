@@ -319,6 +319,7 @@ class TestOnePasswordSecretsIntegration:
                 'host': 'localhost',
                 'port': 9200,
                 'username': 'admin',
+                # file deepcode ignore NoHardcodedPasswords/test: python test, ot valid password
                 'password': 'password123'
             }
         }
@@ -335,6 +336,7 @@ class TestOnePasswordSecretsIntegration:
             assert config['elasticsearch']['host'] == 'localhost'
             assert config['elasticsearch']['port'] == 9200
             assert config['elasticsearch']['username'] == 'admin'
+            # file deepcode ignore NoHardcodedPasswords/test: python test, ot valid password
             assert config['elasticsearch']['password'] == 'password123'
     
     def test_config_file_not_found(self):

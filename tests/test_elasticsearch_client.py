@@ -13,6 +13,7 @@ TEST_CONFIG = {
     "elasticsearch": {
         "url": "https://test-elasticsearch:9200",
         "username": "test_user",
+        # file deepcode ignore NoHardcodedPasswords/test: <please specify a reason of ignoring this>
         "password": "test_password",
         "verify_ssl": True,
         "ca_certs": "/path/to/ca.crt",

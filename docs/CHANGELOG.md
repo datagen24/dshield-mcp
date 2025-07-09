@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **MCP Server Config Loading Error Handling**: Fixed server crash when user configuration loading fails
+  - Root cause: DShieldMCPServer constructor did not handle exceptions from `get_user_config()`, causing the server to crash if config loading failed
+  - Solution: Added try-catch block in `__init__()` method to gracefully handle config loading errors
+  - Behavior: Server now sets `self.user_config = None` and logs the error instead of crashing
+  - Impact: Server remains functional even with configuration issues, improving reliability and testability
+  - **Testing**: Fixed `test_server_error_handling` test to properly validate graceful error handling
+
 - **Test Suite: 1Password and Config Loader Mocking**
   - Fixed persistent test failures caused by real 1Password CLI calls during test runs.
   - Root cause: Both the DShield client and the config loader instantiated `OnePasswordSecrets` directly, and the config loader's `_resolve_secrets` function recursively resolved all secrets using the real 1Password integration, bypassing test mocks.

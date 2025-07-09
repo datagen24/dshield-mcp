@@ -67,7 +67,15 @@ The `dev_tools/` directory contains 25+ test scripts that were created during de
         - ContextInjector: initialization, context preparation, ChatGPT formatting, empty data handling
         - Integration startup: all components can be imported and initialized together
     - All tests pass and confirm robust integration of core server logic and context preparation.
-- **2.2 (Next)**: [To be determined based on remaining dev_tools tests and unique coverage needs]
+- **2.2 MCP Server and Query Tests**: ✅ Completed
+    - Created `tests/test_mcp_server.py` covering:
+        - Server initialization and structure validation
+        - Tool registration and MCP protocol handling
+        - Core MCP tools: query_dshield_events, get_dshield_statistics, enrich_ip_with_dshield, get_data_dictionary
+        - Server cleanup and error handling
+        - Tool error handling with graceful failure recovery
+    - All 11 tests pass with comprehensive async mocking and proper error handling
+    - Fixed server config loading error handling to prevent crashes when user config fails to load
 
 ### Phase 3: ...
 
