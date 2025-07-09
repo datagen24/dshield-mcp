@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **Dependency Vulnerability Fixes**: Address Snyk-reported security vulnerabilities
+  - Upgrade `aiohttp` from `>=3.8.0` to `>=3.12.13` (latest secure version)
+  - Upgrade `zipp` from `>=3.19.1` to `>=3.23.0` (latest secure version)
+  - Confirm `h11>=0.16.0` is already at latest secure version
+  - Remove `ipaddress` and `uuid` from requirements.txt (standard library modules in modern Python)
+  - All updates maintain compatibility with modern Python versions (3.3+)
+  - Addresses potential vulnerabilities in HTTP client library and ZIP file handling
+  - Reduces attack surface by removing unnecessary dependencies
+  - Maintains project security posture for production deployment
+
 ### Added
 - **Phase 3.1: Data Parsing & Field Mapping Tests Migration**
   - Created `tests/test_data_parsing.py` with 28 tests covering:
