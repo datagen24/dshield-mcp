@@ -92,8 +92,19 @@ The `dev_tools/` directory contains 25+ test scripts that were created during de
         - All 8 tests pass, confirming robust pagination logic and info structure
 
 ### **Phase 4: Advanced Feature Tests**
-- [ ] 4.1 Smart Query Optimization Tests
-- [ ] 4.2 Performance Metrics Tests
+- **4.1 Smart Query Optimization Tests**: ✅ Completed
+    - Created `tests/test_query_optimization.py` covering:
+        - Normal queries without optimization
+        - Auto optimization with large page sizes
+        - Field optimization and reduction
+        - Page size reduction when field optimization isn't enough
+        - Aggregation and sampling fallback strategies
+        - Optimization disabled scenarios
+        - Direct method testing for optimization functions
+        - Unknown fallback strategy handling
+    - All 12 tests pass with comprehensive mocking and real method testing
+- **4.2 Performance Metrics Tests**: [Next]
+    - To be migrated: `test_performance_metrics.py` (192 lines)
 
 ### **Phase 5: Complex Integration Tests**
 - [ ] 5.1 Campaign Analysis Tests
