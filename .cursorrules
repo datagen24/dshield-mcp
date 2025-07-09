@@ -1,0 +1,124 @@
+---
+description: Optimize code snippets and explanations for clarity and AI-assisted development.
+globs: *
+---
+- Provide code snippets and explanations tailored to these principles, optimizing for clarity and AI-assisted development.
+
+---
+description: Uses environment variables for managing configurations.
+globs: *
+---
+- Configuration management using environment variables.
+
+---
+description: Use 1Password CLI for secure secrets management.
+globs: *
+---
+- Store sensitive information and credentials using 1Password CLI (op).
+- Access secrets programmatically using `op read` or `op inject` commands.
+- Never hardcode secrets or credentials in code or configuration files.
+- Use environment variables populated from 1Password for runtime configuration.
+- Follow 1Password CLI best practices for authentication and session management.
+
+---
+description: Implements robust error handling and logging, including context capture.
+globs: *
+---
+- Robust error handling and logging, including context capture.
+
+---
+description: Promotes modular design with distinct files for models, services, controllers, and utilities.
+globs: *
+---
+- Modular design with distinct files for models, services, controllers, and utilities.
+
+---
+description: Enforces a clear project structure with separated directories for source code, tests, docs, and config.
+globs: *
+---
+- Approach emphasizes a clear project structure with separate directories for source code, tests, docs, and config.
+
+---
+description: Applies general Python development guidelines including typing, docstrings, dependency management, testing with pytest, and code style using Ruff.
+globs: **/*.py
+---
+- For any python file, be sure to ALWAYS add typing annotations to each function or class. Be sure to include return types when necessary.
+- Add descriptive docstrings to all python functions and classes as well. Please use pep257 convention. Update existing docstrings if need be.
+- Make sure you keep any comments that exist in a file.
+- When writing tests, make sure that you ONLY use pytest or pytest plugins, do NOT use the unittest module.
+- All tests should have typing annotations as well.
+- All tests should be in ./tests. Be sure to create all necessary files and folders. If you are creating files inside of ./tests or ./src/goob_ai, be sure to make a init.py file if one does not exist.
+- All tests should be fully annotated and should contain docstrings.
+- Be sure to import the following if TYPE_CHECKING:
+  from _pytest.capture import CaptureFixture
+  from _pytest.fixtures import FixtureRequest
+  from _pytest.logging import LogCaptureFixture
+  from _pytest.monkeypatch import MonkeyPatch
+  from pytest_mock.plugin import MockerFixture
+- Dependency management via https://github.com/astral-sh/uv and virtual environments.
+- Code style consistency using Ruff.
+
+---
+description: Use Snyk CLI for vulnerability scanning and security testing.
+globs: *
+---
+- Run Snyk CLI vulnerability scans before deploying code changes.
+- Execute `snyk test` to check for known vulnerabilities in dependencies.
+- Use `snyk monitor` to continuously monitor projects for new vulnerabilities.
+- Integrate Snyk testing into CI/CD pipelines for automated security checks.
+- Address high-severity vulnerabilities promptly following Snyk recommendations.
+- Keep dependencies updated based on Snyk security advisories.
+- Run `snyk code test` for static application security testing (SAST).
+- Generate and review Snyk test reports for security compliance.
+
+---
+description: Requires comprehensive documentation for all features and changes.
+globs: *
+---
+- Create detailed implementation documents in the docs folder for all new features and major changes.
+- Implementation docs should include:
+  - Overview and purpose
+  - Technical design and architecture
+  - Dependencies and requirements
+  - Implementation details and code examples
+  - Configuration and setup instructions
+  - Testing approach and considerations
+  - Security implications if applicable
+  - Performance considerations
+  - Migration steps if needed
+- Update enhancements.md to track feature additions and improvements.
+- Maintain clear and organized documentation structure in the docs folder.
+- Include API documentation for public interfaces.
+- Document configuration options and environment variables.
+- Add usage examples and common scenarios.
+- Keep documentation in sync with code changes.
+- Review and update existing documentation when making related changes.
+
+---
+description: Use pdoc for Python API documentation generation and maintenance.
+globs: **/*.py
+---
+- Generate API documentation using pdoc for all Python modules and packages.
+- Ensure comprehensive docstrings are present for:
+  - All modules
+  - All classes and their methods
+  - All functions and their parameters
+  - All package-level documentation
+- Docstrings should follow Google style format and include:
+  - Description of functionality
+  - Args/Parameters with types
+  - Returns with types
+  - Raises exceptions if applicable
+  - Examples where helpful
+- Run pdoc documentation generation after code changes:
+  - Use `pdoc --html` for HTML documentation
+  - Use `pdoc --output-dir docs/api` to organize documentation
+  - Configure pdoc to match project theme and style
+- Keep API documentation synchronized with implementation:
+  - Update docstrings when changing function signatures
+  - Maintain accurate parameter descriptions
+  - Document breaking changes and deprecations
+  - Version documentation alongside code
+- Include doctest examples in docstrings where applicable
+- Review generated documentation for completeness and accuracy
+- Link API documentation in project README and documentation index
