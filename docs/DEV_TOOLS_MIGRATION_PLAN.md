@@ -55,173 +55,23 @@ The `dev_tools/` directory contains 25+ test scripts that were created during de
 
 ## Migration Phases
 
-### **Phase 1: Foundation & Simple Tests** (Week 1)
-**Goal**: Establish patterns and migrate the simplest tests first.
+### Phase 1: Data Dictionary and 1Password Integration
+- **1.1 Data Dictionary tests**: ✅ Completed
+- **1.2 1Password integration tests**: ✅ Completed
 
-#### **1.1 Data Dictionary Tests** (Priority: High, Complexity: Low) ✅ COMPLETED
-- **Source**: `dev_tools/test_data_dictionary.py`
-- **Target**: `tests/test_data_dictionary.py`
-- **Why first**: Simple unit tests, no external dependencies, pure function testing
-- **Pattern**: Use existing `tests/test_op_secrets.py` as template
+### Phase 2: Core Functionality
+- **2.1 Import validation, DataProcessor, ContextInjector, and integration startup tests**: ✅ Completed
+    - Created `tests/test_server_integration.py` covering:
+        - Import validation for all core modules and clients
+        - DataProcessor: initialization, event processing, summary generation, unique IP extraction, empty/invalid event handling
+        - ContextInjector: initialization, context preparation, ChatGPT formatting, empty data handling
+        - Integration startup: all components can be imported and initialized together
+    - All tests pass and confirm robust integration of core server logic and context preparation.
+- **2.2 (Next)**: [To be determined based on remaining dev_tools tests and unique coverage needs]
 
-**Tests created**:
-```python
-def test_get_field_descriptions()
-def test_get_query_examples()
-def test_get_data_patterns()
-def test_get_analysis_guidelines()
-def test_get_initial_prompt()
-def test_json_format()
-def test_field_descriptions_content()
-def test_query_examples_content()
-def test_data_patterns_content()
-def test_analysis_guidelines_content()
-def test_initial_prompt_content()
-def test_data_consistency()
-```
+### Phase 3: ...
 
-**Implementation Notes**:
-- Created comprehensive test suite with 12 test methods
-- Fixed data structure assumptions to match actual DataDictionary implementation
-- Added content validation tests for each method
-- Implemented data consistency checks between different methods
-- All tests pass successfully (12/12)
-
-#### **1.2 1Password Integration Tests** (Priority: High, Complexity: Low) ✅ COMPLETED
-- **Source**: `dev_tools/test_op_secrets.py`
-- **Target**: Enhanced existing `tests/test_op_secrets.py`
-- **Why second**: Already had good pytest pattern, just needed to add dev_tools coverage
-
-**Tests created/enhanced**:
-```python
-def test_config_loading_with_secrets_resolution()
-def test_config_loading_with_nested_structures()
-def test_config_loading_with_op_cli_unavailable()
-def test_config_loading_with_op_cli_errors()
-def test_resolve_secrets_function()
-def test_config_loading_with_no_secrets()
-def test_config_file_not_found()
-def test_config_file_invalid_yaml()
-def test_config_file_not_dict()
-# Plus all OnePasswordSecrets unit tests
-```
-
-**Implementation Notes**:
-- Added comprehensive integration tests for config loading and op:// URL resolution
-- Covered error handling for CLI unavailable and CLI errors
-- Removed database connection string test (no DB integration in project)
-- All tests pass successfully (22/22)
-
-### **Phase 2: Core Functionality Tests** (Week 2)
-**Goal**: Migrate tests that validate core system functionality.
-
-#### **2.1 Server Startup & Installation Tests** (Priority: High, Complexity: Medium)
-- **Source**: `dev_tools/test_server_startup.py`, `dev_tools/test_installation.py`
-- **Target**: `tests/test_server_integration.py`
-
-**Tests to create**:
-```python
-def test_server_startup()
-def test_tool_registration()
-def test_dependency_verification()
-def test_configuration_loading()
-```
-
-#### **2.2 MCP Server Tests** (Priority: High, Complexity: Medium)
-- **Source**: `dev_tools/test_mcp_server.py`
-- **Target**: `tests/test_mcp_server.py`
-
-**Tests to create**:
-```python
-def test_mcp_server_initialization()
-def test_tool_registration()
-def test_basic_queries()
-def test_error_handling()
-```
-
-### **Phase 3: Feature Tests** (Week 3)
-**Goal**: Migrate tests for specific features and capabilities.
-
-#### **3.1 Data Parsing & Field Mapping Tests** (Priority: Medium, Complexity: Medium)
-- **Source**: `dev_tools/test_data_parsing.py`
-- **Target**: `tests/test_data_parsing.py`
-
-**Tests to create**:
-```python
-def test_field_mapping()
-def test_data_parsing()
-def test_ecs_field_support()
-```
-
-#### **3.2 Pagination Tests** (Priority: Medium, Complexity: High)
-- **Source**: `dev_tools/test_pagination.py`, `dev_tools/test_enhanced_pagination*.py`
-- **Target**: `tests/test_pagination.py`
-
-**Tests to create**:
-```python
-def test_basic_pagination()
-def test_cursor_pagination()
-def test_field_selection_with_pagination()
-def test_pagination_metadata()
-```
-
-### **Phase 4: Advanced Feature Tests** (Week 4)
-**Goal**: Migrate complex feature tests that require more setup.
-
-#### **4.1 Smart Query Optimization Tests** (Priority: Medium, Complexity: High)
-- **Source**: `dev_tools/test_smart_query_optimization.py`
-- **Target**: `tests/test_query_optimization.py`
-
-**Tests to create**:
-```python
-def test_size_estimation()
-def test_field_optimization()
-def test_fallback_strategies()
-```
-
-#### **4.2 Performance Metrics Tests** (Priority: Low, Complexity: Medium)
-- **Source**: `dev_tools/test_performance_metrics.py`
-- **Target**: `tests/test_performance_metrics.py`
-
-**Tests to create**:
-```python
-def test_query_performance_tracking()
-def test_metrics_inclusion()
-```
-
-### **Phase 5: Complex Integration Tests** (Week 5)
-**Goal**: Migrate tests that require real data or complex scenarios.
-
-#### **5.1 Campaign Analysis Tests** (Priority: High, Complexity: Very High)
-- **Source**: `dev_tools/test_campaign_analysis*.py`
-- **Target**: `tests/test_campaign_analysis.py`
-
-**Tests to create**:
-```python
-def test_campaign_detection()
-def test_correlation_pipeline()
-def test_ioc_expansion()
-```
-
-**Note**: May require significant refactoring and mock data
-
-#### **5.2 Streaming & Smart Chunking Tests** (Priority: Low, Complexity: High)
-- **Source**: `dev_tools/test_streaming*.py`, `dev_tools/test_smart_chunking.py`
-- **Target**: `tests/test_streaming.py`
-
-**Tests to create**:
-```python
-def test_event_streaming()
-def test_session_context_chunking()
-```
-
-### **Phase 6: Debug & Utility Tests** (Week 6)
-**Goal**: Migrate or deprecate debug tools.
-
-#### **6.1 Debug Tools Assessment** (Priority: Low, Complexity: Variable)
-- **Source**: `debug_elasticsearch.py`, `diagnose_elasticsearch_data.py`
-- **Decision**: Keep as standalone debug tools (don't migrate to pytest)
-- **Reason**: These are development utilities, not unit tests
+(Continue updating as migration progresses)
 
 ## Migration Guidelines
 
