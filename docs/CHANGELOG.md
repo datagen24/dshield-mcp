@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 3.1: Data Parsing & Field Mapping Tests Migration**
+  - Created `tests/test_data_parsing.py` with 28 tests covering:
+    - DataProcessor: event normalization, attack processing, summary generation, unique IP extraction, attack pattern detection, empty/invalid event handling
+    - ElasticsearchClient: field mapping, query field mapping, nested/alternative field extraction, event parsing
+    - End-to-end data processing workflows from raw events to summaries
+  - All tests pass with comprehensive mocking and robust coverage
+
+### Changed
+- **DataProcessor**: Now gracefully skips `None` events in `process_security_events`, improving robustness for invalid input data
+
 ### Fixed
 - **MCP Server Config Loading Error Handling**: Fixed server crash when user configuration loading fails
   - Root cause: DShieldMCPServer constructor did not handle exceptions from `get_user_config()`, causing the server to crash if config loading failed

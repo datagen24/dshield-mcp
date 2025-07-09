@@ -77,59 +77,19 @@ The `dev_tools/` directory contains 25+ test scripts that were created during de
     - All 11 tests pass with comprehensive async mocking and proper error handling
     - Fixed server config loading error handling to prevent crashes when user config fails to load
 
-### Phase 3: ...
-
-(Continue updating as migration progresses)
-
-## Migration Guidelines
-
-### **For Each Phase:**
-
-1. **Create new test file** in `tests/` directory
-2. **Use existing pytest patterns** from current test suite
-3. **Apply proper mocking** (1Password, config loader, etc.)
-4. **Add comprehensive test coverage** with multiple scenarios
-5. **Update conftest.py** with shared fixtures if needed
-6. **Run existing tests** to ensure no regressions
-7. **Document any new fixtures** or test utilities
-
-### **Test Structure Pattern:**
-```python
-@pytest.mark.asyncio
-@patch('src.user_config.get_user_config')
-@patch('src.config_loader._resolve_secrets')
-@patch('src.config_loader.get_config')
-async def test_feature_name(self, mock_get_config, mock_resolve_secrets, mock_user_config):
-    """Test description."""
-    # Setup
-    mock_get_config.return_value = TEST_CONFIG
-    mock_resolve_secrets.return_value = TEST_CONFIG
-    
-    # Test logic
-    # Assertions
-```
-
-### **Success Criteria for Each Phase:**
-- ✅ All new tests pass
-- ✅ Existing tests still pass
-- ✅ No real external dependencies called
-- ✅ Proper mocking in place
-- ✅ Good test coverage
-- ✅ Clear test documentation
-
-## Progress Tracking
-
-### **Phase 1: Foundation & Simple Tests**
-- [ ] 1.1 Data Dictionary Tests
-- [ ] 1.2 1Password Integration Tests
-
-### **Phase 2: Core Functionality Tests**
-- [ ] 2.1 Server Startup & Installation Tests
-- [ ] 2.2 MCP Server Tests
-
-### **Phase 3: Feature Tests**
-- [ ] 3.1 Data Parsing & Field Mapping Tests
-- [ ] 3.2 Pagination Tests
+### Phase 3: Feature Tests
+- **3.1 Data Parsing & Field Mapping Tests**: ✅ Completed
+    - Created `tests/test_data_parsing.py` covering:
+        - DataProcessor: event normalization, attack processing, summary generation, unique IP extraction, attack pattern detection, empty/invalid event handling
+        - ElasticsearchClient: field mapping, query field mapping, nested/alternative field extraction, event parsing
+        - End-to-end data processing workflows from raw events to summaries
+    - All 28 tests pass with comprehensive mocking and robust coverage
+    - DataProcessor updated to gracefully skip None events
+- **3.2 Pagination Tests**: ✅ Completed
+    - Created `tests/test_pagination.py` covering:
+        - All pagination scenarios: first/second/last page, large/capped page sizes, very large page number, attacks pagination, edge cases
+        - Used mocks for ElasticsearchClient and pagination info
+        - All 8 tests pass, confirming robust pagination logic and info structure
 
 ### **Phase 4: Advanced Feature Tests**
 - [ ] 4.1 Smart Query Optimization Tests
