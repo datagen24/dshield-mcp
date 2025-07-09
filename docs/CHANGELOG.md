@@ -7,7 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Phase 3.1: Data Parsing & Field Mapping Tests Migration**
+  - Created `tests/test_data_parsing.py` with 28 tests covering:
+    - DataProcessor: event normalization, attack processing, summary generation, unique IP extraction, attack pattern detection, empty/invalid event handling
+    - ElasticsearchClient: field mapping, query field mapping, nested/alternative field extraction, event parsing
+    - End-to-end data processing workflows from raw events to summaries
+  - All tests pass with comprehensive mocking and robust coverage
+
+- **Phase 4.1: Smart Query Optimization Tests Migration**
+  - Created `tests/test_query_optimization.py` with 12 comprehensive tests covering:
+    - Normal queries without optimization
+    - Auto optimization with large page sizes
+    - Field optimization and reduction
+    - Page size reduction when field optimization isn't enough
+    - Aggregation and sampling fallback strategies
+    - Optimization disabled scenarios
+    - Direct method testing for optimization functions
+    - Unknown fallback strategy handling
+  - All tests pass with comprehensive mocking and real method testing
+
+- **Phase 4.2: Performance Metrics Tests Migration**
+  - Created `tests/test_performance_metrics.py` with 11 comprehensive tests covering:
+    - Simple query performance metrics with timing and resource usage
+    - Complex query performance with filters and field selection
+    - Cursor pagination performance metrics
+    - Aggregation query performance metrics
+    - Performance comparison between different page sizes
+    - Field selection optimization performance
+    - Performance metrics structure validation
+    - Optimization tracking and cache hit scenarios
+    - Edge cases for empty results and error conditions
+  - All tests pass with comprehensive mocking of performance metrics interface
+  - Tests cover expected interface for performance tracking (implementation enhancement needed)
+
+- **Phase 5.1: Campaign Analysis Tests Migration**
+  - Created `tests/test_campaign_analysis.py` with 13 comprehensive tests covering:
+    - Campaign analyzer initialization and configuration
+    - Campaign and CampaignEvent data models with validation
+    - Correlation method enums and validation
+    - Campaign timeline building functionality
+    - Campaign scoring and confidence calculation
+    - Campaign MCP tools initialization and integration
+    - Analyze campaign MCP tool functionality
+    - Campaign indicator expansion capabilities
+    - User configuration campaign settings management
+    - Campaign environment variable support
+    - Campaign configuration export functionality
+    - Campaign event and campaign validation edge cases
+  - All tests pass with comprehensive mocking and robust coverage
+- **Phase 5.2: Streaming & Smart Chunking Tests Migration**
+  - Created `tests/test_streaming.py` with 17 comprehensive tests covering:
+    - Basic streaming functionality with cursor-based pagination
+    - Streaming with field selection and filtering
+    - Large dataset simulation with multiple chunks
+    - Time range streaming with custom filters
+    - Error handling and empty response scenarios
+    - Smart chunking with session context functionality
+    - Custom session fields and session summaries
+    - Filtered session chunking and field selection
+    - Session gap configuration and performance comparison
+    - Session chunking error handling and empty responses
+  - All tests pass with comprehensive mocking and robust coverage
+
+- **Phase 6: Debug & Utility Tests Assessment**
+  - Assessed all remaining dev_tools files and confirmed debug tools should remain as-is:
+    - `debug_elasticsearch.py` (220 lines) - Debug tool for Elasticsearch investigation
+    - `diagnose_elasticsearch_data.py` (53 lines) - Data diagnostic tool
+    - `find_available_ips.py` (153 lines) - IP discovery utility
+    - `find_related_ip_debug.py` (29 lines) - Specific IP debugging tool
+  - Created `tests/test_remaining_integration.py` with 10 comprehensive tests covering:
+    - Complex workflow integration with multiple components
+    - Advanced error handling scenarios
+    - Campaign analysis edge cases
+    - User configuration edge cases
+    - Streaming edge cases
+    - Data processing edge cases
+    - Context injection edge cases
+    - Performance optimization edge cases
+    - Integration error recovery scenarios
+    - Comprehensive workflow validation
+  - All tests pass with comprehensive mocking and robust coverage
+  - **Dev Tools Migration Complete**: All appropriate tests migrated, debug tools preserved
+  - Tests validate complex campaign analysis integration and data models
+
+### Changed
+- **DataProcessor**: Now gracefully skips `None` events in `process_security_events`, improving robustness for invalid input data
+
 ### Fixed
+- **MCP Server Config Loading Error Handling**: Fixed server crash when user configuration loading fails
+  - Root cause: DShieldMCPServer constructor did not handle exceptions from `get_user_config()`, causing the server to crash if config loading failed
+  - Solution: Added try-catch block in `__init__()` method to gracefully handle config loading errors
+  - Behavior: Server now sets `self.user_config = None` and logs the error instead of crashing
+  - Impact: Server remains functional even with configuration issues, improving reliability and testability
+  - **Testing**: Fixed `test_server_error_handling` test to properly validate graceful error handling
+
 - **Test Suite: 1Password and Config Loader Mocking**
   - Fixed persistent test failures caused by real 1Password CLI calls during test runs.
   - Root cause: Both the DShield client and the config loader instantiated `OnePasswordSecrets` directly, and the config loader's `_resolve_secrets` function recursively resolved all secrets using the real 1Password integration, bypassing test mocks.

@@ -101,6 +101,10 @@ class DataProcessor:
         
         for event in events:
             try:
+                # Skip None events
+                if event is None:
+                    continue
+                    
                 # Normalize event data
                 normalized_event = self._normalize_event(event)
                 
@@ -115,12 +119,12 @@ class DataProcessor:
             except Exception as e:
                 if _is_debug_mode():
                     logger.warning("Failed to process event", 
-                                  event_id=event.get('id'), 
+                                  event_id=event.get('id') if event else None, 
                                   error=str(e),
                                   stack_trace=traceback.format_exc())
                 else:
                     logger.warning("Failed to process event", 
-                                  event_id=event.get('id'), 
+                                  event_id=event.get('id') if event else None, 
                                   error=str(e))
                 continue
         

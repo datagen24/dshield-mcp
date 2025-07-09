@@ -63,7 +63,11 @@ class DShieldMCPServer:
         self.campaign_tools = None
         
         # Load user configuration
-        self.user_config = get_user_config()
+        try:
+            self.user_config = get_user_config()
+        except Exception as e:
+            logger.error("Failed to load user config", error=str(e))
+            self.user_config = None
         
         # Register tools
         self._register_tools()
