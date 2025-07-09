@@ -87,16 +87,30 @@ def test_data_consistency()
 - Implemented data consistency checks between different methods
 - All tests pass successfully (12/12)
 
-#### **1.2 1Password Integration Tests** (Priority: High, Complexity: Low)
+#### **1.2 1Password Integration Tests** (Priority: High, Complexity: Low) ✅ COMPLETED
 - **Source**: `dev_tools/test_op_secrets.py`
-- **Target**: Enhance existing `tests/test_op_secrets.py`
-- **Why second**: Already have good pytest pattern, just need to add dev_tools coverage
+- **Target**: Enhanced existing `tests/test_op_secrets.py`
+- **Why second**: Already had good pytest pattern, just needed to add dev_tools coverage
 
-**Tests to add**:
+**Tests created/enhanced**:
 ```python
-def test_config_loading_with_secrets()
-def test_op_url_resolution()
+def test_config_loading_with_secrets_resolution()
+def test_config_loading_with_nested_structures()
+def test_config_loading_with_op_cli_unavailable()
+def test_config_loading_with_op_cli_errors()
+def test_resolve_secrets_function()
+def test_config_loading_with_no_secrets()
+def test_config_file_not_found()
+def test_config_file_invalid_yaml()
+def test_config_file_not_dict()
+# Plus all OnePasswordSecrets unit tests
 ```
+
+**Implementation Notes**:
+- Added comprehensive integration tests for config loading and op:// URL resolution
+- Covered error handling for CLI unavailable and CLI errors
+- Removed database connection string test (no DB integration in project)
+- All tests pass successfully (22/22)
 
 ### **Phase 2: Core Functionality Tests** (Week 2)
 **Goal**: Migrate tests that validate core system functionality.
