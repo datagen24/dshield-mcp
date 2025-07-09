@@ -15,6 +15,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - End-to-end data processing workflows from raw events to summaries
   - All tests pass with comprehensive mocking and robust coverage
 
+- **Phase 4.1: Smart Query Optimization Tests Migration**
+  - Created `tests/test_query_optimization.py` with 12 comprehensive tests covering:
+    - Normal queries without optimization
+    - Auto optimization with large page sizes
+    - Field optimization and reduction
+    - Page size reduction when field optimization isn't enough
+    - Aggregation and sampling fallback strategies
+    - Optimization disabled scenarios
+    - Direct method testing for optimization functions
+    - Unknown fallback strategy handling
+  - All tests pass with comprehensive mocking and real method testing
+
+- **Phase 4.2: Performance Metrics Tests Migration**
+  - Created `tests/test_performance_metrics.py` with 11 comprehensive tests covering:
+    - Simple query performance metrics with timing and resource usage
+    - Complex query performance with filters and field selection
+    - Cursor pagination performance metrics
+    - Aggregation query performance metrics
+    - Performance comparison between different page sizes
+    - Field selection optimization performance
+    - Performance metrics structure validation
+    - Optimization tracking and cache hit scenarios
+    - Edge cases for empty results and error conditions
+  - All tests pass with comprehensive mocking of performance metrics interface
+  - Tests cover expected interface for performance tracking (implementation enhancement needed)
+
 ### Changed
 - **DataProcessor**: Now gracefully skips `None` events in `process_security_events`, improving robustness for invalid input data
 
