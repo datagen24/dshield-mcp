@@ -93,6 +93,11 @@ globs: *
 - Add usage examples and common scenarios.
 - Keep documentation in sync with code changes.
 - Review and update existing documentation when making related changes.
+- Keep CHANGELOG.md up to date with all completed features, bug fixes, and changes.
+- Use enhancements.md only for tracking planned or in-progress enhancements and features.
+- When an enhancement or feature is completed, summarize it and move the entry from enhancements.md to CHANGELOG.md.
+- Ensure that enhancements.md reflects only current and future work, not completed items.
+- Regularly review and reconcile enhancements.md and CHANGELOG.md to maintain accuracy and clarity in project history.
 
 ---
 description: Use pdoc for HTML API documentation and pydoc-markdown for high-quality Markdown export for AI ingestion, ensuring discoverability.
@@ -130,3 +135,33 @@ globs: **/*.py
 - Review generated documentation for completeness and accuracy
 - Link API documentation in project README and documentation index
 - Add a prominent note in documentation and README to direct AI and users to the Markdown API docs in `docs/api_markdown` for optimal AI ingestion and reference.
+
+---
+description: Use of GitHub CLI for managing PR's
+globs: *
+---
+- When creating pull requests with the GitHub CLI, always generate a temporary Markdown-formatted file for the PR body.
+- Use the `--body-file` option with `gh pr create` to supply the PR body, ensuring proper formatting and avoiding shell escaping issues.
+- Do not use inline `--body` arguments for PR creation; always prefer the file-based approach for clarity and reliability.
+- Example workflow:
+  - Write the PR description to a temporary file (e.g., `.pr-body.md`).
+  - Run: `gh pr create --body-file .pr-body.md [other options]`
+  - Always remove the temporary file after PR creation.
+- This approach ensures consistent, readable PR descriptions and prevents issues with special characters or formatting in shell commands.
+
+---
+description: Branch managment procedures
+globs: *
+---
+- Always create a new branch for each bug, feature, or change. Do not work directly on the main branch.
+- Follow this workflow for every change:
+  1. Identify the bug or required change and open a corresponding GitHub issue for tracking.
+  2. Create a new branch from the latest main, named after the issue (e.g., `bugfix/issue-123-description` or `feature/issue-456-description`).
+  3. Make code changes in the new branch.
+  4. Write or update tests to cover the change.
+  5. Update documentation, including implementation docs in `docs/`, and update `enhancements.md` or `CHANGELOG.md` as appropriate.
+  6. Commit changes with clear, issue-referencing messages.
+  7. Push the branch to the remote repository.
+  8. Create a pull request referencing the related issue, using a Markdown-formatted file for the PR body with the GitHub CLI (`--body-file`).
+  9. After review and merge, delete the feature/bugfix branch.
+- This process ensures clean branch history, traceability, and up-to-date documentation for every change.
