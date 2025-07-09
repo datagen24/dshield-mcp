@@ -159,6 +159,8 @@ results/
 dev_tools/
 test_*.py
 debug_*.py
+# But include formal test suite
+!tests/test_*.py
 
 # Security
 *.pem
