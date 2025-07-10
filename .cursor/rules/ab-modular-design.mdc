@@ -1,0 +1,6 @@
+---
+description: Promotes modular design with distinct files for models, services, controllers, and utilities.
+globs: *
+alwaysApply: true
+---
+- Modular design with distinct files for models, services, controllers, and utilities.

@@ -1,0 +1,37 @@
+---
+description: Use pdoc for HTML API documentation and pydoc-markdown for high-quality Markdown export for AI ingestion, ensuring discoverability.
+globs: **/*.py
+---
+- Generate API documentation using pdoc for all Python modules and packages (HTML only).
+- Export API documentation in both HTML and Markdown formats:
+  - Use `pdoc --html` for HTML documentation.
+  - Output HTML to `docs/api`.
+  - Use `pydoc-markdown` for Markdown documentation suitable for AI ingestion.
+  - Output Markdown to `docs/api_markdown`.
+- Ensure comprehensive docstrings are present for:
+  - All modules
+  - All classes and their methods
+  - All functions and their parameters
+  - All package-level documentation
+- Docstrings should follow Google style format and include:
+  - Description of functionality
+  - Args/Parameters with types
+  - Returns with types
+  - Raises exceptions if applicable
+  - Examples where helpful
+- Run documentation generation after code changes:
+  - Use `pdoc --html` for HTML documentation
+  - Use `pdoc --output-dir docs/api` for HTML
+  - Use `pydoc-markdown` to generate Markdown documentation
+  - Use `pydoc-markdown -I src -m <your_module> -o docs/api_markdown` (adjust as needed)
+  - Configure both tools to match project theme and style
+- Keep API documentation synchronized with implementation:
+  - Update docstrings when changing function signatures
+  - Maintain accurate parameter descriptions
+  - Document breaking changes and deprecations
+  - Version documentation alongside code
+- Include doctest examples in docstrings where applicable
+- Review generated documentation for completeness and accuracy
+- Link API documentation in project README and documentation index
+- Add a prominent note in documentation and README to direct AI and users to the Markdown API docs in `docs/api_markdown` for optimal AI ingestion and reference.
+

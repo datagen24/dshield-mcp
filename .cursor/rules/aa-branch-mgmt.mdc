@@ -1,0 +1,16 @@
+---
+description: Branch managment procedures
+globs: *
+---
+- Always create a new branch for each bug, feature, or change. Do not work directly on the main branch.
+- Follow this workflow for every change:
+  1. Identify the bug or required change and open a corresponding GitHub issue for tracking.
+  2. Create a new branch from the latest main, named after the issue (e.g., `bugfix/issue-123-description` or `feature/issue-456-description`).
+  3. Make code changes in the new branch.
+  4. Write or update tests to cover the change.
+  5. Update documentation, including implementation docs in `docs/`, and update `enhancements.md` or `CHANGELOG.md` as appropriate.
+  6. Commit changes with clear, issue-referencing messages.
+  7. Push the branch to the remote repository.
+  8. Create a pull request referencing the related issue, using a Markdown-formatted file for the PR body with the GitHub CLI (`--body-file`).
+  9. After review and merge, delete the feature/bugfix branch.
+- This process ensures clean branch history, traceability, and up-to-date documentation for every change.

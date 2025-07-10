@@ -73,7 +73,7 @@ globs: *
 
 ---
 description: Requires comprehensive documentation for all features and changes.
-globs: *
+alwaysApply: true
 ---
 - Create detailed implementation documents in the docs folder for all new features and major changes.
 - Implementation docs should include:

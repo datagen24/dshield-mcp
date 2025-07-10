@@ -1,0 +1,12 @@
+---
+description: Use of GitHub CLI for managing PR's
+alwaysApply: true
+---
+- When creating pull requests with the GitHub CLI, always generate a temporary Markdown-formatted file for the PR body.
+- Use the `--body-file` option with `gh pr create` to supply the PR body, ensuring proper formatting and avoiding shell escaping issues.
+- Do not use inline `--body` arguments for PR creation; always prefer the file-based approach for clarity and reliability.
+- Example workflow:
+  - Write the PR description to a temporary file (e.g., `.pr-body.md`).
+  - Run: `gh pr create --body-file .pr-body.md [other options]`
+  - Always remove the temporary file after PR creation.
+- This approach ensures consistent, readable PR descriptions and prevents issues with special characters or formatting in shell commands.

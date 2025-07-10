@@ -1,0 +1,6 @@
+---
+description: Implements robust error handling and logging, including context capture.
+globs: *
+alwaysApply: true
+---
+- Robust error handling and logging, including context capture.

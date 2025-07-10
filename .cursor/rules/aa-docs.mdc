@@ -1,0 +1,27 @@
+---
+description: Requires comprehensive documentation for all features and changes.
+alwaysApply: true
+---
+- Create detailed implementation documents in the docs folder for all new features and major changes.
+- Implementation docs should include:
+  - Overview and purpose
+  - Technical design and architecture
+  - Dependencies and requirements
+  - Implementation details and code examples
+  - Configuration and setup instructions
+  - Testing approach and considerations
+  - Security implications if applicable
+  - Performance considerations
+  - Migration steps if needed
+- Update enhancements.md to track feature additions and improvements.
+- Maintain clear and organized documentation structure in the docs folder.
+- Include API documentation for public interfaces.
+- Document configuration options and environment variables.
+- Add usage examples and common scenarios.
+- Keep documentation in sync with code changes.
+- Review and update existing documentation when making related changes.
+- Keep CHANGELOG.md up to date with all completed features, bug fixes, and changes.
+- Use enhancements.md only for tracking planned or in-progress enhancements and features.
+- When an enhancement or feature is completed, summarize it and move the entry from enhancements.md to CHANGELOG.md.
+- Ensure that enhancements.md reflects only current and future work, not completed items.
+- Regularly review and reconcile enhancements.md and CHANGELOG.md to maintain accuracy and clarity in project history.

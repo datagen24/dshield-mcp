@@ -1,0 +1,12 @@
+---
+description: Use Snyk CLI for vulnerability scanning and security testing.
+alwaysApply: true
+---
+- Run Snyk CLI vulnerability scans before deploying code changes.
+- Execute `snyk test` to check for known vulnerabilities in dependencies.
+- Use `snyk monitor` to continuously monitor projects for new vulnerabilities.
+- Integrate Snyk testing into CI/CD pipelines for automated security checks.
+- Address high-severity vulnerabilities promptly following Snyk recommendations.
+- Keep dependencies updated based on Snyk security advisories.
+- Run `snyk code test` for static application security testing (SAST).
+- Generate and review Snyk test reports for security compliance.

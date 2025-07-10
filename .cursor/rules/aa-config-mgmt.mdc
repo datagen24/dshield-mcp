@@ -1,0 +1,5 @@
+---
+description: Uses environment variables for managing configurations.
+alwaysApply: true
+---
+- Configuration management using environment variables.
