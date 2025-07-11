@@ -24,6 +24,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+SAFE_OUTPUT_DIR = Path.cwd() / "output"
+SAFE_OUTPUT_DIR.mkdir(exist_ok=True)
+
+def safe_output_path(filename: str) -> Path:
+    # Only allow basename, no directory traversal
+    safe_name = os.path.basename(filename)
+    return SAFE_OUTPUT_DIR / safe_name
+
+def is_safe_path(path: str) -> bool:
+    # Disallow any parent directory references or absolute paths
+    return not (".." in path or path.startswith("/") or path.startswith("\\"))
+
 
 class MCPShieldScanner:
     """Integration wrapper for MCP-Shield security scanning."""
@@ -310,17 +322,27 @@ class MCPShieldScanner:
         report_text = "\n".join(report)
         
         if output_file:
-            with open(output_file, 'w') as f:
-                f.write(report_text)
-            logger.info(f"Report saved to: {output_file}")
+            if is_safe_path(output_file):
+                safe_path = safe_output_path(output_file)
+                with open(safe_path, 'w') as f:
+                    f.write(report_text)
+                logger.info(f"Report saved to: {safe_path}")
+            else:
+                logger.error(f"Unsafe output file path provided: {output_file}")
+                return report_text
         
         return report_text
     
     def save_results(self, output_file: str) -> None:
         """Save scan results to JSON file."""
-        with open(output_file, 'w') as f:
-            json.dump(self.scan_results, f, indent=2)
-        logger.info(f"Results saved to: {output_file}")
+        if is_safe_path(output_file):
+            safe_path = safe_output_path(output_file)
+            with open(safe_path, 'w') as f:
+                json.dump(self.scan_results, f, indent=2)
+            logger.info(f"Results saved to: {safe_path}")
+        else:
+            logger.error(f"Unsafe output file path provided: {output_file}")
+            return
 
 
 def main():
