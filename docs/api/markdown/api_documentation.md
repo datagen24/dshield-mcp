@@ -2,7 +2,8 @@
 
 # campaign\_analyzer
 
-Campaign Analysis Engine for DShield MCP
+Campaign Analysis Engine for DShield MCP.
+
 Core campaign correlation and analysis engine for identifying coordinated attack campaigns.
 
 <a id="campaign_analyzer.CorrelationMethod"></a>
@@ -68,6 +69,23 @@ class CampaignAnalyzer()
 
 Core campaign analysis and correlation engine.
 
+Provides methods for correlating security events, expanding indicators,
+and building campaign timelines for coordinated attack detection.
+
+<a id="campaign_analyzer.CampaignAnalyzer.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(es_client: Optional[ElasticsearchClient] = None) -> None
+```
+
+Initialize the CampaignAnalyzer.
+
+**Arguments**:
+
+- `es_client` - Optional ElasticsearchClient instance. If not provided, a new one is created.
+
 <a id="campaign_analyzer.CampaignAnalyzer.correlate_events"></a>
 
 #### correlate\_events
@@ -81,6 +99,23 @@ async def correlate_events(seed_events: List[Dict[str, Any]],
 
 Correlate events based on specified criteria to identify campaigns.
 
+**Arguments**:
+
+- `seed_events` - List of seed event dictionaries to start correlation from.
+- `correlation_criteria` - List of CorrelationMethod enums to use for correlation.
+- `time_window_hours` - Time window in hours to consider for correlation (default: 48).
+- `min_confidence` - Minimum confidence threshold for campaign inclusion (default: 0.7).
+  
+
+**Returns**:
+
+- `Campaign` - The resulting Campaign object with correlated events and metadata.
+  
+
+**Raises**:
+
+- `Exception` - If campaign correlation fails.
+
 <a id="campaign_analyzer.CampaignAnalyzer.expand_indicators"></a>
 
 #### expand\_indicators
@@ -92,6 +127,17 @@ async def expand_indicators(seed_iocs: List[str],
 ```
 
 Expand IOCs to find related indicators.
+
+**Arguments**:
+
+- `seed_iocs` - List of seed indicators (IOCs) to expand.
+- `expansion_strategy` - Strategy for expansion ('comprehensive', 'infrastructure', etc.).
+- `max_depth` - Maximum expansion depth (default: 3).
+  
+
+**Returns**:
+
+  List of IndicatorRelationship objects representing discovered relationships.
 
 <a id="campaign_analyzer.CampaignAnalyzer.build_campaign_timeline"></a>
 
@@ -105,6 +151,16 @@ async def build_campaign_timeline(
 
 Build chronological timeline of campaign events.
 
+**Arguments**:
+
+- `correlated_events` - List of CampaignEvent objects to build timeline from.
+- `timeline_granularity` - Granularity of timeline ('hourly', 'daily', 'minute').
+  
+
+**Returns**:
+
+  Dictionary containing timeline data with events grouped by time periods.
+
 <a id="campaign_analyzer.CampaignAnalyzer.score_campaign"></a>
 
 #### score\_campaign
@@ -115,11 +171,21 @@ async def score_campaign(campaign_data: Campaign) -> float
 
 Score campaign based on sophistication and impact.
 
+**Arguments**:
+
+- `campaign_data` - Campaign object to score.
+  
+
+**Returns**:
+
+  Float score between 0.0 and 1.0 representing campaign sophistication.
+
 <a id="campaign_mcp_tools"></a>
 
 # campaign\_mcp\_tools
 
-Campaign Analysis MCP Tools
+Campaign Analysis MCP Tools.
+
 MCP tools for campaign analysis and correlation.
 
 <a id="campaign_mcp_tools.CampaignMCPTools"></a>
@@ -131,6 +197,20 @@ class CampaignMCPTools()
 ```
 
 MCP tools for campaign analysis and correlation.
+
+<a id="campaign_mcp_tools.CampaignMCPTools.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(es_client: Optional[ElasticsearchClient] = None)
+```
+
+Initialize CampaignMCPTools.
+
+**Arguments**:
+
+- `es_client` - Optional ElasticsearchClient instance. If not provided, a new one is created.
 
 <a id="campaign_mcp_tools.CampaignMCPTools.analyze_campaign"></a>
 
@@ -1113,37 +1193,7 @@ Enrich multiple IP addresses with threat intelligence.
 
 Elasticsearch client for querying DShield SIEM events and logs.
 
-This module provides a comprehensive Elasticsearch client specifically designed
-for querying DShield SIEM data. It includes advanced features such as smart
-query optimization, pagination, streaming, and field mapping to handle the
-complexities of DShield's data structure.
-
-The client supports:
-- Advanced querying with pagination and cursors
-- Smart query optimization for large datasets
-- Field mapping for DShield-specific data structures
-- Streaming with session context
-- Aggregation queries
-- Performance monitoring and logging
-- Connection pooling and retry logic
-
-This module provides:
-- ElasticsearchClient class for data access
-- Query optimization and fallback strategies
-- Field mapping and data parsing
-- Session-based streaming
-- Performance metrics collection
-
-**Example**:
-
-  >>> from src.elasticsearch_client import ElasticsearchClient
-  >>> client = ElasticsearchClient()
-  >>> await client.connect()
-  >>> events, total, pagination = await client.query_dshield_events(
-  ...     time_range_hours=24,
-  ...     page_size=100
-  ... )
-  >>> await client.close()
+Optimized for DShield SIEM integration patterns.
 
 <a id="elasticsearch_client.ElasticsearchClient"></a>
 
@@ -1155,112 +1205,38 @@ class ElasticsearchClient()
 
 Client for interacting with DShield SIEM Elasticsearch.
 
-This class provides a comprehensive interface for querying DShield SIEM data
-stored in Elasticsearch. It handles connection management, query optimization,
-field mapping, and data parsing specific to DShield's data structure.
-
-The client automatically handles:
-- Connection pooling and retry logic
-- Field mapping for DShield-specific data structures
-- Query optimization for large datasets
-- Pagination and cursor-based navigation
-- Session-based streaming for event correlation
-- Performance monitoring and logging
-
-**Attributes**:
-
-- `client` - AsyncElasticsearch client instance
-- `url` - Elasticsearch server URL
-- `username` - Authentication username
-- `password` - Authentication password
-- `verify_ssl` - Whether to verify SSL certificates
-- `ca_certs` - Path to CA certificates
-- `timeout` - Request timeout in seconds
-- `max_results` - Maximum results per query
-- `default_page_size` - Default page size for pagination
-- `max_page_size` - Maximum allowed page size
-- `default_timeout` - Default query timeout
-- `max_timeout` - Maximum allowed timeout
-- `enable_smart_optimization` - Whether to enable query optimization
-- `fallback_strategy` - Strategy for handling query failures
-- `max_query_complexity` - Maximum query complexity threshold
-- `enable_performance_logging` - Whether to log performance metrics
-- `dshield_indices` - List of DShield index patterns
-- `fallback_indices` - List of fallback index patterns
-- `dshield_field_mappings` - Field mapping for DShield data
-  
-
-**Example**:
-
-  >>> client = ElasticsearchClient()
-  >>> await client.connect()
-  >>> events, total, pagination = await client.query_dshield_events(
-  ...     time_range_hours=24,
-  ...     page_size=100
-  ... )
-  >>> await client.close()
-
 <a id="elasticsearch_client.ElasticsearchClient.__init__"></a>
 
 #### \_\_init\_\_
 
 ```python
-def __init__() -> None
+def __init__()
 ```
 
 Initialize the Elasticsearch client.
 
-Loads configuration from config files and sets up connection parameters,
-field mappings, and optimization settings. The client is not connected
-until the connect() method is called.
-
-**Raises**:
-
-- `RuntimeError` - If configuration loading fails
+Sets up the client connection, field mappings, and configuration
+for DShield SIEM integration.
 
 <a id="elasticsearch_client.ElasticsearchClient.connect"></a>
 
 #### connect
 
 ```python
-async def connect() -> None
+async def connect()
 ```
 
 Connect to Elasticsearch cluster.
-
-Establishes a connection to the Elasticsearch cluster using the
-configuration loaded during initialization. The connection includes
-SSL/TLS configuration, authentication, and retry logic.
-
-The method will:
-1. Parse the Elasticsearch URL
-2. Configure SSL/TLS settings
-3. Create the AsyncElasticsearch client
-4. Test the connection
-5. Log connection information
-
-**Raises**:
-
-- `Exception` - If connection fails or authentication is invalid
 
 <a id="elasticsearch_client.ElasticsearchClient.close"></a>
 
 #### close
 
 ```python
-async def close() -> None
+async def close()
 ```
 
 Close Elasticsearch connection.
-
-Properly closes the Elasticsearch client connection and releases
-associated resources. This method should be called when the client
-is no longer needed to prevent connection pool exhaustion.
-
-The method will:
-1. Close the AsyncElasticsearch client
-2. Release connection pool resources
-3. Log the closure for debugging
 
 <a id="elasticsearch_client.ElasticsearchClient.get_available_indices"></a>
 
@@ -1271,25 +1247,6 @@ async def get_available_indices() -> List[str]
 ```
 
 Get available DShield indices.
-
-Retrieves a list of all available DShield-related indices from the
-Elasticsearch cluster. This method filters the indices based on
-configured DShield index patterns.
-
-The method will:
-1. Connect to Elasticsearch if not already connected
-2. Retrieve all indices from the cluster
-3. Filter for DShield-related indices
-4. Log the found indices for debugging
-
-**Returns**:
-
-  List of DShield index names that are available in the cluster
-  
-
-**Raises**:
-
-- `Exception` - If the Elasticsearch query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.query_dshield_events"></a>
 
@@ -1316,43 +1273,8 @@ async def query_dshield_events(
 
 Query DShield events from Elasticsearch with enhanced pagination support.
 
-This method provides comprehensive querying capabilities for DShield SIEM
-events with advanced features including smart optimization, pagination,
-field mapping, and fallback strategies for large datasets.
-
-The method supports both traditional page-based pagination and cursor-based
-pagination for better performance with massive datasets. It includes
-automatic query optimization to handle large result sets efficiently.
-
-**Arguments**:
-
-- `time_range_hours` - Time range in hours to query (default: 24)
-- `indices` - Specific indices to query (default: auto-detected DShield indices)
-- `filters` - Additional query filters (default: None)
-- `fields` - Specific fields to return (default: all fields)
-- `page` - Page number for pagination (default: 1)
-- `page_size` - Number of results per page (default: 100)
-- `sort_by` - Field to sort by (default: '@timestamp')
-- `sort_order` - Sort order 'asc' or 'desc' (default: 'desc')
-- `cursor` - Cursor token for cursor-based pagination (default: None)
-- `include_summary` - Include summary statistics (default: True)
-- `optimization` - Query optimization mode 'auto' or 'none' (default: 'auto')
-- `fallback_strategy` - Fallback strategy when optimization fails (default: 'aggregate')
-- `max_result_size_mb` - Maximum result size in MB before optimization (default: 10.0)
-- `query_timeout_seconds` - Query timeout in seconds (default: 30)
-  
-
-**Returns**:
-
-  Tuple containing:
-  - List of event dictionaries
-  - Total count of available events
-  - Pagination information dictionary
-  
-
-**Raises**:
-
-- `Exception` - If Elasticsearch query fails or connection issues occur
+Supports both traditional page-based pagination and cursor-based pagination
+for better performance with massive datasets.
 
 <a id="elasticsearch_client.ElasticsearchClient.execute_aggregation_query"></a>
 
@@ -1364,11 +1286,11 @@ async def execute_aggregation_query(
         aggregation_query: Dict[str, Any]) -> Dict[str, Any]
 ```
 
-Execute an aggregation query against Elasticsearch.
+Execute an aggregation query on Elasticsearch.
 
-This method executes aggregation queries to get summary statistics
-and grouped data without retrieving full documents. It's useful for
-getting overview data and statistics efficiently.
+Performs aggregation queries for statistical analysis and
+data summarization. This is useful for generating reports
+and understanding data patterns without retrieving full records.
 
 **Arguments**:
 
@@ -1384,7 +1306,8 @@ getting overview data and statistics efficiently.
 
 **Raises**:
 
-- `Exception` - If the aggregation query fails
+- `ConnectionError` - If not connected to Elasticsearch
+- `RequestError` - If the aggregation query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.stream_dshield_events"></a>
 
@@ -1403,31 +1326,33 @@ async def stream_dshield_events(
 
 Stream DShield events in chunks for large datasets.
 
-This method provides streaming capabilities for large datasets by
-returning events in manageable chunks. It supports resuming streams
-using stream IDs and provides efficient memory usage for large queries.
+Retrieves DShield events in configurable chunks to handle
+very large datasets efficiently. This method is designed
+for processing large amounts of data without memory issues.
 
 **Arguments**:
 
 - `time_range_hours` - Time range in hours to query (default: 24)
-- `indices` - Specific indices to query (default: auto-detected)
-- `filters` - Additional query filters (default: None)
-- `fields` - Specific fields to return (default: all fields)
-- `chunk_size` - Number of events per chunk (default: 500)
-- `stream_id` - Stream ID to resume from (default: None)
+- `indices` - Specific indices to query (default: all DShield indices)
+- `filters` - Additional query filters to apply
+- `fields` - Specific fields to return (reduces payload size)
+- `chunk_size` - Number of events per chunk (default: 500, max: 1000)
+- `stream_id` - Optional stream ID for resuming interrupted streams
   
 
 **Returns**:
 
   Tuple containing:
-  - List of event dictionaries for current chunk
+  - List of event dictionaries for the current chunk
   - Total count of available events
-  - Next stream ID for continuation (None if end of stream)
+  - Next stream ID for continuing the stream (None if complete)
   
 
 **Raises**:
 
-- `Exception` - If the streaming query fails
+- `ConnectionError` - If not connected to Elasticsearch
+- `RequestError` - If the streaming query fails
+- `ValueError` - If parameters are invalid
 
 <a id="elasticsearch_client.ElasticsearchClient.query_dshield_attacks"></a>
 
@@ -1441,7 +1366,31 @@ async def query_dshield_attacks(
         include_summary: bool = True) -> tuple[List[Dict[str, Any]], int]
 ```
 
-Query DShield attack events with pagination support.
+Query DShield attack data specifically.
+
+Retrieves attack-specific data from DShield indices, focusing
+on security events that represent actual attacks rather than
+general network traffic or logs.
+
+**Arguments**:
+
+- `time_range_hours` - Time range in hours to query (default: 24)
+- `page` - Page number for pagination (default: 1)
+- `page_size` - Number of results per page (default: 100, max: 1000)
+- `include_summary` - Whether to include summary statistics
+  
+
+**Returns**:
+
+  Tuple containing:
+  - List of attack event dictionaries
+  - Total count of available attacks
+  
+
+**Raises**:
+
+- `ConnectionError` - If not connected to Elasticsearch
+- `RequestError` - If the query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.query_dshield_reputation"></a>
 
@@ -1452,7 +1401,26 @@ async def query_dshield_reputation(ip_addresses: Optional[List[str]] = None,
                                    size: int = 1000) -> List[Dict[str, Any]]
 ```
 
-Query DShield reputation data.
+Query DShield reputation data for IP addresses.
+
+Retrieves reputation and threat intelligence data for specific
+IP addresses or all IPs in the DShield reputation database.
+
+**Arguments**:
+
+- `ip_addresses` - List of IP addresses to query (default: all IPs)
+- `size` - Maximum number of results to return (default: 1000)
+  
+
+**Returns**:
+
+  List of reputation data dictionaries
+  
+
+**Raises**:
+
+- `ConnectionError` - If not connected to Elasticsearch
+- `RequestError` - If the query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.query_dshield_top_attackers"></a>
 
@@ -1466,6 +1434,25 @@ async def query_dshield_top_attackers(hours: int = 24,
 
 Query DShield top attackers data.
 
+Retrieves the most active attacker IP addresses based on
+attack frequency and severity within the specified time period.
+
+**Arguments**:
+
+- `hours` - Time range in hours to analyze (default: 24)
+- `limit` - Maximum number of attackers to return (default: 100)
+  
+
+**Returns**:
+
+  List of top attacker data dictionaries
+  
+
+**Raises**:
+
+- `ConnectionError` - If not connected to Elasticsearch
+- `RequestError` - If the query fails
+
 <a id="elasticsearch_client.ElasticsearchClient.query_dshield_geographic_data"></a>
 
 #### query\_dshield\_geographic\_data
@@ -1476,7 +1463,26 @@ async def query_dshield_geographic_data(
         size: int = 1000) -> List[Dict[str, Any]]
 ```
 
-Query DShield geographic data.
+Query DShield geographic attack data.
+
+Retrieves attack data grouped by geographic location,
+including country-level statistics and attack patterns.
+
+**Arguments**:
+
+- `countries` - List of countries to filter by (default: all countries)
+- `size` - Maximum number of results to return (default: 1000)
+  
+
+**Returns**:
+
+  List of geographic attack data dictionaries
+  
+
+**Raises**:
+
+- `ConnectionError` - If not connected to Elasticsearch
+- `RequestError` - If the query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.query_dshield_port_data"></a>
 
@@ -1487,7 +1493,26 @@ async def query_dshield_port_data(ports: Optional[List[int]] = None,
                                   size: int = 1000) -> List[Dict[str, Any]]
 ```
 
-Query DShield port data.
+Query DShield port attack data.
+
+Retrieves attack data grouped by destination ports,
+including port-specific attack patterns and statistics.
+
+**Arguments**:
+
+- `ports` - List of ports to filter by (default: all ports)
+- `size` - Maximum number of results to return (default: 1000)
+  
+
+**Returns**:
+
+  List of port attack data dictionaries
+  
+
+**Raises**:
+
+- `ConnectionError` - If not connected to Elasticsearch
+- `RequestError` - If the query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.query_events_by_ip"></a>
 
@@ -1500,7 +1525,28 @@ async def query_events_by_ip(
         indices: Optional[List[str]] = None) -> List[Dict[str, Any]]
 ```
 
-Query events for specific IP addresses.
+Query DShield events for specific IP addresses.
+
+Retrieves all events associated with the specified IP addresses,
+including both source and destination IP matches. This is useful
+for investigating specific IP addresses involved in attacks.
+
+**Arguments**:
+
+- `ip_addresses` - List of IP addresses to search for
+- `time_range_hours` - Time range in hours to query (default: 24)
+- `indices` - Specific indices to query (default: all DShield indices)
+  
+
+**Returns**:
+
+  List of event dictionaries for the specified IPs
+  
+
+**Raises**:
+
+- `RuntimeError` - If Elasticsearch client is not connected
+- `RequestError` - If the query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.get_dshield_statistics"></a>
 
@@ -1510,7 +1556,30 @@ Query events for specific IP addresses.
 async def get_dshield_statistics(time_range_hours: int = 24) -> Dict[str, Any]
 ```
 
-Get DShield statistics and summary data.
+Get comprehensive DShield statistics and summary.
+
+Retrieves aggregated statistics from multiple DShield data sources,
+including event counts, top attackers, geographic distribution,
+and other summary metrics.
+
+**Arguments**:
+
+- `time_range_hours` - Time range in hours for statistics (default: 24)
+  
+
+**Returns**:
+
+  Dictionary containing comprehensive statistics including:
+  - total_events: Total number of events
+  - top_attackers: List of most active attackers
+  - geographic_distribution: Attack distribution by country
+  - time_range_hours: Time range used for analysis
+  - timestamp: When the statistics were generated
+  
+
+**Raises**:
+
+- `Exception` - If statistics collection fails
 
 <a id="elasticsearch_client.ElasticsearchClient.log_unmapped_fields"></a>
 
@@ -1521,6 +1590,15 @@ def log_unmapped_fields(source: Dict[str, Any])
 ```
 
 Log any fields in the source document that are not mapped to any known field type.
+
+**Arguments**:
+
+- `source` - Source dictionary from Elasticsearch document
+  
+
+**Returns**:
+
+  None
 
 <a id="elasticsearch_client.ElasticsearchClient.query_security_events"></a>
 
@@ -1537,6 +1615,19 @@ async def query_security_events(
 
 Backward compatibility method - redirects to query_dshield_events.
 
+**Arguments**:
+
+- `time_range_hours` - Time range in hours to query (default: 24)
+- `indices` - List of indices to query (optional)
+- `filters` - Query filters to apply (optional)
+- `size` - Number of results to return (optional)
+- `timeout` - Query timeout in seconds (optional)
+  
+
+**Returns**:
+
+  List of event dictionaries
+
 <a id="elasticsearch_client.ElasticsearchClient.get_index_mapping"></a>
 
 #### get\_index\_mapping
@@ -1547,6 +1638,24 @@ async def get_index_mapping(index_pattern: str) -> Dict[str, Any]
 
 Get mapping for an index pattern.
 
+Retrieves the field mapping information for the specified
+index pattern from Elasticsearch.
+
+**Arguments**:
+
+- `index_pattern` - Index pattern to get mapping for
+  
+
+**Returns**:
+
+  Dictionary containing the index mapping information
+  
+
+**Raises**:
+
+- `RuntimeError` - If Elasticsearch client is not connected
+- `Exception` - If the mapping request fails
+
 <a id="elasticsearch_client.ElasticsearchClient.get_cluster_stats"></a>
 
 #### get\_cluster\_stats
@@ -1556,6 +1665,19 @@ async def get_cluster_stats() -> Dict[str, Any]
 ```
 
 Get Elasticsearch cluster statistics.
+
+Retrieves comprehensive statistics about the Elasticsearch
+cluster including node information, indices, and performance metrics.
+
+**Returns**:
+
+  Dictionary containing cluster statistics
+  
+
+**Raises**:
+
+- `RuntimeError` - If Elasticsearch client is not connected
+- `Exception` - If the cluster stats request fails
 
 <a id="elasticsearch_client.ElasticsearchClient.stream_dshield_events_with_session_context"></a>
 
@@ -1578,19 +1700,36 @@ async def stream_dshield_events_with_session_context(
 Stream DShield events with smart session-based chunking.
 
 Groups events by session context (e.g., source IP, user session, connection ID)
-and ensures related events stay together in the same chunk.
+and ensures related events stay together in the same chunk. This is useful
+for event correlation and analysis.
 
 **Arguments**:
 
-- `session_fields` - Fields to use for session grouping (e.g., ['source.ip', 'user.name'])
-- `max_session_gap_minutes` - Maximum time gap within a session before starting new session
-- `include_session_summary` - Include session metadata in response
+- `time_range_hours` - Time range in hours to query (default: 24)
+- `indices` - Specific indices to query (default: all DShield indices)
+- `filters` - Additional query filters to apply
+- `fields` - Specific fields to return (reduces payload size)
+- `chunk_size` - Number of events per chunk (default: 500, max: 1000)
+- `session_fields` - Fields to use for session grouping (default: ['source.ip', 'destination.ip', 'user.name', 'session.id'])
+- `max_session_gap_minutes` - Maximum time gap within a session before starting new session (default: 30)
+- `include_session_summary` - Include session metadata in response (default: True)
 - `stream_id` - Resume streaming from specific point
   
 
 **Returns**:
 
-  Tuple of (events, total_count, next_stream_id, session_context)
+  Tuple containing:
+  - List of event dictionaries for the current chunk
+  - Total count of available events
+  - Next stream ID for continuing the stream (None if complete)
+  - Session context information
+  
+
+**Raises**:
+
+- `ConnectionError` - If not connected to Elasticsearch
+- `RequestError` - If the streaming query fails
+- `ValueError` - If parameters are invalid
 
 <a id="models"></a>
 

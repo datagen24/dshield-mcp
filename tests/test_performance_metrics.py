@@ -1,5 +1,4 @@
-"""
-Performance Metrics Tests
+"""Performance Metrics Tests.
 
 Tests for query performance tracking and metrics collection functionality.
 """

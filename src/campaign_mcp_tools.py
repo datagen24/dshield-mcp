@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""
-Campaign Analysis MCP Tools
+"""Campaign Analysis MCP Tools.
+
 MCP tools for campaign analysis and correlation.
 """
 
@@ -21,6 +21,12 @@ class CampaignMCPTools:
     """MCP tools for campaign analysis and correlation."""
     
     def __init__(self, es_client: Optional[ElasticsearchClient] = None):
+        """Initialize CampaignMCPTools.
+
+        Args:
+            es_client: Optional ElasticsearchClient instance. If not provided, a new one is created.
+
+        """
         self.es_client = es_client or ElasticsearchClient()
         self.campaign_analyzer = CampaignAnalyzer(self.es_client)
         self.user_config = get_user_config()
@@ -34,8 +40,7 @@ class CampaignMCPTools:
         include_timeline: bool = True,
         include_relationships: bool = True
     ) -> Dict[str, Any]:
-        """
-        Analyze attack campaigns from seed indicators.
+        """Analyze attack campaigns from seed indicators.
         
         Args:
             seed_indicators: List of seed indicators (IPs, domains, etc.)
@@ -47,8 +52,8 @@ class CampaignMCPTools:
         
         Returns:
             Campaign analysis results with metadata
+
         """
-        
         logger.info("Starting campaign analysis",
                    seed_indicators=seed_indicators,
                    time_range_hours=time_range_hours,
@@ -161,8 +166,7 @@ class CampaignMCPTools:
         include_passive_dns: bool = True,
         include_threat_intel: bool = True
     ) -> Dict[str, Any]:
-        """
-        Expand IOCs to find related indicators.
+        """Expand IOCs to find related indicators.
         
         Args:
             campaign_id: Campaign ID to expand
@@ -173,8 +177,8 @@ class CampaignMCPTools:
         
         Returns:
             Expanded indicators and relationships
+
         """
-        
         logger.info("Expanding campaign indicators",
                    campaign_id=campaign_id,
                    expansion_depth=expansion_depth,
@@ -256,8 +260,7 @@ class CampaignMCPTools:
         include_event_details: bool = True,
         include_ttp_analysis: bool = True
     ) -> Dict[str, Any]:
-        """
-        Build detailed attack timelines.
+        """Build detailed attack timelines.
         
         Args:
             campaign_id: Campaign ID to analyze
@@ -267,8 +270,8 @@ class CampaignMCPTools:
         
         Returns:
             Detailed campaign timeline
+
         """
-        
         logger.info("Building campaign timeline",
                    campaign_id=campaign_id,
                    granularity=timeline_granularity)
@@ -338,8 +341,7 @@ class CampaignMCPTools:
         comparison_metrics: Optional[List[str]] = None,
         include_visualization_data: bool = True
     ) -> Dict[str, Any]:
-        """
-        Compare multiple campaigns for similarities.
+        """Compare multiple campaigns for similarities.
         
         Args:
             campaign_ids: List of campaign IDs to compare
@@ -348,8 +350,8 @@ class CampaignMCPTools:
         
         Returns:
             Campaign comparison results
+
         """
-        
         logger.info("Comparing campaigns",
                    campaign_ids=campaign_ids,
                    comparison_metrics=comparison_metrics)
@@ -431,8 +433,7 @@ class CampaignMCPTools:
         correlation_threshold: float = 0.8,
         include_alert_data: bool = True
     ) -> Dict[str, Any]:
-        """
-        Real-time detection of active campaigns.
+        """Real-time detection of active campaigns.
         
         Args:
             time_window_hours: Time window for detection (default: 24 hours)
@@ -442,8 +443,8 @@ class CampaignMCPTools:
         
         Returns:
             Detected ongoing campaigns
+
         """
-        
         logger.info("Detecting ongoing campaigns",
                    time_window_hours=time_window_hours,
                    min_event_threshold=min_event_threshold,
@@ -508,8 +509,7 @@ class CampaignMCPTools:
         max_results: int = 50,
         include_summaries: bool = True
     ) -> Dict[str, Any]:
-        """
-        Search existing campaigns by criteria.
+        """Search existing campaigns by criteria.
         
         Args:
             search_criteria: Search criteria (indicators, time_range, confidence, etc.)
@@ -519,8 +519,8 @@ class CampaignMCPTools:
         
         Returns:
             Matching campaigns
+
         """
-        
         logger.info("Searching campaigns",
                    search_criteria=search_criteria,
                    time_range_hours=time_range_hours,
@@ -565,8 +565,7 @@ class CampaignMCPTools:
         include_relationships: bool = True,
         include_threat_intel: bool = True
     ) -> Dict[str, Any]:
-        """
-        Comprehensive campaign information.
+        """Comprehensive campaign information.
         
         Args:
             campaign_id: Campaign ID to retrieve
@@ -576,8 +575,8 @@ class CampaignMCPTools:
         
         Returns:
             Comprehensive campaign details
+
         """
-        
         logger.info("Getting campaign details",
                    campaign_id=campaign_id,
                    include_full_timeline=include_full_timeline)

@@ -1,6 +1,4 @@
-"""
-Unit tests for DShield client.
-"""
+"""Unit tests for DShield client."""
 
 import pytest
 import asyncio

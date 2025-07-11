@@ -1,6 +1,4 @@
-"""
-Unit tests for DataDictionary functionality.
-"""
+"""Unit tests for DataDictionary functionality."""
 
 import pytest
 import json

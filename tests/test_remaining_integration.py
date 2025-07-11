@@ -1,5 +1,4 @@
-"""
-Remaining Integration Tests
+"""Remaining Integration Tests.
 
 Tests for edge cases, integration scenarios, and functionality that hasn't been covered
 by the existing test suites. This includes advanced error handling, complex workflows,

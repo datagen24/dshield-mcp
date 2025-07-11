@@ -1,6 +1,4 @@
-"""
-Unit tests for 1Password secrets integration.
-"""
+"""Unit tests for 1Password secrets integration."""
 
 import pytest
 import subprocess

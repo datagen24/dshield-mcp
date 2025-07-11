@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""
-DShield MCP Server - Elastic SIEM Integration
+"""DShield MCP Server - Elastic SIEM Integration.
+
 Main server for handling MCP protocol communication and coordinating
 between DShield Elasticsearch queries and DShield threat intelligence.
 """
@@ -72,6 +72,7 @@ class DShieldMCPServer:
         >>> server = DShieldMCPServer()
         >>> await server.initialize()
         >>> # Server is ready to handle MCP requests
+
     """
     
     def __init__(self) -> None:
@@ -891,6 +892,7 @@ class DShieldMCPServer:
         
         Raises:
             Exception: If initialization of any component fails
+
         """
         logger.info("Initializing DShield MCP Server")
         
@@ -962,6 +964,7 @@ class DShieldMCPServer:
         Raises:
             ValueError: If invalid time range parameters are provided
             Exception: If Elasticsearch query fails
+
         """
         time_range_hours = arguments.get("time_range_hours", 24)
         time_range = arguments.get("time_range")
@@ -1648,6 +1651,7 @@ class DShieldMCPServer:
             
         Raises:
             Exception: If Elasticsearch connection fails
+
         """
         try:
             # Try to connect
@@ -1934,7 +1938,7 @@ class DShieldMCPServer:
 
 
 async def main() -> None:
-    """Main entry point for the DShield MCP server.
+    """Start the DShield MCP server.
     
     This function creates and initializes the DShield MCP server,
     then runs it using the stdio transport. It handles the complete
@@ -1948,6 +1952,7 @@ async def main() -> None:
     
     Raises:
         Exception: If server startup or execution fails
+
     """
     server = DShieldMCPServer()
     

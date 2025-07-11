@@ -1,6 +1,4 @@
-"""
-Tests for data parsing and field mapping functionality.
-"""
+"""Tests for data parsing and field mapping functionality."""
 
 import pytest
 import json
@@ -14,7 +12,15 @@ from src.models import DShieldAttack, EventSeverity
 
 
 class MockUserConfig:
+    """Mock user configuration for testing data parsing utilities."""
+
     def get_setting(self, *args, **kwargs):
+        """Return None for any configuration setting request (mock behavior).
+        
+        Returns:
+            None: Always returns None for any setting.
+
+        """
         return None
 
 

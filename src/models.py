@@ -1,5 +1,4 @@
-"""
-Data models for DShield MCP Elastic SIEM integration.
+"""Data models for DShield MCP Elastic SIEM integration.
 
 This module provides comprehensive data models for the DShield MCP server,
 optimized for DShield SIEM data structures and patterns. It includes models
@@ -28,6 +27,7 @@ Example:
     ... )
     >>> print(event.severity)
     EventSeverity.HIGH
+
 """
 
 from datetime import datetime
@@ -39,6 +39,7 @@ import ipaddress
 
 class EventSeverity(str, Enum):
     """Security event severity levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -47,6 +48,7 @@ class EventSeverity(str, Enum):
 
 class EventCategory(str, Enum):
     """Security event categories."""
+
     NETWORK = "network"
     AUTHENTICATION = "authentication"
     MALWARE = "malware"
@@ -67,6 +69,7 @@ class EventCategory(str, Enum):
 
 class DShieldEventType(str, Enum):
     """DShield specific event types."""
+
     ATTACK = "attack"
     BLOCK = "block"
     REPUTATION = "reputation"
@@ -126,6 +129,7 @@ class SecurityEvent(BaseModel):
             
         Raises:
             ValueError: If the IP address format is invalid
+
         """
         if v is not None:
             try:
@@ -147,6 +151,7 @@ class SecurityEvent(BaseModel):
             
         Raises:
             ValueError: If the port number is outside valid range (1-65535)
+
         """
         if v is not None and (v < 1 or v > 65535):
             raise ValueError(f"Invalid port number: {v}")
@@ -165,6 +170,7 @@ class SecurityEvent(BaseModel):
             
         Raises:
             ValueError: If the reputation score is outside valid range (0-100)
+
         """
         if v is not None and (v < 0 or v > 100):
             raise ValueError(f"Reputation score must be between 0 and 100: {v}")

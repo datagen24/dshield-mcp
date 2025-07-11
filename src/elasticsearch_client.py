@@ -1,5 +1,5 @@
-"""
-Elasticsearch client for querying DShield SIEM events and logs.
+"""Elasticsearch client for querying DShield SIEM events and logs.
+
 Optimized for DShield SIEM integration patterns.
 """
 
@@ -24,6 +24,11 @@ class ElasticsearchClient:
     """Client for interacting with DShield SIEM Elasticsearch."""
     
     def __init__(self):
+        """Initialize the Elasticsearch client.
+        
+        Sets up the client connection, field mappings, and configuration
+        for DShield SIEM integration.
+        """
         self.client: Optional[AsyncElasticsearch] = None
         try:
             config = get_config()
@@ -214,7 +219,6 @@ class ElasticsearchClient:
         Supports both traditional page-based pagination and cursor-based pagination
         for better performance with massive datasets.
         """
-        
         if not self.client:
             await self.connect()
         
@@ -402,7 +406,26 @@ class ElasticsearchClient:
         fields: Optional[List[str]], 
         page_size: int
     ) -> float:
-        """Estimate the size of query results in MB."""
+        """Estimate the size of a query result in MB.
+        
+        Performs a lightweight query to estimate the size of the full
+        result set. This is used for smart query optimization to
+        determine if optimization is needed.
+        
+        Args:
+            time_range_hours: Time range in hours to query
+            indices: List of indices to query
+            filters: Query filters to apply
+            fields: Fields to include in the result
+            page_size: Number of results per page
+        
+        Returns:
+            Estimated result size in megabytes
+            
+        Raises:
+            RequestError: If the estimation query fails
+
+        """
         try:
             # Build a count query to get total documents
             count_body = {
@@ -471,7 +494,20 @@ class ElasticsearchClient:
             return page_size * 0.005  # 5KB per document estimate
 
     def _optimize_fields(self, fields: List[str]) -> List[str]:
-        """Optimize field selection by keeping only essential fields."""
+        """Optimize field selection for better performance.
+        
+        Analyzes the requested fields and optimizes the selection
+        to improve query performance while maintaining data quality.
+        This includes removing redundant fields and adding essential
+        fields that are needed for proper event parsing.
+        
+        Args:
+            fields: List of requested fields
+        
+        Returns:
+            Optimized list of fields for the query
+
+        """
         # Priority fields that are most important for analysis
         priority_fields = [
             "@timestamp", "source_ip", "destination_ip", "source_port", 
@@ -502,8 +538,32 @@ class ElasticsearchClient:
         sort_order: str,
         optimization_applied: Optional[str]
     ) -> Tuple[List[Dict[str, Any]], int, Dict[str, Any]]:
-        """Apply fallback strategy when query optimization fails."""
+        """Apply fallback strategy when query optimization fails.
         
+        Implements various fallback strategies when the primary query
+        optimization fails or is insufficient. Strategies include
+        aggregation, sampling, or error reporting.
+        
+        Args:
+            strategy: Fallback strategy to apply ('aggregate', 'sample', 'error')
+            time_range_hours: Time range in hours to query
+            indices: List of indices to query
+            filters: Query filters to apply
+            sort_by: Field to sort by
+            sort_order: Sort order ('asc' or 'desc')
+            optimization_applied: Description of optimization that was applied
+        
+        Returns:
+            Tuple containing:
+                - List of event dictionaries (or aggregated results)
+                - Total count or aggregated count
+                - Pagination/aggregation information
+        
+        Raises:
+            ValueError: If the fallback strategy is invalid
+            RequestError: If the fallback query fails
+
+        """
         if strategy == "aggregate":
             # Return aggregation results instead of individual events
             logger.info("Applying aggregation fallback strategy")
@@ -730,8 +790,25 @@ class ElasticsearchClient:
         query: Dict[str, Any],
         aggregation_query: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Execute an aggregation query against Elasticsearch."""
+        """Execute an aggregation query on Elasticsearch.
         
+        Performs aggregation queries for statistical analysis and
+        data summarization. This is useful for generating reports
+        and understanding data patterns without retrieving full records.
+        
+        Args:
+            index: List of indices to query
+            query: Base query to filter documents
+            aggregation_query: Aggregation definition to apply
+        
+        Returns:
+            Dictionary containing aggregation results
+            
+        Raises:
+            ConnectionError: If not connected to Elasticsearch
+            RequestError: If the aggregation query fails
+
+        """
         if not self.client:
             await self.connect()
         
@@ -765,8 +842,32 @@ class ElasticsearchClient:
         chunk_size: int = 500,
         stream_id: Optional[str] = None
     ) -> tuple[List[Dict[str, Any]], int, Optional[str]]:
-        """Stream DShield events with cursor-based pagination for large datasets."""
+        """Stream DShield events in chunks for large datasets.
         
+        Retrieves DShield events in configurable chunks to handle
+        very large datasets efficiently. This method is designed
+        for processing large amounts of data without memory issues.
+        
+        Args:
+            time_range_hours: Time range in hours to query (default: 24)
+            indices: Specific indices to query (default: all DShield indices)
+            filters: Additional query filters to apply
+            fields: Specific fields to return (reduces payload size)
+            chunk_size: Number of events per chunk (default: 500, max: 1000)
+            stream_id: Optional stream ID for resuming interrupted streams
+        
+        Returns:
+            Tuple containing:
+                - List of event dictionaries for the current chunk
+                - Total count of available events
+                - Next stream ID for continuing the stream (None if complete)
+        
+        Raises:
+            ConnectionError: If not connected to Elasticsearch
+            RequestError: If the streaming query fails
+            ValueError: If parameters are invalid
+
+        """
         if not self.client:
             await self.connect()
         
@@ -884,8 +985,28 @@ class ElasticsearchClient:
         page_size: int = 100,
         include_summary: bool = True
     ) -> tuple[List[Dict[str, Any]], int]:
-        """Query DShield attack events with pagination support."""
+        """Query DShield attack data specifically.
         
+        Retrieves attack-specific data from DShield indices, focusing
+        on security events that represent actual attacks rather than
+        general network traffic or logs.
+        
+        Args:
+            time_range_hours: Time range in hours to query (default: 24)
+            page: Page number for pagination (default: 1)
+            page_size: Number of results per page (default: 100, max: 1000)
+            include_summary: Whether to include summary statistics
+        
+        Returns:
+            Tuple containing:
+                - List of attack event dictionaries
+                - Total count of available attacks
+        
+        Raises:
+            ConnectionError: If not connected to Elasticsearch
+            RequestError: If the query fails
+
+        """
         if not self.client:
             await self.connect()
         
@@ -965,8 +1086,23 @@ class ElasticsearchClient:
         ip_addresses: Optional[List[str]] = None,
         size: int = 1000
     ) -> List[Dict[str, Any]]:
-        """Query DShield reputation data."""
+        """Query DShield reputation data for IP addresses.
         
+        Retrieves reputation and threat intelligence data for specific
+        IP addresses or all IPs in the DShield reputation database.
+        
+        Args:
+            ip_addresses: List of IP addresses to query (default: all IPs)
+            size: Maximum number of results to return (default: 1000)
+        
+        Returns:
+            List of reputation data dictionaries
+        
+        Raises:
+            ConnectionError: If not connected to Elasticsearch
+            RequestError: If the query fails
+
+        """
         filters = {}
         if ip_addresses:
             filters["source.ip"] = ip_addresses
@@ -984,8 +1120,23 @@ class ElasticsearchClient:
         hours: int = 24,
         limit: int = 100
     ) -> List[Dict[str, Any]]:
-        """Query DShield top attackers data."""
+        """Query DShield top attackers data.
         
+        Retrieves the most active attacker IP addresses based on
+        attack frequency and severity within the specified time period.
+        
+        Args:
+            hours: Time range in hours to analyze (default: 24)
+            limit: Maximum number of attackers to return (default: 100)
+        
+        Returns:
+            List of top attacker data dictionaries
+        
+        Raises:
+            ConnectionError: If not connected to Elasticsearch
+            RequestError: If the query fails
+
+        """
         events, _, _ = await self.query_dshield_events(
             time_range_hours=hours,
             indices=["dshield-top-*", "dshield-summary-*"],
@@ -999,8 +1150,23 @@ class ElasticsearchClient:
         countries: Optional[List[str]] = None,
         size: int = 1000
     ) -> List[Dict[str, Any]]:
-        """Query DShield geographic data."""
+        """Query DShield geographic attack data.
         
+        Retrieves attack data grouped by geographic location,
+        including country-level statistics and attack patterns.
+        
+        Args:
+            countries: List of countries to filter by (default: all countries)
+            size: Maximum number of results to return (default: 1000)
+        
+        Returns:
+            List of geographic attack data dictionaries
+        
+        Raises:
+            ConnectionError: If not connected to Elasticsearch
+            RequestError: If the query fails
+
+        """
         filters = {}
         if countries:
             filters["geoip.country_name"] = countries
@@ -1018,8 +1184,23 @@ class ElasticsearchClient:
         ports: Optional[List[int]] = None,
         size: int = 1000
     ) -> List[Dict[str, Any]]:
-        """Query DShield port data."""
+        """Query DShield port attack data.
         
+        Retrieves attack data grouped by destination ports,
+        including port-specific attack patterns and statistics.
+        
+        Args:
+            ports: List of ports to filter by (default: all ports)
+            size: Maximum number of results to return (default: 1000)
+        
+        Returns:
+            List of port attack data dictionaries
+        
+        Raises:
+            ConnectionError: If not connected to Elasticsearch
+            RequestError: If the query fails
+
+        """
         filters = {}
         if ports:
             filters["destination.port"] = ports
@@ -1038,8 +1219,25 @@ class ElasticsearchClient:
         time_range_hours: int = 24,
         indices: Optional[List[str]] = None
     ) -> List[Dict[str, Any]]:
-        """Query events for specific IP addresses."""
+        """Query DShield events for specific IP addresses.
         
+        Retrieves all events associated with the specified IP addresses,
+        including both source and destination IP matches. This is useful
+        for investigating specific IP addresses involved in attacks.
+        
+        Args:
+            ip_addresses: List of IP addresses to search for
+            time_range_hours: Time range in hours to query (default: 24)
+            indices: Specific indices to query (default: all DShield indices)
+        
+        Returns:
+            List of event dictionaries for the specified IPs
+        
+        Raises:
+            RuntimeError: If Elasticsearch client is not connected
+            RequestError: If the query fails
+
+        """
         if not self.client:
             raise RuntimeError("Elasticsearch client not connected")
         
@@ -1093,8 +1291,27 @@ class ElasticsearchClient:
         self,
         time_range_hours: int = 24
     ) -> Dict[str, Any]:
-        """Get DShield statistics and summary data."""
+        """Get comprehensive DShield statistics and summary.
         
+        Retrieves aggregated statistics from multiple DShield data sources,
+        including event counts, top attackers, geographic distribution,
+        and other summary metrics.
+        
+        Args:
+            time_range_hours: Time range in hours for statistics (default: 24)
+        
+        Returns:
+            Dictionary containing comprehensive statistics including:
+                - total_events: Total number of events
+                - top_attackers: List of most active attackers
+                - geographic_distribution: Attack distribution by country
+                - time_range_hours: Time range used for analysis
+                - timestamp: When the statistics were generated
+        
+        Raises:
+            Exception: If statistics collection fails
+
+        """
         try:
             # Query summary data
             summary_events, _, _ = await self.query_dshield_events(
@@ -1130,8 +1347,24 @@ class ElasticsearchClient:
         end_time: datetime,
         filters: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Build Elasticsearch query for DShield events."""
+        """Build Elasticsearch query for DShield events.
         
+        Constructs a standardized Elasticsearch query for DShield
+        security events with proper time range filtering and
+        additional filter criteria.
+        
+        Args:
+            start_time: Start time for the query range
+            end_time: End time for the query range
+            filters: Additional filter criteria to apply
+        
+        Returns:
+            Dictionary containing the complete Elasticsearch query
+        
+        Raises:
+            ValueError: If time range is invalid
+
+        """
         # Base query with time range
         query = {
             "query": {
@@ -1183,8 +1416,23 @@ class ElasticsearchClient:
         start_time: datetime,
         end_time: datetime
     ) -> Dict[str, Any]:
-        """Build Elasticsearch query for IP-specific events."""
+        """Build Elasticsearch query for IP-specific events.
         
+        Constructs a query that matches events where the specified
+        IP addresses appear as either source or destination IPs.
+        
+        Args:
+            ip_addresses: List of IP addresses to search for
+            start_time: Start time for the query range
+            end_time: End time for the query range
+        
+        Returns:
+            Dictionary containing the complete Elasticsearch query
+        
+        Raises:
+            ValueError: If time range is invalid or IP list is empty
+
+        """
         query = {
             "query": {
                 "bool": {
@@ -1221,7 +1469,24 @@ class ElasticsearchClient:
         return query
     
     def _parse_dshield_event(self, hit: Dict[str, Any], indices: List[str]) -> Optional[Dict[str, Any]]:
-        """Parse Elasticsearch hit into DShield event."""
+        """Parse Elasticsearch hit into standardized DShield event.
+        
+        Converts raw Elasticsearch document into a standardized
+        DShield event format with proper field mapping and
+        data normalization.
+        
+        Args:
+            hit: Raw Elasticsearch hit document
+            indices: List of indices the hit came from (for context)
+        
+        Returns:
+            Standardized DShield event dictionary or None if parsing fails
+        
+        Raises:
+            KeyError: If required fields are missing
+            ValueError: If timestamp parsing fails
+
+        """
         try:
             source = hit['_source']
             self.log_unmapped_fields(source)
@@ -1337,7 +1602,20 @@ class ElasticsearchClient:
             return None
     
     def _extract_field_mapped(self, source: Dict[str, Any], field_type: str, default: Any = None) -> Any:
-        """Extract field value using DShield field mappings. Supports dot notation as both top-level key and nested fields."""
+        """Extract field value using DShield field mappings.
+        
+        Supports dot notation for both top-level and nested fields. Attempts to map the requested field type
+        to the correct field in the source document using the DShield field mapping configuration.
+        
+        Args:
+            source: Source dictionary from Elasticsearch document
+            field_type: Logical DShield field type to extract (e.g., 'source_ip', 'event_type')
+            default: Default value to return if field is not found
+        
+        Returns:
+            The extracted value if found, otherwise the default value
+
+        """
         mapped = False
         tried_fields = []
         if field_type in self.dshield_field_mappings:
@@ -1377,7 +1655,15 @@ class ElasticsearchClient:
         return default
 
     def log_unmapped_fields(self, source: Dict[str, Any]):
-        """Log any fields in the source document that are not mapped to any known field type."""
+        """Log any fields in the source document that are not mapped to any known field type.
+        
+        Args:
+            source: Source dictionary from Elasticsearch document
+        
+        Returns:
+            None
+
+        """
         mapped_fields = set()
         for field_list in self.dshield_field_mappings.values():
             mapped_fields.update(field_list)
@@ -1386,7 +1672,17 @@ class ElasticsearchClient:
             logger.info("Unmapped fields detected in document", unmapped_fields=unmapped)
     
     def _compile_geo_stats(self, geo_data: List[Dict[str, Any]]) -> Dict[str, int]:
-        """Compile geographic statistics from geo data."""
+        """Compile geographic statistics from geo data.
+        
+        Aggregates event counts by country from a list of geo-tagged events.
+        
+        Args:
+            geo_data: List of event dictionaries containing 'country' keys
+        
+        Returns:
+            Dictionary mapping country names to event counts
+
+        """
         country_counts = {}
         for event in geo_data:
             country = event.get('country')
@@ -1394,7 +1690,6 @@ class ElasticsearchClient:
                 country_counts[country] = country_counts.get(country, 0) + 1
         return country_counts
     
-    # Backward compatibility methods
     async def query_security_events(
         self,
         time_range_hours: int = 24,
@@ -1403,7 +1698,19 @@ class ElasticsearchClient:
         size: Optional[int] = None,
         timeout: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """Backward compatibility method - redirects to query_dshield_events."""
+        """Backward compatibility method - redirects to query_dshield_events.
+        
+        Args:
+            time_range_hours: Time range in hours to query (default: 24)
+            indices: List of indices to query (optional)
+            filters: Query filters to apply (optional)
+            size: Number of results to return (optional)
+            timeout: Query timeout in seconds (optional)
+        
+        Returns:
+            List of event dictionaries
+
+        """
         # Use user configuration defaults
         if size is None:
             size = self.default_page_size
@@ -1424,7 +1731,17 @@ class ElasticsearchClient:
         return events
 
     def _generate_pagination_info(self, page: int, page_size: int, total_count: int) -> Dict[str, Any]:
-        """Generate pagination information for response."""
+        """Generate pagination information for response.
+        
+        Args:
+            page: Current page number
+            page_size: Number of results per page
+            total_count: Total number of results available
+        
+        Returns:
+            Dictionary containing pagination metadata, including current page, total pages, and navigation info
+
+        """
         total_pages = (total_count + page_size - 1) // page_size
         has_next = page < total_pages
         has_previous = page > 1
@@ -1456,6 +1773,20 @@ class ElasticsearchClient:
         
         Provides comprehensive pagination details including cursor tokens,
         total available count, and sorting information for massive datasets.
+        Supports both traditional page-based and cursor-based pagination.
+        
+        Args:
+            page: Current page number
+            page_size: Number of results per page
+            total_count: Total number of results available
+            cursor: Current cursor token for cursor-based pagination
+            next_cursor: Next cursor token for continuing pagination
+            sort_by: Field used for sorting
+            sort_order: Sort order ('asc' or 'desc')
+        
+        Returns:
+            Dictionary containing comprehensive pagination metadata
+
         """
         total_pages = (total_count + page_size - 1) // page_size
         has_next = page < total_pages or next_cursor is not None
@@ -1493,7 +1824,22 @@ class ElasticsearchClient:
         return pagination_info
     
     async def get_index_mapping(self, index_pattern: str) -> Dict[str, Any]:
-        """Get mapping for an index pattern."""
+        """Get mapping for an index pattern.
+        
+        Retrieves the field mapping information for the specified
+        index pattern from Elasticsearch.
+        
+        Args:
+            index_pattern: Index pattern to get mapping for
+        
+        Returns:
+            Dictionary containing the index mapping information
+        
+        Raises:
+            RuntimeError: If Elasticsearch client is not connected
+            Exception: If the mapping request fails
+
+        """
         if not self.client:
             raise RuntimeError("Elasticsearch client not connected")
         
@@ -1505,7 +1851,19 @@ class ElasticsearchClient:
             raise
     
     async def get_cluster_stats(self) -> Dict[str, Any]:
-        """Get Elasticsearch cluster statistics."""
+        """Get Elasticsearch cluster statistics.
+        
+        Retrieves comprehensive statistics about the Elasticsearch
+        cluster including node information, indices, and performance metrics.
+        
+        Returns:
+            Dictionary containing cluster statistics
+        
+        Raises:
+            RuntimeError: If Elasticsearch client is not connected
+            Exception: If the cluster stats request fails
+
+        """
         if not self.client:
             raise RuntimeError("Elasticsearch client not connected")
         
@@ -1517,11 +1875,22 @@ class ElasticsearchClient:
             raise 
 
     def _map_query_fields(self, filters: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Map user-friendly field names to ECS dot notation for querying.
+        """Map user-friendly field names to ECS dot notation for querying.
         
         This handles the mismatch between display fields (source_ip) and 
         query fields (source.ip) as described in GitHub issue #17.
+        Converts user-friendly field names to the proper Elasticsearch
+        Common Schema (ECS) field names for querying.
+        
+        Args:
+            filters: Dictionary containing user-friendly field names and values
+        
+        Returns:
+            Dictionary with field names mapped to ECS notation
+        
+        Raises:
+            ValueError: If field mapping is invalid
+
         """
         if not filters:
             return filters
@@ -1622,7 +1991,19 @@ class ElasticsearchClient:
         return mapped_filters
 
     def _get_field_suggestions(self, field_name: str) -> List[str]:
-        """Get suggestions for field name alternatives."""
+        """Get suggestions for field name alternatives.
+        
+        Provides alternative field names when a user-friendly field name
+        is not found in the mapping. This helps users understand the
+        correct ECS field names to use.
+        
+        Args:
+            field_name: The field name that needs alternatives
+        
+        Returns:
+            List of suggested field name alternatives
+
+        """
         suggestions = []
         
         # Common patterns
@@ -1654,15 +2035,19 @@ class ElasticsearchClient:
         return suggestions 
 
     def _generate_session_key(self, event: Dict[str, Any], session_fields: List[str]) -> Optional[str]:
-        """
-        Generate a session key from event data using specified session fields.
+        """Generate a session key from event data using specified session fields.
+        
+        Creates a unique session identifier by combining values from
+        specified session fields. This is used for grouping related
+        events together in session-based streaming.
         
         Args:
-            event: The event data
+            event: The event data dictionary
             session_fields: List of fields to use for session grouping
-            
+        
         Returns:
             Session key string or None if no session fields are available
+
         """
         session_values = []
         
@@ -1680,15 +2065,21 @@ class ElasticsearchClient:
             return None
     
     def _calculate_session_duration(self, first_timestamp: Optional[str], last_timestamp: Optional[str]) -> Optional[float]:
-        """
-        Calculate session duration in minutes.
+        """Calculate session duration in minutes.
+        
+        Computes the duration between the first and last events in a session.
+        This is used for session analysis and reporting.
         
         Args:
-            first_timestamp: First event timestamp
-            last_timestamp: Last event timestamp
-            
+            first_timestamp: First event timestamp in ISO format
+            last_timestamp: Last event timestamp in ISO format
+        
         Returns:
             Duration in minutes or None if timestamps are invalid
+        
+        Raises:
+            ValueError: If timestamp format is invalid
+
         """
         if not first_timestamp or not last_timestamp:
             return None
@@ -1716,20 +2107,35 @@ class ElasticsearchClient:
         include_session_summary: bool = True,
         stream_id: Optional[str] = None
     ) -> tuple[List[Dict[str, Any]], int, Optional[str], Dict[str, Any]]:
-        """
-        Stream DShield events with smart session-based chunking.
+        """Stream DShield events with smart session-based chunking.
         
         Groups events by session context (e.g., source IP, user session, connection ID)
-        and ensures related events stay together in the same chunk.
+        and ensures related events stay together in the same chunk. This is useful
+        for event correlation and analysis.
         
         Args:
-            session_fields: Fields to use for session grouping (e.g., ['source.ip', 'user.name'])
-            max_session_gap_minutes: Maximum time gap within a session before starting new session
-            include_session_summary: Include session metadata in response
+            time_range_hours: Time range in hours to query (default: 24)
+            indices: Specific indices to query (default: all DShield indices)
+            filters: Additional query filters to apply
+            fields: Specific fields to return (reduces payload size)
+            chunk_size: Number of events per chunk (default: 500, max: 1000)
+            session_fields: Fields to use for session grouping (default: ['source.ip', 'destination.ip', 'user.name', 'session.id'])
+            max_session_gap_minutes: Maximum time gap within a session before starting new session (default: 30)
+            include_session_summary: Include session metadata in response (default: True)
             stream_id: Resume streaming from specific point
-            
+        
         Returns:
-            Tuple of (events, total_count, next_stream_id, session_context)
+            Tuple containing:
+                - List of event dictionaries for the current chunk
+                - Total count of available events
+                - Next stream ID for continuing the stream (None if complete)
+                - Session context information
+        
+        Raises:
+            ConnectionError: If not connected to Elasticsearch
+            RequestError: If the streaming query fails
+            ValueError: If parameters are invalid
+
         """
         if not self.client:
             await self.connect()

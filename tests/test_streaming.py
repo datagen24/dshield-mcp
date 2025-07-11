@@ -1,5 +1,4 @@
-"""
-Streaming and Smart Chunking Tests
+"""Streaming and Smart Chunking Tests.
 
 Tests for event streaming functionality including basic streaming, cursor-based pagination,
 field selection, filtering, and smart chunking with session context.
