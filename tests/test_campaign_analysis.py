@@ -1,5 +1,4 @@
-"""
-Campaign Analysis Tests
+"""Campaign Analysis Tests.
 
 Tests for campaign analysis functionality including data models, correlation methods,
 timeline building, scoring, and MCP tools integration.

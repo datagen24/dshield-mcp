@@ -1,6 +1,4 @@
-"""
-Integration tests for server startup and core components.
-"""
+"""Integration tests for server startup and core components."""
 
 import pytest
 from unittest.mock import Mock, patch, AsyncMock

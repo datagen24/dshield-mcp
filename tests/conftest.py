@@ -1,6 +1,4 @@
-"""
-Pytest configuration and common fixtures for DShield MCP tests.
-"""
+"""Pytest configuration and common fixtures for DShield MCP tests."""
 
 import pytest
 import asyncio

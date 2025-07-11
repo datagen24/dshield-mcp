@@ -1,6 +1,4 @@
-"""
-Tests for smart query optimization functionality in DShield MCP service.
-"""
+"""Tests for smart query optimization functionality in DShield MCP service."""
 
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
@@ -8,6 +6,12 @@ from src.elasticsearch_client import ElasticsearchClient
 
 @pytest.fixture
 def mock_es_client():
+    """Create a mock ElasticsearchClient for testing query optimization functionality.
+    
+    Returns:
+        Mock ElasticsearchClient with optimization methods mocked.
+
+    """
     client = ElasticsearchClient.__new__(ElasticsearchClient)
     client.max_results = 1000
     client.client = AsyncMock()
@@ -25,6 +29,8 @@ def mock_es_client():
 
 @pytest.mark.asyncio
 class TestSmartQueryOptimization:
+    """Unit tests for smart query optimization logic in ElasticsearchClient."""
+
     async def test_normal_query_no_optimization(self, mock_es_client):
         """Test normal query without optimization."""
         # Mock response for normal query

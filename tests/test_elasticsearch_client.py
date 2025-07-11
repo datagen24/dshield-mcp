@@ -1,6 +1,4 @@
-"""
-Unit tests for Elasticsearch client.
-"""
+"""Unit tests for Elasticsearch client."""
 
 import pytest
 import asyncio

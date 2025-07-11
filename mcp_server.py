@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""
-DShield MCP Server - Elastic SIEM Integration
+"""DShield MCP Server - Elastic SIEM Integration.
+
 Main server for handling MCP protocol communication and coordinating
 between DShield Elasticsearch queries and DShield threat intelligence.
 """
@@ -51,9 +51,36 @@ logger = structlog.get_logger(__name__)
 
 
 class DShieldMCPServer:
-    """Main MCP server for DShield Elastic SIEM integration."""
+    """Main MCP server for DShield Elastic SIEM integration.
     
-    def __init__(self):
+    This class provides the core MCP (Model Context Protocol) server implementation
+    for integrating with DShield Elasticsearch SIEM and threat intelligence data.
+    It handles tool registration, request processing, and coordination between
+    various DShield data sources.
+    
+    Attributes:
+        server: The MCP server instance
+        elastic_client: Client for Elasticsearch operations
+        dshield_client: Client for DShield API operations
+        data_processor: Utility for processing security data
+        context_injector: Utility for injecting context into queries
+        campaign_analyzer: Campaign analysis functionality
+        campaign_tools: Campaign-related MCP tools
+        user_config: User configuration settings
+        
+    Example:
+        >>> server = DShieldMCPServer()
+        >>> await server.initialize()
+        >>> # Server is ready to handle MCP requests
+
+    """
+    
+    def __init__(self) -> None:
+        """Initialize the DShield MCP server.
+        
+        Sets up the server instance, initializes client references,
+        loads user configuration, and registers available MCP tools.
+        """
         self.server = Server("dshield-elastic-mcp")
         self.elastic_client = None
         self.dshield_client = None
@@ -72,8 +99,22 @@ class DShieldMCPServer:
         # Register tools
         self._register_tools()
         
-    def _register_tools(self):
-        """Register all available MCP tools."""
+    def _register_tools(self) -> None:
+        """Register all available MCP tools.
+        
+        This method sets up the MCP server's tool handlers, including:
+        - Tool listing functionality
+        - Tool execution handlers
+        - Resource listing and reading capabilities
+        
+        The tools provide access to DShield data including:
+        - Event queries with pagination
+        - Streaming data with session context
+        - Aggregation queries
+        - Campaign analysis
+        - Threat intelligence enrichment
+        - Data dictionary access
+        """
         
         @self.server.list_tools()
         async def handle_list_tools() -> List[Dict[str, Any]]:
@@ -841,8 +882,18 @@ class DShieldMCPServer:
             else:
                 raise ValueError(f"Unknown resource: {uri}")
     
-    async def initialize(self):
-        """Initialize the MCP server and clients."""
+    async def initialize(self) -> None:
+        """Initialize the MCP server and clients.
+        
+        This method performs the complete initialization of the MCP server,
+        including setting up all client connections, data processors,
+        and campaign analysis tools. It also logs the user configuration
+        summary for debugging purposes.
+        
+        Raises:
+            Exception: If initialization of any component fails
+
+        """
         logger.info("Initializing DShield MCP Server")
         
         # Initialize Elasticsearch client (but don't connect yet)
@@ -880,7 +931,41 @@ class DShieldMCPServer:
                    })
     
     async def _query_dshield_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Query DShield events from Elasticsearch."""
+        """Query DShield events from Elasticsearch.
+        
+        This method handles queries for DShield security events from the
+        Elasticsearch SIEM with support for advanced pagination, filtering,
+        and optimization features.
+        
+        Args:
+            arguments: Dictionary containing query parameters including:
+                - time_range_hours: Time range in hours to query (default: 24)
+                - time_range: Exact time range with start/end timestamps
+                - relative_time: Relative time range string
+                - time_window: Time window around specific timestamp
+                - indices: DShield Elasticsearch indices to query
+                - filters: Additional query filters
+                - fields: Specific fields to return
+                - page: Page number for pagination (default: 1)
+                - page_size: Number of results per page (default: 100, max: 1000)
+                - sort_by: Field to sort by (default: '@timestamp')
+                - sort_order: Sort order 'asc' or 'desc' (default: 'desc')
+                - cursor: Cursor token for cursor-based pagination
+                - optimization: Smart query optimization mode
+                - fallback_strategy: Fallback strategy when optimization fails
+                - max_result_size_mb: Maximum result size in MB
+                - query_timeout_seconds: Query timeout in seconds
+                - include_summary: Include summary statistics
+        
+        Returns:
+            List containing a single dictionary with 'type' and 'text' keys.
+            The text contains formatted event data with pagination information.
+            
+        Raises:
+            ValueError: If invalid time range parameters are provided
+            Exception: If Elasticsearch query fails
+
+        """
         time_range_hours = arguments.get("time_range_hours", 24)
         time_range = arguments.get("time_range")
         relative_time = arguments.get("relative_time")
@@ -1550,7 +1635,24 @@ class DShieldMCPServer:
         }]
     
     async def _test_elasticsearch_connection(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Test Elasticsearch connection and show available indices."""
+        """Test Elasticsearch connection and show available indices.
+        
+        This method performs a comprehensive test of the Elasticsearch
+        connection, including cluster information, available indices,
+        and cluster health status. It's useful for troubleshooting
+        connection issues and verifying the Elasticsearch setup.
+        
+        Args:
+            arguments: Dictionary containing test parameters (currently unused)
+        
+        Returns:
+            List containing a single dictionary with 'type' and 'text' keys.
+            The text contains connection status and cluster information.
+            
+        Raises:
+            Exception: If Elasticsearch connection fails
+
+        """
         try:
             # Try to connect
             await self.elastic_client.connect()
@@ -1823,15 +1925,35 @@ class DShieldMCPServer:
                    json.dumps(result, indent=2, default=str)
         }]
     
-    async def cleanup(self):
-        """Cleanup resources."""
+    async def cleanup(self) -> None:
+        """Cleanup resources.
+        
+        Properly closes all client connections and releases resources
+        to prevent memory leaks and connection pool exhaustion.
+        This method should be called when shutting down the server.
+        """
         if self.elastic_client:
             await self.elastic_client.close()
         logger.info("DShield MCP Server cleanup completed")
 
 
-async def main():
-    """Main entry point for the DShield MCP server."""
+async def main() -> None:
+    """Start the DShield MCP server.
+    
+    This function creates and initializes the DShield MCP server,
+    then runs it using the stdio transport. It handles the complete
+    server lifecycle including initialization, execution, and cleanup.
+    
+    The server will:
+    1. Initialize all components and clients
+    2. Start listening for MCP protocol messages
+    3. Process tool calls and resource requests
+    4. Clean up resources on shutdown
+    
+    Raises:
+        Exception: If server startup or execution fails
+
+    """
     server = DShieldMCPServer()
     
     try:

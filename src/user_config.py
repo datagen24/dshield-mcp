@@ -1,8 +1,23 @@
 #!/usr/bin/env python3
-"""
-User Configuration Management for DShield MCP
-Extends the existing configuration system with user-customizable settings,
-validation, and environment variable support.
+"""User Configuration Management for DShield MCP.
+
+This module provides comprehensive user configuration management for the DShield MCP
+server. It extends the base configuration system with user-customizable settings,
+validation, environment variable support, and multiple configuration sources.
+
+Features:
+- User-configurable settings with validation
+- Environment variable overrides
+- Multiple configuration file sources
+- Setting categories (query, pagination, streaming, etc.)
+- Configuration export and import
+- 1Password CLI integration
+
+Example:
+    >>> from src.user_config import get_user_config
+    >>> config = get_user_config()
+    >>> page_size = config.get_setting("query", "default_page_size")
+    >>> print(page_size)
 """
 
 import os
@@ -24,7 +39,17 @@ load_dotenv()
 
 @dataclass
 class QuerySettings:
-    """User-configurable query settings."""
+    """User-configurable query settings.
+    
+    Attributes:
+        default_page_size: Default number of results per page
+        max_page_size: Maximum allowed page size
+        default_timeout_seconds: Default query timeout in seconds
+        max_timeout_seconds: Maximum allowed timeout in seconds
+        enable_smart_optimization: Whether to enable smart query optimization
+        fallback_strategy: Strategy for handling query failures
+        max_query_complexity: Maximum query complexity threshold
+    """
     default_page_size: int = 100
     max_page_size: int = 1000
     default_timeout_seconds: int = 30
@@ -36,7 +61,15 @@ class QuerySettings:
 
 @dataclass
 class PaginationSettings:
-    """User-configurable pagination settings."""
+    """User-configurable pagination settings.
+    
+    Attributes:
+        default_method: Default pagination method (page or cursor)
+        max_pages_per_request: Maximum pages per request
+        cursor_timeout_seconds: Cursor timeout in seconds
+        enable_metadata: Whether to include pagination metadata
+        include_performance_metrics: Whether to include performance metrics
+    """
     default_method: str = "page"  # page, cursor
     max_pages_per_request: int = 10
     cursor_timeout_seconds: int = 300
@@ -46,7 +79,15 @@ class PaginationSettings:
 
 @dataclass
 class StreamingSettings:
-    """User-configurable streaming settings."""
+    """User-configurable streaming settings.
+    
+    Attributes:
+        default_chunk_size: Default chunk size for streaming
+        max_chunk_size: Maximum allowed chunk size
+        session_context_fields: Fields to use for session context
+        enable_session_summaries: Whether to enable session summaries
+        session_timeout_minutes: Session timeout in minutes
+    """
     default_chunk_size: int = 50
     max_chunk_size: int = 200
     session_context_fields: List[str] = field(default_factory=lambda: [
@@ -58,7 +99,16 @@ class StreamingSettings:
 
 @dataclass
 class PerformanceSettings:
-    """User-configurable performance settings."""
+    """User-configurable performance settings.
+    
+    Attributes:
+        enable_caching: Whether to enable caching
+        cache_ttl_seconds: Cache time-to-live in seconds
+        max_cache_size: Maximum cache size
+        enable_connection_pooling: Whether to enable connection pooling
+        connection_pool_size: Connection pool size
+        request_timeout_seconds: Request timeout in seconds
+    """
     enable_caching: bool = True
     cache_ttl_seconds: int = 300
     max_cache_size: int = 1000
@@ -69,7 +119,16 @@ class PerformanceSettings:
 
 @dataclass
 class SecuritySettings:
-    """User-configurable security settings."""
+    """User-configurable security settings.
+    
+    Attributes:
+        rate_limit_requests_per_minute: Rate limit for requests per minute
+        max_query_results: Maximum query results
+        enable_field_validation: Whether to enable field validation
+        allowed_field_patterns: Regex patterns for allowed fields
+        block_sensitive_fields: Whether to block sensitive fields
+        sensitive_field_patterns: Regex patterns for sensitive fields
+    """
     rate_limit_requests_per_minute: int = 60
     max_query_results: int = 1000
     enable_field_validation: bool = True
@@ -84,7 +143,16 @@ class SecuritySettings:
 
 @dataclass
 class LoggingSettings:
-    """User-configurable logging settings."""
+    """User-configurable logging settings.
+    
+    Attributes:
+        log_level: Logging level
+        log_format: Log format (json, text)
+        enable_query_logging: Whether to enable query logging
+        enable_performance_logging: Whether to enable performance logging
+        log_sensitive_data: Whether to log sensitive data
+        max_log_size_mb: Maximum log size in MB
+    """
     log_level: str = "INFO"
     log_format: str = "json"
     enable_query_logging: bool = True
@@ -95,7 +163,20 @@ class LoggingSettings:
 
 @dataclass
 class CampaignSettings:
-    """User-configurable campaign analysis settings."""
+    """User-configurable campaign analysis settings.
+    
+    Attributes:
+        correlation_window_minutes: Correlation window in minutes
+        min_confidence_threshold: Minimum confidence threshold
+        max_campaign_events: Maximum campaign events
+        enable_geospatial_correlation: Whether to enable geospatial correlation
+        enable_infrastructure_correlation: Whether to enable infrastructure correlation
+        enable_behavioral_correlation: Whether to enable behavioral correlation
+        enable_temporal_correlation: Whether to enable temporal correlation
+        enable_ip_correlation: Whether to enable IP correlation
+        max_expansion_depth: Maximum expansion depth
+        expansion_timeout_seconds: Expansion timeout in seconds
+    """
     correlation_window_minutes: int = 30
     min_confidence_threshold: float = 0.7
     max_campaign_events: int = 10000
@@ -109,9 +190,39 @@ class CampaignSettings:
 
 
 class UserConfigManager:
-    """Manages user-configurable settings with validation and environment variable support."""
+    """Manages user-configurable settings with validation and environment variable support.
     
-    def __init__(self, config_path: Optional[str] = None):
+    This class provides a comprehensive configuration management system that
+    supports multiple configuration sources with precedence ordering:
+    1. Environment variables (highest priority)
+    2. User configuration file
+    3. Base configuration
+    4. Default values (lowest priority)
+    
+    Attributes:
+        config_path: Path to the configuration file
+        op_secrets: OnePassword secrets manager
+        base_config: Base configuration dictionary
+        query_settings: Query-related settings
+        pagination_settings: Pagination-related settings
+        streaming_settings: Streaming-related settings
+        performance_settings: Performance-related settings
+        security_settings: Security-related settings
+        logging_settings: Logging-related settings
+        campaign_settings: Campaign analysis settings
+    
+    Example:
+        >>> manager = UserConfigManager()
+        >>> page_size = manager.get_setting("query", "default_page_size")
+        >>> manager.update_setting("query", "default_page_size", 200)
+    """
+    
+    def __init__(self, config_path: Optional[str] = None) -> None:
+        """Initialize the UserConfigManager.
+        
+        Args:
+            config_path: Optional path to the configuration file
+        """
         self.config_path = config_path
         self.op_secrets = OnePasswordSecrets()
         
@@ -134,8 +245,12 @@ class UserConfigManager:
         # Load user configuration
         self._load_user_config()
         
-    def _load_user_config(self):
-        """Load user configuration from multiple sources with precedence."""
+    def _load_user_config(self) -> None:
+        """Load user configuration from multiple sources with precedence.
+        
+        Loads configuration from environment variables, user config file,
+        and base config, applying them in order of precedence.
+        """
         # Priority order: environment variables > user config file > base config > defaults
         
         # Load from user config file
@@ -151,7 +266,16 @@ class UserConfigManager:
         self._validate_settings()
         
     def _load_user_config_file(self) -> Dict[str, Any]:
-        """Load user configuration from file."""
+        """Load user configuration from file.
+        
+        Searches for user configuration files in multiple locations:
+        - Current directory: user_config.yaml
+        - Config directory: config/user_config.yaml
+        - Home directory: ~/.dshield-mcp/user_config.yaml
+        
+        Returns:
+            Dictionary containing user configuration or empty dict if not found
+        """
         user_config_paths = [
             Path("user_config.yaml"),
             Path("config/user_config.yaml"),
@@ -170,8 +294,12 @@ class UserConfigManager:
         
         return {}
     
-    def _apply_env_overrides(self):
-        """Apply environment variable overrides to settings."""
+    def _apply_env_overrides(self) -> None:
+        """Apply environment variable overrides to settings.
+        
+        Reads environment variables and applies them to the appropriate
+        settings categories, overriding file-based configuration.
+        """
         # Query Settings
         self.query_settings.default_page_size = int(os.getenv("DEFAULT_PAGE_SIZE", self.query_settings.default_page_size))
         self.query_settings.max_page_size = int(os.getenv("MAX_PAGE_SIZE", self.query_settings.max_page_size))
@@ -237,8 +365,12 @@ class UserConfigManager:
         self.campaign_settings.max_expansion_depth = int(os.getenv("MAX_EXPANSION_DEPTH", self.campaign_settings.max_expansion_depth))
         self.campaign_settings.expansion_timeout_seconds = int(os.getenv("EXPANSION_TIMEOUT_SECONDS", self.campaign_settings.expansion_timeout_seconds))
     
-    def _apply_user_config(self, user_config: Dict[str, Any]):
-        """Apply user configuration file settings."""
+    def _apply_user_config(self, user_config: Dict[str, Any]) -> None:
+        """Apply user configuration file settings.
+        
+        Args:
+            user_config: User configuration dictionary
+        """
         # Query Settings
         if "query" in user_config:
             query_config = user_config["query"]
@@ -315,8 +447,15 @@ class UserConfigManager:
             self.campaign_settings.max_expansion_depth = campaign_config.get("max_expansion_depth", self.campaign_settings.max_expansion_depth)
             self.campaign_settings.expansion_timeout_seconds = campaign_config.get("expansion_timeout_seconds", self.campaign_settings.expansion_timeout_seconds)
     
-    def _validate_settings(self):
-        """Validate all settings and log warnings for invalid values."""
+    def _validate_settings(self) -> None:
+        """Validate all settings for consistency and correctness.
+        
+        Performs validation checks on all configuration settings to ensure
+        they are within acceptable ranges and consistent with each other.
+        
+        Raises:
+            ValueError: If settings are invalid or inconsistent
+        """
         errors = []
         warnings = []
         
@@ -384,7 +523,18 @@ class UserConfigManager:
                 logger.warning(warning)
     
     def get_setting(self, category: str, setting: str) -> Any:
-        """Get a specific setting value."""
+        """Get a specific setting value.
+        
+        Args:
+            category: Setting category (query, pagination, streaming, etc.)
+            setting: Setting name within the category
+        
+        Returns:
+            Setting value
+        
+        Raises:
+            KeyError: If category or setting does not exist
+        """
         settings_map = {
             "query": self.query_settings,
             "pagination": self.pagination_settings,
@@ -404,8 +554,18 @@ class UserConfigManager:
         
         return getattr(settings_obj, setting)
     
-    def update_setting(self, category: str, setting: str, value: Any):
-        """Update a specific setting value."""
+    def update_setting(self, category: str, setting: str, value: Any) -> None:
+        """Update a specific setting value.
+        
+        Args:
+            category: Setting category (query, pagination, streaming, etc.)
+            setting: Setting name within the category
+            value: New value for the setting
+        
+        Raises:
+            KeyError: If category or setting does not exist
+            ValueError: If value is invalid for the setting
+        """
         settings_map = {
             "query": self.query_settings,
             "pagination": self.pagination_settings,
@@ -428,7 +588,11 @@ class UserConfigManager:
         logger.info(f"Updated setting: {category}.{setting} = {value}")
     
     def export_config(self) -> Dict[str, Any]:
-        """Export current configuration as a dictionary."""
+        """Export current configuration as a dictionary.
+        
+        Returns:
+            Dictionary containing all current configuration settings
+        """
         return {
             "query": {
                 "default_page_size": self.query_settings.default_page_size,
@@ -491,8 +655,12 @@ class UserConfigManager:
             }
         }
     
-    def save_user_config(self, file_path: Optional[str] = None):
-        """Save current configuration to a user config file."""
+    def save_user_config(self, file_path: Optional[str] = None) -> None:
+        """Save current configuration to a file.
+        
+        Args:
+            file_path: Path to save the configuration file (default: auto-detected)
+        """
         if file_path is None:
             config_dir = Path.home() / ".dshield-mcp"
             config_dir.mkdir(exist_ok=True)
@@ -509,7 +677,11 @@ class UserConfigManager:
             raise
     
     def get_environment_variables(self) -> Dict[str, str]:
-        """Get environment variable names and their current values."""
+        """Get environment variables that can be used to override settings.
+        
+        Returns:
+            Dictionary mapping setting names to environment variable names
+        """
         return {
             # Query Settings
             "DEFAULT_PAGE_SIZE": str(self.query_settings.default_page_size),
@@ -577,14 +749,22 @@ _user_config_manager: Optional[UserConfigManager] = None
 
 
 def get_user_config() -> UserConfigManager:
-    """Get the global user configuration manager instance."""
+    """Get the global user configuration manager instance.
+    
+    Returns:
+        UserConfigManager: The global configuration manager instance
+    """
     global _user_config_manager
     if _user_config_manager is None:
         _user_config_manager = UserConfigManager()
     return _user_config_manager
 
 
-def reset_user_config():
-    """Reset the global user configuration manager instance."""
+def reset_user_config() -> None:
+    """Reset the global user configuration manager instance.
+    
+    This function clears the global configuration manager, forcing
+    a reload of configuration on the next get_user_config() call.
+    """
     global _user_config_manager
     _user_config_manager = None 

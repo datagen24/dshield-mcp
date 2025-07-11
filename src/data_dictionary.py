@@ -1,7 +1,22 @@
-"""
-Data Dictionary for DShield MCP Elastic SIEM Integration
-Provides comprehensive field descriptions and examples to help models understand
-the available data structures and their meanings.
+"""Data Dictionary for DShield MCP Elastic SIEM Integration.
+
+This module provides comprehensive field descriptions, query examples, and
+analysis guidelines to help AI models understand DShield SIEM data structures
+and their meanings. It serves as a reference for data interpretation and
+query construction.
+
+Features:
+- Comprehensive field descriptions and types
+- Query examples for common use cases
+- Data patterns and analysis guidelines
+- Initial prompt generation for AI models
+- Structured data reference for DShield SIEM
+
+Example:
+    >>> from src.data_dictionary import DataDictionary
+    >>> fields = DataDictionary.get_field_descriptions()
+    >>> examples = DataDictionary.get_query_examples()
+    >>> prompt = DataDictionary.get_initial_prompt()
 """
 
 from typing import Dict, List, Any
@@ -9,11 +24,37 @@ from datetime import datetime, timedelta
 
 
 class DataDictionary:
-    """Comprehensive data dictionary for DShield SIEM data."""
+    """Comprehensive data dictionary for DShield SIEM data.
+    
+    This class provides static methods to access comprehensive information
+    about DShield SIEM data structures, including field descriptions,
+    query examples, data patterns, and analysis guidelines.
+    
+    The class serves as a central reference for understanding DShield
+    data formats and constructing effective queries and analysis.
+    
+    Example:
+        >>> fields = DataDictionary.get_field_descriptions()
+        >>> examples = DataDictionary.get_query_examples()
+        >>> prompt = DataDictionary.get_initial_prompt()
+    """
     
     @staticmethod
     def get_field_descriptions() -> Dict[str, Any]:
-        """Get comprehensive field descriptions for DShield data."""
+        """Get comprehensive field descriptions for DShield data.
+        
+        Returns a detailed dictionary containing descriptions, types,
+        examples, and usage information for all DShield SIEM fields.
+        
+        Returns:
+            Dictionary containing field descriptions organized by category:
+            - core_fields: Basic event fields (timestamp, id)
+            - network_fields: Network-related fields (IPs, ports, protocols)
+            - event_fields: Event classification fields (type, severity, category)
+            - dshield_specific_fields: DShield-specific threat intelligence
+            - geographic_fields: Geographic location data
+            - service_fields: Service and application data
+        """
         return {
             "core_fields": {
                 "timestamp": {
@@ -184,7 +225,15 @@ class DataDictionary:
     
     @staticmethod
     def get_query_examples() -> Dict[str, Any]:
-        """Get example queries for common use cases."""
+        """Get example queries for common use cases.
+        
+        Returns a collection of example queries demonstrating how to
+        use the DShield MCP tools for various security analysis scenarios.
+        
+        Returns:
+            Dictionary containing query examples with descriptions,
+            parameters, and expected fields for each use case
+        """
         return {
             "recent_attacks": {
                 "description": "Get recent attacks from the last 24 hours",
@@ -235,7 +284,15 @@ class DataDictionary:
     
     @staticmethod
     def get_data_patterns() -> Dict[str, Any]:
-        """Get common data patterns and their meanings."""
+        """Get common data patterns and their interpretations.
+        
+        Returns patterns that commonly appear in DShield data and
+        their security implications for analysis.
+        
+        Returns:
+            Dictionary containing data patterns with descriptions
+            and security context
+        """
         return {
             "attack_patterns": {
                 "ssh_brute_force": {
@@ -299,7 +356,14 @@ class DataDictionary:
     
     @staticmethod
     def get_analysis_guidelines() -> Dict[str, Any]:
-        """Get guidelines for analyzing DShield data."""
+        """Get guidelines for analyzing DShield SIEM data.
+        
+        Returns best practices and guidelines for interpreting
+        and analyzing DShield security data effectively.
+        
+        Returns:
+            Dictionary containing analysis guidelines and best practices
+        """
         return {
             "correlation_rules": {
                 "multiple_attack_types": {
@@ -345,7 +409,15 @@ class DataDictionary:
     
     @staticmethod
     def get_initial_prompt() -> str:
-        """Get the initial prompt to provide to models for understanding DShield data."""
+        """Get the initial prompt for AI models.
+        
+        Generates a comprehensive initial prompt that provides AI models
+        with all the necessary context about DShield SIEM data structures,
+        field meanings, and analysis guidelines.
+        
+        Returns:
+            String containing the complete initial prompt for AI models
+        """
         field_descriptions = DataDictionary.get_field_descriptions()
         query_examples = DataDictionary.get_query_examples()
         data_patterns = DataDictionary.get_data_patterns()
@@ -414,7 +486,14 @@ When analyzing DShield data, always consider the context, time patterns, and cor
     
     @staticmethod
     def _format_field_section(fields: Dict[str, Any]) -> str:
-        """Format a field section for the prompt."""
+        """Format field descriptions into a readable section.
+        
+        Args:
+            fields: Dictionary containing field descriptions
+        
+        Returns:
+            Formatted string representation of the field section
+        """
         formatted = []
         for field_name, field_info in fields.items():
             formatted.append(f"- **{field_name}**: {field_info['description']}")
@@ -427,7 +506,14 @@ When analyzing DShield data, always consider the context, time patterns, and cor
     
     @staticmethod
     def _format_query_examples(examples: Dict[str, Any]) -> str:
-        """Format query examples for the prompt."""
+        """Format query examples into a readable section.
+        
+        Args:
+            examples: Dictionary containing query examples
+        
+        Returns:
+            Formatted string representation of the query examples section
+        """
         formatted = []
         for name, example in examples.items():
             formatted.append(f"### {name.replace('_', ' ').title()}")
@@ -440,7 +526,14 @@ When analyzing DShield data, always consider the context, time patterns, and cor
     
     @staticmethod
     def _format_data_patterns(patterns: Dict[str, Any]) -> str:
-        """Format data patterns for the prompt."""
+        """Format data patterns into a readable section.
+        
+        Args:
+            patterns: Dictionary containing data patterns
+        
+        Returns:
+            Formatted string representation of the data patterns section
+        """
         formatted = []
         
         # Attack patterns
@@ -463,7 +556,14 @@ When analyzing DShield data, always consider the context, time patterns, and cor
     
     @staticmethod
     def _format_analysis_guidelines(guidelines: Dict[str, Any]) -> str:
-        """Format analysis guidelines for the prompt."""
+        """Format analysis guidelines into a readable section.
+        
+        Args:
+            guidelines: Dictionary containing analysis guidelines
+        
+        Returns:
+            Formatted string representation of the analysis guidelines section
+        """
         formatted = []
         
         # Correlation rules

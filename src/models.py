@@ -1,6 +1,33 @@
-"""
-Data models for DShield MCP Elastic SIEM integration.
-Optimized for DShield SIEM data structures and patterns.
+"""Data models for DShield MCP Elastic SIEM integration.
+
+This module provides comprehensive data models for the DShield MCP server,
+optimized for DShield SIEM data structures and patterns. It includes models
+for security events, attacks, reputation data, and various DShield-specific
+data types.
+
+The models are built using Pydantic for automatic validation, serialization,
+and documentation generation. They provide type safety and ensure data
+consistency across the application.
+
+This module provides:
+- Security event models with validation
+- DShield-specific data models
+- Threat intelligence models
+- Query and filter models
+- Statistics and summary models
+
+Example:
+    >>> from src.models import SecurityEvent, EventSeverity
+    >>> event = SecurityEvent(
+    ...     id="event_123",
+    ...     timestamp=datetime.now(),
+    ...     event_type="attack",
+    ...     severity=EventSeverity.HIGH,
+    ...     description="Suspicious activity detected"
+    ... )
+    >>> print(event.severity)
+    EventSeverity.HIGH
+
 """
 
 from datetime import datetime
@@ -12,6 +39,7 @@ import ipaddress
 
 class EventSeverity(str, Enum):
     """Security event severity levels."""
+
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -20,6 +48,7 @@ class EventSeverity(str, Enum):
 
 class EventCategory(str, Enum):
     """Security event categories."""
+
     NETWORK = "network"
     AUTHENTICATION = "authentication"
     MALWARE = "malware"
@@ -40,6 +69,7 @@ class EventCategory(str, Enum):
 
 class DShieldEventType(str, Enum):
     """DShield specific event types."""
+
     ATTACK = "attack"
     BLOCK = "block"
     REPUTATION = "reputation"
@@ -88,8 +118,19 @@ class SecurityEvent(BaseModel):
     
     @field_validator('source_ip', 'destination_ip')
     @classmethod
-    def validate_ip_address(cls, v):
-        """Validate IP address format."""
+    def validate_ip_address(cls, v: Optional[str]) -> Optional[str]:
+        """Validate IP address format.
+        
+        Args:
+            v: IP address string to validate
+            
+        Returns:
+            The validated IP address string
+            
+        Raises:
+            ValueError: If the IP address format is invalid
+
+        """
         if v is not None:
             try:
                 ipaddress.ip_address(v)
@@ -99,16 +140,38 @@ class SecurityEvent(BaseModel):
     
     @field_validator('source_port', 'destination_port')
     @classmethod
-    def validate_port(cls, v):
-        """Validate port number."""
+    def validate_port(cls, v: Optional[int]) -> Optional[int]:
+        """Validate port number.
+        
+        Args:
+            v: Port number to validate
+            
+        Returns:
+            The validated port number
+            
+        Raises:
+            ValueError: If the port number is outside valid range (1-65535)
+
+        """
         if v is not None and (v < 1 or v > 65535):
             raise ValueError(f"Invalid port number: {v}")
         return v
     
     @field_validator('reputation_score')
     @classmethod
-    def validate_reputation_score(cls, v):
-        """Validate reputation score range."""
+    def validate_reputation_score(cls, v: Optional[float]) -> Optional[float]:
+        """Validate reputation score range.
+        
+        Args:
+            v: Reputation score to validate
+            
+        Returns:
+            The validated reputation score
+            
+        Raises:
+            ValueError: If the reputation score is outside valid range (0-100)
+
+        """
         if v is not None and (v < 0 or v > 100):
             raise ValueError(f"Reputation score must be between 0 and 100: {v}")
         return v
