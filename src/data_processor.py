@@ -1,6 +1,23 @@
 """
 Data processor for formatting and structuring DShield SIEM data for AI consumption.
-Optimized for DShield SIEM data structures and patterns.
+
+This module provides utilities for processing, normalizing, and structuring
+DShield SIEM data for downstream AI analysis and reporting. It includes
+functions for event normalization, attack pattern detection, enrichment,
+summarization, and report generation.
+
+Features:
+- Security event normalization and enrichment
+- Attack pattern detection
+- DShield-specific data mapping
+- Summary and report generation
+- Utility methods for extracting and analyzing event data
+
+Example:
+    >>> from src.data_processor import DataProcessor
+    >>> processor = DataProcessor()
+    >>> processed = processor.process_security_events(events)
+    >>> print(processed)
 """
 
 import json
@@ -40,9 +57,27 @@ def _is_debug_mode() -> bool:
 
 
 class DataProcessor:
-    """Process and structure DShield SIEM data for AI analysis."""
+    """Process and structure DShield SIEM data for AI analysis.
     
-    def __init__(self):
+    This class provides methods to normalize, enrich, and summarize DShield SIEM
+    data for use in AI-driven analytics and reporting. It includes attack pattern
+    detection, severity/category mapping, and report generation utilities.
+    
+    Attributes:
+        dshield_attack_patterns: Mapping of attack pattern names to keywords
+        dshield_severity_mapping: Mapping of severity labels to EventSeverity
+        dshield_category_mapping: Mapping of category labels to EventCategory
+    
+    Example:
+        >>> processor = DataProcessor()
+        >>> summary = processor.generate_security_summary(events)
+    """
+    
+    def __init__(self) -> None:
+        """Initialize the DataProcessor.
+        
+        Sets up DShield-specific mappings for attack patterns, severity, and category.
+        """
         # DShield-specific attack patterns and signatures
         self.dshield_attack_patterns = {
             'brute_force': ['failed login', 'authentication failure', 'invalid credentials', 'ssh brute force'],
@@ -95,7 +130,17 @@ class DataProcessor:
         }
     
     def process_security_events(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Process and normalize security events from DShield SIEM."""
+        """Process and normalize security events from DShield SIEM.
+        
+        Normalizes, enriches, and detects attack patterns in a list of security events.
+        Handles error logging and skips events that cannot be processed.
+        
+        Args:
+            events: List of raw event dictionaries
+        
+        Returns:
+            List of processed and normalized event dictionaries
+        """
         
         processed_events = []
         
@@ -135,7 +180,17 @@ class DataProcessor:
         return processed_events
     
     def process_dshield_attacks(self, attacks: List[Dict[str, Any]]) -> List[DShieldAttack]:
-        """Process DShield attack events into structured format."""
+        """Process DShield attack events into structured format.
+        
+        Converts raw attack event dictionaries into DShieldAttack model instances.
+        Handles error logging and skips attacks that cannot be processed.
+        
+        Args:
+            attacks: List of raw attack event dictionaries
+        
+        Returns:
+            List of DShieldAttack model instances
+        """
         
         processed_attacks = []
         
@@ -186,7 +241,17 @@ class DataProcessor:
         return processed_attacks
     
     def process_dshield_reputation(self, reputation_data: List[Dict[str, Any]]) -> Dict[str, DShieldReputation]:
-        """Process DShield reputation data into structured format."""
+        """Process DShield reputation data into structured format.
+        
+        Converts raw reputation data dictionaries into DShieldReputation model instances.
+        Handles error logging and skips entries that cannot be processed.
+        
+        Args:
+            reputation_data: List of raw reputation data dictionaries
+        
+        Returns:
+            Dictionary mapping IP addresses to DShieldReputation model instances
+        """
         
         processed_reputation = {}
         

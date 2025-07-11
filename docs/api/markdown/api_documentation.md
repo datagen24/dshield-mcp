@@ -321,22 +321,90 @@ Comprehensive campaign information.
 
 # config\_loader
 
+Configuration loader for DShield MCP server.
+
+This module provides utilities for loading and resolving configuration
+from YAML files with support for 1Password CLI secret resolution.
+It handles config file validation, secret resolution, and error handling.
+
+Features:
+- YAML configuration file loading
+- 1Password CLI secret resolution
+- Configuration validation
+- Error handling with custom exceptions
+
+**Example**:
+
+  >>> from src.config_loader import get_config
+  >>> config = get_config()
+  >>> print(config['elasticsearch']['url'])
+
+<a id="config_loader.ConfigError"></a>
+
+## ConfigError Objects
+
+```python
+class ConfigError(Exception)
+```
+
+Exception raised for configuration-related errors.
+
+This exception is raised when there are issues with loading,
+parsing, or validating configuration files.
+
 <a id="config_loader.get_config"></a>
 
 #### get\_config
 
 ```python
-def get_config(config_path: str = None) -> dict
+def get_config(config_path: str = None) -> Dict[str, Any]
 ```
 
-Load the MCP YAML config file. Raise ConfigError if missing or invalid.
-By default, looks for 'mcp_config.yaml' in the project root.
+Load the MCP YAML config file.
+
+Loads and validates a YAML configuration file, resolving any
+1Password CLI secrets in the process. By default, looks for
+'mcp_config.yaml' in the project root.
+
+**Arguments**:
+
+- `config_path` - Path to the configuration file (default: auto-detected)
+  
+
+**Returns**:
+
+  Dictionary containing the resolved configuration
+  
+
+**Raises**:
+
+- `ConfigError` - If config file is missing, invalid, or cannot be loaded
 
 <a id="context_injector"></a>
 
 # context\_injector
 
 Context injector for preparing data for ChatGPT context injection.
+
+This module provides utilities for preparing and formatting security data
+for injection into ChatGPT conversations. It handles various data types
+including security events, threat intelligence, attack reports, and query
+results, formatting them appropriately for AI consumption.
+
+Features:
+- Security context preparation and formatting
+- Attack report context injection
+- Query result formatting
+- MCP-compatible context injection
+- Multiple output formats (structured, summary, raw)
+- ChatGPT-optimized formatting
+
+**Example**:
+
+  >>> from src.context_injector import ContextInjector
+  >>> injector = ContextInjector()
+  >>> context = injector.prepare_security_context(events, threat_intel)
+  >>> formatted = injector.inject_context_for_chatgpt(context)
 
 <a id="context_injector.ContextInjector"></a>
 
@@ -347,6 +415,36 @@ class ContextInjector()
 ```
 
 Prepare and inject security context for ChatGPT analysis.
+
+This class provides methods to prepare and format various types of
+security data for injection into ChatGPT conversations. It supports
+multiple output formats and optimizes data for AI consumption.
+
+**Attributes**:
+
+- `max_context_size` - Maximum context size in characters
+- `include_raw_data` - Whether to include raw data in context
+- `context_format` - Output format (structured, summary, or raw)
+  
+
+**Example**:
+
+  >>> injector = ContextInjector()
+  >>> context = injector.prepare_security_context(events)
+  >>> formatted = injector.inject_context_for_chatgpt(context)
+
+<a id="context_injector.ContextInjector.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__() -> None
+```
+
+Initialize the ContextInjector.
+
+Loads configuration from environment variables for context
+formatting preferences and size limits.
 
 <a id="context_injector.ContextInjector.prepare_security_context"></a>
 
@@ -361,6 +459,21 @@ def prepare_security_context(
 
 Prepare security context for injection.
 
+Creates a comprehensive security context from events, threat
+intelligence, and summary data, formatted according to the
+configured context format preference.
+
+**Arguments**:
+
+- `events` - List of security event dictionaries
+- `threat_intelligence` - Optional threat intelligence data
+- `summary` - Optional summary data
+  
+
+**Returns**:
+
+  Dictionary containing formatted security context
+
 <a id="context_injector.ContextInjector.prepare_attack_report_context"></a>
 
 #### prepare\_attack\_report\_context
@@ -370,6 +483,18 @@ def prepare_attack_report_context(report: Dict[str, Any]) -> Dict[str, Any]
 ```
 
 Prepare attack report context for injection.
+
+Formats an attack report for injection into ChatGPT conversations,
+including metadata and confidence information.
+
+**Arguments**:
+
+- `report` - Attack report dictionary
+  
+
+**Returns**:
+
+  Dictionary containing formatted attack report context
 
 <a id="context_injector.ContextInjector.prepare_query_context"></a>
 
@@ -382,6 +507,20 @@ def prepare_query_context(query_type: str, parameters: Dict[str, Any],
 
 Prepare query context for injection.
 
+Formats query results and parameters for injection into ChatGPT
+conversations, including metadata about the query execution.
+
+**Arguments**:
+
+- `query_type` - Type of query that was executed
+- `parameters` - Query parameters that were used
+- `results` - Query results to format
+  
+
+**Returns**:
+
+  Dictionary containing formatted query context
+
 <a id="context_injector.ContextInjector.inject_context_for_chatgpt"></a>
 
 #### inject\_context\_for\_chatgpt
@@ -391,6 +530,19 @@ def inject_context_for_chatgpt(context: Dict[str, Any]) -> str
 ```
 
 Format context for ChatGPT consumption.
+
+Converts a context dictionary into a string format optimized
+for ChatGPT consumption, handling different context types
+appropriately.
+
+**Arguments**:
+
+- `context` - Context dictionary to format
+  
+
+**Returns**:
+
+  String formatted for ChatGPT consumption
 
 <a id="context_injector.ContextInjector.create_mcp_context_injection"></a>
 
@@ -402,13 +554,42 @@ def create_mcp_context_injection(context: Dict[str, Any]) -> Dict[str, Any]
 
 Create MCP-compatible context injection.
 
+Formats context data for use with the Model Context Protocol (MCP),
+including proper metadata and version information.
+
+**Arguments**:
+
+- `context` - Context dictionary to format
+  
+
+**Returns**:
+
+  Dictionary formatted for MCP protocol
+
 <a id="data_dictionary"></a>
 
 # data\_dictionary
 
-Data Dictionary for DShield MCP Elastic SIEM Integration
-Provides comprehensive field descriptions and examples to help models understand
-the available data structures and their meanings.
+Data Dictionary for DShield MCP Elastic SIEM Integration.
+
+This module provides comprehensive field descriptions, query examples, and
+analysis guidelines to help AI models understand DShield SIEM data structures
+and their meanings. It serves as a reference for data interpretation and
+query construction.
+
+Features:
+- Comprehensive field descriptions and types
+- Query examples for common use cases
+- Data patterns and analysis guidelines
+- Initial prompt generation for AI models
+- Structured data reference for DShield SIEM
+
+**Example**:
+
+  >>> from src.data_dictionary import DataDictionary
+  >>> fields = DataDictionary.get_field_descriptions()
+  >>> examples = DataDictionary.get_query_examples()
+  >>> prompt = DataDictionary.get_initial_prompt()
 
 <a id="data_dictionary.DataDictionary"></a>
 
@@ -419,6 +600,19 @@ class DataDictionary()
 ```
 
 Comprehensive data dictionary for DShield SIEM data.
+
+This class provides static methods to access comprehensive information
+about DShield SIEM data structures, including field descriptions,
+query examples, data patterns, and analysis guidelines.
+
+The class serves as a central reference for understanding DShield
+data formats and constructing effective queries and analysis.
+
+**Example**:
+
+  >>> fields = DataDictionary.get_field_descriptions()
+  >>> examples = DataDictionary.get_query_examples()
+  >>> prompt = DataDictionary.get_initial_prompt()
 
 <a id="data_dictionary.DataDictionary.get_field_descriptions"></a>
 
@@ -431,6 +625,19 @@ def get_field_descriptions() -> Dict[str, Any]
 
 Get comprehensive field descriptions for DShield data.
 
+Returns a detailed dictionary containing descriptions, types,
+examples, and usage information for all DShield SIEM fields.
+
+**Returns**:
+
+  Dictionary containing field descriptions organized by category:
+  - core_fields: Basic event fields (timestamp, id)
+  - network_fields: Network-related fields (IPs, ports, protocols)
+  - event_fields: Event classification fields (type, severity, category)
+  - dshield_specific_fields: DShield-specific threat intelligence
+  - geographic_fields: Geographic location data
+  - service_fields: Service and application data
+
 <a id="data_dictionary.DataDictionary.get_query_examples"></a>
 
 #### get\_query\_examples
@@ -442,6 +649,14 @@ def get_query_examples() -> Dict[str, Any]
 
 Get example queries for common use cases.
 
+Returns a collection of example queries demonstrating how to
+use the DShield MCP tools for various security analysis scenarios.
+
+**Returns**:
+
+  Dictionary containing query examples with descriptions,
+  parameters, and expected fields for each use case
+
 <a id="data_dictionary.DataDictionary.get_data_patterns"></a>
 
 #### get\_data\_patterns
@@ -451,7 +666,15 @@ Get example queries for common use cases.
 def get_data_patterns() -> Dict[str, Any]
 ```
 
-Get common data patterns and their meanings.
+Get common data patterns and their interpretations.
+
+Returns patterns that commonly appear in DShield data and
+their security implications for analysis.
+
+**Returns**:
+
+  Dictionary containing data patterns with descriptions
+  and security context
 
 <a id="data_dictionary.DataDictionary.get_analysis_guidelines"></a>
 
@@ -462,7 +685,14 @@ Get common data patterns and their meanings.
 def get_analysis_guidelines() -> Dict[str, Any]
 ```
 
-Get guidelines for analyzing DShield data.
+Get guidelines for analyzing DShield SIEM data.
+
+Returns best practices and guidelines for interpreting
+and analyzing DShield security data effectively.
+
+**Returns**:
+
+  Dictionary containing analysis guidelines and best practices
 
 <a id="data_dictionary.DataDictionary.get_initial_prompt"></a>
 
@@ -473,14 +703,40 @@ Get guidelines for analyzing DShield data.
 def get_initial_prompt() -> str
 ```
 
-Get the initial prompt to provide to models for understanding DShield data.
+Get the initial prompt for AI models.
+
+Generates a comprehensive initial prompt that provides AI models
+with all the necessary context about DShield SIEM data structures,
+field meanings, and analysis guidelines.
+
+**Returns**:
+
+  String containing the complete initial prompt for AI models
 
 <a id="data_processor"></a>
 
 # data\_processor
 
 Data processor for formatting and structuring DShield SIEM data for AI consumption.
-Optimized for DShield SIEM data structures and patterns.
+
+This module provides utilities for processing, normalizing, and structuring
+DShield SIEM data for downstream AI analysis and reporting. It includes
+functions for event normalization, attack pattern detection, enrichment,
+summarization, and report generation.
+
+Features:
+- Security event normalization and enrichment
+- Attack pattern detection
+- DShield-specific data mapping
+- Summary and report generation
+- Utility methods for extracting and analyzing event data
+
+**Example**:
+
+  >>> from src.data_processor import DataProcessor
+  >>> processor = DataProcessor()
+  >>> processed = processor.process_security_events(events)
+  >>> print(processed)
 
 <a id="data_processor.DataProcessor"></a>
 
@@ -491,6 +747,34 @@ class DataProcessor()
 ```
 
 Process and structure DShield SIEM data for AI analysis.
+
+This class provides methods to normalize, enrich, and summarize DShield SIEM
+data for use in AI-driven analytics and reporting. It includes attack pattern
+detection, severity/category mapping, and report generation utilities.
+
+**Attributes**:
+
+- `dshield_attack_patterns` - Mapping of attack pattern names to keywords
+- `dshield_severity_mapping` - Mapping of severity labels to EventSeverity
+- `dshield_category_mapping` - Mapping of category labels to EventCategory
+  
+
+**Example**:
+
+  >>> processor = DataProcessor()
+  >>> summary = processor.generate_security_summary(events)
+
+<a id="data_processor.DataProcessor.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__() -> None
+```
+
+Initialize the DataProcessor.
+
+Sets up DShield-specific mappings for attack patterns, severity, and category.
 
 <a id="data_processor.DataProcessor.process_security_events"></a>
 
@@ -503,6 +787,18 @@ def process_security_events(
 
 Process and normalize security events from DShield SIEM.
 
+Normalizes, enriches, and detects attack patterns in a list of security events.
+Handles error logging and skips events that cannot be processed.
+
+**Arguments**:
+
+- `events` - List of raw event dictionaries
+  
+
+**Returns**:
+
+  List of processed and normalized event dictionaries
+
 <a id="data_processor.DataProcessor.process_dshield_attacks"></a>
 
 #### process\_dshield\_attacks
@@ -514,6 +810,18 @@ def process_dshield_attacks(
 
 Process DShield attack events into structured format.
 
+Converts raw attack event dictionaries into DShieldAttack model instances.
+Handles error logging and skips attacks that cannot be processed.
+
+**Arguments**:
+
+- `attacks` - List of raw attack event dictionaries
+  
+
+**Returns**:
+
+  List of DShieldAttack model instances
+
 <a id="data_processor.DataProcessor.process_dshield_reputation"></a>
 
 #### process\_dshield\_reputation
@@ -524,6 +832,18 @@ def process_dshield_reputation(
 ```
 
 Process DShield reputation data into structured format.
+
+Converts raw reputation data dictionaries into DShieldReputation model instances.
+Handles error logging and skips entries that cannot be processed.
+
+**Arguments**:
+
+- `reputation_data` - List of raw reputation data dictionaries
+  
+
+**Returns**:
+
+  Dictionary mapping IP addresses to DShieldReputation model instances
 
 <a id="data_processor.DataProcessor.process_dshield_top_attackers"></a>
 
@@ -586,6 +906,25 @@ Extract unique IP addresses from events.
 
 DShield client for threat intelligence and IP reputation lookup.
 
+This module provides a client for interacting with the DShield threat intelligence API.
+It supports IP reputation lookups, attack summaries, batch enrichment, and detailed
+IP information retrieval. The client handles authentication, rate limiting, caching,
+and error handling for robust integration with DShield services.
+
+Features:
+- IP reputation and details lookup
+- Attack summary retrieval
+- Batch enrichment of IPs
+- Caching and rate limiting
+- Async context management
+
+**Example**:
+
+  >>> from src.dshield_client import DShieldClient
+  >>> async with DShieldClient() as client:
+  ...     rep = await client.get_ip_reputation("8.8.8.8")
+  ...     print(rep)
+
 <a id="dshield_client.DShieldClient"></a>
 
 ## DShieldClient Objects
@@ -596,45 +935,102 @@ class DShieldClient()
 
 Client for interacting with DShield threat intelligence API.
 
+This class provides methods to query DShield for IP reputation, details,
+attack summaries, and batch enrichment. It manages authentication, rate
+limiting, caching, and session lifecycle for efficient API usage.
+
+**Attributes**:
+
+- `api_key` - API key for DShield authentication
+- `base_url` - Base URL for DShield API
+- `session` - aiohttp.ClientSession for HTTP requests
+- `rate_limit_requests` - Max requests per minute
+- `rate_limit_window` - Time window for rate limiting (seconds)
+- `request_times` - List of request timestamps for rate limiting
+- `cache` - In-memory cache for API responses
+- `cache_ttl` - Time-to-live for cache entries (seconds)
+- `enable_caching` - Whether caching is enabled
+- `max_cache_size` - Maximum cache size
+- `request_timeout` - Timeout for API requests (seconds)
+- `enable_performance_logging` - Whether to log performance metrics
+- `headers` - HTTP headers for API requests
+- `batch_size` - Maximum batch size for IP enrichment
+  
+
+**Example**:
+
+  >>> async with DShieldClient() as client:
+  ...     rep = await client.get_ip_reputation("8.8.8.8")
+  ...     print(rep)
+
+<a id="dshield_client.DShieldClient.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__() -> None
+```
+
+Initialize the DShield client.
+
+Loads configuration, resolves secrets, sets up rate limiting,
+caching, and prepares HTTP headers for API requests.
+
+**Raises**:
+
+- `RuntimeError` - If configuration or secret resolution fails
+
 <a id="dshield_client.DShieldClient.__aenter__"></a>
 
 #### \_\_aenter\_\_
 
 ```python
-async def __aenter__()
+async def __aenter__() -> "DShieldClient"
 ```
 
 Async context manager entry.
+
+**Returns**:
+
+- `DShieldClient` - The initialized client instance
 
 <a id="dshield_client.DShieldClient.__aexit__"></a>
 
 #### \_\_aexit\_\_
 
 ```python
-async def __aexit__(exc_type, exc_val, exc_tb)
+async def __aexit__(exc_type, exc_val, exc_tb) -> None
 ```
 
 Async context manager exit.
+
+Closes the HTTP session on exit.
 
 <a id="dshield_client.DShieldClient.connect"></a>
 
 #### connect
 
 ```python
-async def connect()
+async def connect() -> None
 ```
 
 Initialize HTTP session.
+
+Creates an aiohttp.ClientSession for making API requests.
+Logs session initialization.
 
 <a id="dshield_client.DShieldClient.close"></a>
 
 #### close
 
 ```python
-async def close()
+async def close() -> None
 ```
 
 Close HTTP session.
+
+Closes the aiohttp.ClientSession and releases resources.
+Logs session closure.
 
 <a id="dshield_client.DShieldClient.get_ip_reputation"></a>
 
@@ -646,6 +1042,18 @@ async def get_ip_reputation(ip_address: str) -> Dict[str, Any]
 
 Get IP reputation from DShield.
 
+Looks up the reputation of a given IP address using the DShield API.
+Utilizes caching and rate limiting for efficiency.
+
+**Arguments**:
+
+- `ip_address` - The IP address to look up
+  
+
+**Returns**:
+
+  Dictionary containing reputation data for the IP
+
 <a id="dshield_client.DShieldClient.get_ip_details"></a>
 
 #### get\_ip\_details
@@ -655,6 +1063,18 @@ async def get_ip_details(ip_address: str) -> Dict[str, Any]
 ```
 
 Get detailed IP information from DShield.
+
+Retrieves detailed information for a given IP address from the DShield API.
+Utilizes caching and rate limiting for efficiency.
+
+**Arguments**:
+
+- `ip_address` - The IP address to look up
+  
+
+**Returns**:
+
+  Dictionary containing detailed data for the IP
 
 <a id="dshield_client.DShieldClient.get_top_attackers"></a>
 
@@ -692,7 +1112,38 @@ Enrich multiple IP addresses with threat intelligence.
 # elasticsearch\_client
 
 Elasticsearch client for querying DShield SIEM events and logs.
-Optimized for DShield SIEM integration patterns.
+
+This module provides a comprehensive Elasticsearch client specifically designed
+for querying DShield SIEM data. It includes advanced features such as smart
+query optimization, pagination, streaming, and field mapping to handle the
+complexities of DShield's data structure.
+
+The client supports:
+- Advanced querying with pagination and cursors
+- Smart query optimization for large datasets
+- Field mapping for DShield-specific data structures
+- Streaming with session context
+- Aggregation queries
+- Performance monitoring and logging
+- Connection pooling and retry logic
+
+This module provides:
+- ElasticsearchClient class for data access
+- Query optimization and fallback strategies
+- Field mapping and data parsing
+- Session-based streaming
+- Performance metrics collection
+
+**Example**:
+
+  >>> from src.elasticsearch_client import ElasticsearchClient
+  >>> client = ElasticsearchClient()
+  >>> await client.connect()
+  >>> events, total, pagination = await client.query_dshield_events(
+  ...     time_range_hours=24,
+  ...     page_size=100
+  ... )
+  >>> await client.close()
 
 <a id="elasticsearch_client.ElasticsearchClient"></a>
 
@@ -704,25 +1155,112 @@ class ElasticsearchClient()
 
 Client for interacting with DShield SIEM Elasticsearch.
 
+This class provides a comprehensive interface for querying DShield SIEM data
+stored in Elasticsearch. It handles connection management, query optimization,
+field mapping, and data parsing specific to DShield's data structure.
+
+The client automatically handles:
+- Connection pooling and retry logic
+- Field mapping for DShield-specific data structures
+- Query optimization for large datasets
+- Pagination and cursor-based navigation
+- Session-based streaming for event correlation
+- Performance monitoring and logging
+
+**Attributes**:
+
+- `client` - AsyncElasticsearch client instance
+- `url` - Elasticsearch server URL
+- `username` - Authentication username
+- `password` - Authentication password
+- `verify_ssl` - Whether to verify SSL certificates
+- `ca_certs` - Path to CA certificates
+- `timeout` - Request timeout in seconds
+- `max_results` - Maximum results per query
+- `default_page_size` - Default page size for pagination
+- `max_page_size` - Maximum allowed page size
+- `default_timeout` - Default query timeout
+- `max_timeout` - Maximum allowed timeout
+- `enable_smart_optimization` - Whether to enable query optimization
+- `fallback_strategy` - Strategy for handling query failures
+- `max_query_complexity` - Maximum query complexity threshold
+- `enable_performance_logging` - Whether to log performance metrics
+- `dshield_indices` - List of DShield index patterns
+- `fallback_indices` - List of fallback index patterns
+- `dshield_field_mappings` - Field mapping for DShield data
+  
+
+**Example**:
+
+  >>> client = ElasticsearchClient()
+  >>> await client.connect()
+  >>> events, total, pagination = await client.query_dshield_events(
+  ...     time_range_hours=24,
+  ...     page_size=100
+  ... )
+  >>> await client.close()
+
+<a id="elasticsearch_client.ElasticsearchClient.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__() -> None
+```
+
+Initialize the Elasticsearch client.
+
+Loads configuration from config files and sets up connection parameters,
+field mappings, and optimization settings. The client is not connected
+until the connect() method is called.
+
+**Raises**:
+
+- `RuntimeError` - If configuration loading fails
+
 <a id="elasticsearch_client.ElasticsearchClient.connect"></a>
 
 #### connect
 
 ```python
-async def connect()
+async def connect() -> None
 ```
 
 Connect to Elasticsearch cluster.
+
+Establishes a connection to the Elasticsearch cluster using the
+configuration loaded during initialization. The connection includes
+SSL/TLS configuration, authentication, and retry logic.
+
+The method will:
+1. Parse the Elasticsearch URL
+2. Configure SSL/TLS settings
+3. Create the AsyncElasticsearch client
+4. Test the connection
+5. Log connection information
+
+**Raises**:
+
+- `Exception` - If connection fails or authentication is invalid
 
 <a id="elasticsearch_client.ElasticsearchClient.close"></a>
 
 #### close
 
 ```python
-async def close()
+async def close() -> None
 ```
 
 Close Elasticsearch connection.
+
+Properly closes the Elasticsearch client connection and releases
+associated resources. This method should be called when the client
+is no longer needed to prevent connection pool exhaustion.
+
+The method will:
+1. Close the AsyncElasticsearch client
+2. Release connection pool resources
+3. Log the closure for debugging
 
 <a id="elasticsearch_client.ElasticsearchClient.get_available_indices"></a>
 
@@ -733,6 +1271,25 @@ async def get_available_indices() -> List[str]
 ```
 
 Get available DShield indices.
+
+Retrieves a list of all available DShield-related indices from the
+Elasticsearch cluster. This method filters the indices based on
+configured DShield index patterns.
+
+The method will:
+1. Connect to Elasticsearch if not already connected
+2. Retrieve all indices from the cluster
+3. Filter for DShield-related indices
+4. Log the found indices for debugging
+
+**Returns**:
+
+  List of DShield index names that are available in the cluster
+  
+
+**Raises**:
+
+- `Exception` - If the Elasticsearch query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.query_dshield_events"></a>
 
@@ -759,8 +1316,43 @@ async def query_dshield_events(
 
 Query DShield events from Elasticsearch with enhanced pagination support.
 
-Supports both traditional page-based pagination and cursor-based pagination
-for better performance with massive datasets.
+This method provides comprehensive querying capabilities for DShield SIEM
+events with advanced features including smart optimization, pagination,
+field mapping, and fallback strategies for large datasets.
+
+The method supports both traditional page-based pagination and cursor-based
+pagination for better performance with massive datasets. It includes
+automatic query optimization to handle large result sets efficiently.
+
+**Arguments**:
+
+- `time_range_hours` - Time range in hours to query (default: 24)
+- `indices` - Specific indices to query (default: auto-detected DShield indices)
+- `filters` - Additional query filters (default: None)
+- `fields` - Specific fields to return (default: all fields)
+- `page` - Page number for pagination (default: 1)
+- `page_size` - Number of results per page (default: 100)
+- `sort_by` - Field to sort by (default: '@timestamp')
+- `sort_order` - Sort order 'asc' or 'desc' (default: 'desc')
+- `cursor` - Cursor token for cursor-based pagination (default: None)
+- `include_summary` - Include summary statistics (default: True)
+- `optimization` - Query optimization mode 'auto' or 'none' (default: 'auto')
+- `fallback_strategy` - Fallback strategy when optimization fails (default: 'aggregate')
+- `max_result_size_mb` - Maximum result size in MB before optimization (default: 10.0)
+- `query_timeout_seconds` - Query timeout in seconds (default: 30)
+  
+
+**Returns**:
+
+  Tuple containing:
+  - List of event dictionaries
+  - Total count of available events
+  - Pagination information dictionary
+  
+
+**Raises**:
+
+- `Exception` - If Elasticsearch query fails or connection issues occur
 
 <a id="elasticsearch_client.ElasticsearchClient.execute_aggregation_query"></a>
 
@@ -773,6 +1365,26 @@ async def execute_aggregation_query(
 ```
 
 Execute an aggregation query against Elasticsearch.
+
+This method executes aggregation queries to get summary statistics
+and grouped data without retrieving full documents. It's useful for
+getting overview data and statistics efficiently.
+
+**Arguments**:
+
+- `index` - List of indices to query
+- `query` - Base query to filter documents
+- `aggregation_query` - Aggregation definition to apply
+  
+
+**Returns**:
+
+  Dictionary containing aggregation results
+  
+
+**Raises**:
+
+- `Exception` - If the aggregation query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.stream_dshield_events"></a>
 
@@ -789,7 +1401,33 @@ async def stream_dshield_events(
 ) -> tuple[List[Dict[str, Any]], int, Optional[str]]
 ```
 
-Stream DShield events with cursor-based pagination for large datasets.
+Stream DShield events in chunks for large datasets.
+
+This method provides streaming capabilities for large datasets by
+returning events in manageable chunks. It supports resuming streams
+using stream IDs and provides efficient memory usage for large queries.
+
+**Arguments**:
+
+- `time_range_hours` - Time range in hours to query (default: 24)
+- `indices` - Specific indices to query (default: auto-detected)
+- `filters` - Additional query filters (default: None)
+- `fields` - Specific fields to return (default: all fields)
+- `chunk_size` - Number of events per chunk (default: 500)
+- `stream_id` - Stream ID to resume from (default: None)
+  
+
+**Returns**:
+
+  Tuple containing:
+  - List of event dictionaries for current chunk
+  - Total count of available events
+  - Next stream ID for continuation (None if end of stream)
+  
+
+**Raises**:
+
+- `Exception` - If the streaming query fails
 
 <a id="elasticsearch_client.ElasticsearchClient.query_dshield_attacks"></a>
 
@@ -959,7 +1597,35 @@ and ensures related events stay together in the same chunk.
 # models
 
 Data models for DShield MCP Elastic SIEM integration.
-Optimized for DShield SIEM data structures and patterns.
+
+This module provides comprehensive data models for the DShield MCP server,
+optimized for DShield SIEM data structures and patterns. It includes models
+for security events, attacks, reputation data, and various DShield-specific
+data types.
+
+The models are built using Pydantic for automatic validation, serialization,
+and documentation generation. They provide type safety and ensure data
+consistency across the application.
+
+This module provides:
+- Security event models with validation
+- DShield-specific data models
+- Threat intelligence models
+- Query and filter models
+- Statistics and summary models
+
+**Example**:
+
+  >>> from src.models import SecurityEvent, EventSeverity
+  >>> event = SecurityEvent(
+  ...     id="event_123",
+  ...     timestamp=datetime.now(),
+  ...     event_type="attack",
+  ...     severity=EventSeverity.HIGH,
+  ...     description="Suspicious activity detected"
+  ... )
+  >>> print(event.severity)
+  EventSeverity.HIGH
 
 <a id="models.EventSeverity"></a>
 
@@ -1008,10 +1674,24 @@ Model for security events from DShield SIEM.
 ```python
 @field_validator('source_ip', 'destination_ip')
 @classmethod
-def validate_ip_address(cls, v)
+def validate_ip_address(cls, v: Optional[str]) -> Optional[str]
 ```
 
 Validate IP address format.
+
+**Arguments**:
+
+- `v` - IP address string to validate
+  
+
+**Returns**:
+
+  The validated IP address string
+  
+
+**Raises**:
+
+- `ValueError` - If the IP address format is invalid
 
 <a id="models.SecurityEvent.validate_port"></a>
 
@@ -1020,10 +1700,24 @@ Validate IP address format.
 ```python
 @field_validator('source_port', 'destination_port')
 @classmethod
-def validate_port(cls, v)
+def validate_port(cls, v: Optional[int]) -> Optional[int]
 ```
 
 Validate port number.
+
+**Arguments**:
+
+- `v` - Port number to validate
+  
+
+**Returns**:
+
+  The validated port number
+  
+
+**Raises**:
+
+- `ValueError` - If the port number is outside valid range (1-65535)
 
 <a id="models.SecurityEvent.validate_reputation_score"></a>
 
@@ -1032,10 +1726,24 @@ Validate port number.
 ```python
 @field_validator('reputation_score')
 @classmethod
-def validate_reputation_score(cls, v)
+def validate_reputation_score(cls, v: Optional[float]) -> Optional[float]
 ```
 
 Validate reputation score range.
+
+**Arguments**:
+
+- `v` - Reputation score to validate
+  
+
+**Returns**:
+
+  The validated reputation score
+  
+
+**Raises**:
+
+- `ValueError` - If the reputation score is outside valid range (0-100)
 
 <a id="models.DShieldAttack"></a>
 
@@ -1248,7 +1956,24 @@ Model for DShield statistics data.
 # op\_secrets
 
 1Password CLI integration for secret management in DShield MCP.
-Handles op:// URLs in config values by resolving them using the 1Password CLI.
+
+This module provides integration with the 1Password CLI for secure secret
+management. It handles op:// URLs in configuration values by resolving
+them using the 1Password CLI tool.
+
+Features:
+- 1Password CLI availability detection
+- op:// URL resolution
+- Environment variable resolution
+- Complex value processing with embedded URLs
+- Error handling and logging
+
+**Example**:
+
+  >>> from src.op_secrets import OnePasswordSecrets
+  >>> op = OnePasswordSecrets()
+  >>> secret = op.resolve_environment_variable("op://vault/item/field")
+  >>> print(secret)
 
 <a id="op_secrets.OnePasswordSecrets"></a>
 
@@ -1260,6 +1985,35 @@ class OnePasswordSecrets()
 
 Handle 1Password secret resolution for config values.
 
+This class provides methods to resolve 1Password CLI references (op:// URLs)
+in configuration values. It automatically detects 1Password CLI availability
+and provides fallback behavior when the CLI is not available.
+
+**Attributes**:
+
+- `op_available` - Whether the 1Password CLI is available and working
+  
+
+**Example**:
+
+  >>> op = OnePasswordSecrets()
+  >>> if op.op_available:
+  ...     secret = op.resolve_op_url("op://vault/item/field")
+  ...     print(secret)
+
+<a id="op_secrets.OnePasswordSecrets.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__() -> None
+```
+
+Initialize the OnePasswordSecrets manager.
+
+Checks for 1Password CLI availability and logs a warning if it's not
+available. This affects the behavior of URL resolution methods.
+
 <a id="op_secrets.OnePasswordSecrets.resolve_op_url"></a>
 
 #### resolve\_op\_url
@@ -1270,13 +2024,23 @@ def resolve_op_url(op_url: str) -> Optional[str]
 
 Resolve a 1Password URL (op://) to its actual value.
 
+Uses the 1Password CLI to retrieve the secret value referenced
+by the op:// URL. Handles various error conditions gracefully.
+
 **Arguments**:
 
 - `op_url` - The 1Password URL (e.g., "op://vault/item/field")
+  
 
 **Returns**:
 
   The resolved secret value or None if resolution failed
+  
+
+**Raises**:
+
+- `subprocess.TimeoutExpired` - If the CLI command times out
+- `subprocess.CalledProcessError` - If the CLI command fails
 
 <a id="op_secrets.OnePasswordSecrets.resolve_environment_variable"></a>
 
@@ -1288,21 +2052,43 @@ def resolve_environment_variable(value: str) -> str
 
 Resolve config value, handling op:// URLs.
 
+Processes a configuration value that may contain 1Password CLI
+references. Handles both simple op:// URLs and complex values
+with embedded URLs.
+
 **Arguments**:
 
-- `value` - The config value
+- `value` - The config value to resolve
+  
 
 **Returns**:
 
-  The resolved value (original if not an op:// URL)
+  The resolved value (original if not an op:// URL or resolution failed)
 
 <a id="user_config"></a>
 
 # user\_config
 
-User Configuration Management for DShield MCP
-Extends the existing configuration system with user-customizable settings,
-validation, and environment variable support.
+User Configuration Management for DShield MCP.
+
+This module provides comprehensive user configuration management for the DShield MCP
+server. It extends the base configuration system with user-customizable settings,
+validation, environment variable support, and multiple configuration sources.
+
+Features:
+- User-configurable settings with validation
+- Environment variable overrides
+- Multiple configuration file sources
+- Setting categories (query, pagination, streaming, etc.)
+- Configuration export and import
+- 1Password CLI integration
+
+**Example**:
+
+  >>> from src.user_config import get_user_config
+  >>> config = get_user_config()
+  >>> page_size = config.get_setting("query", "default_page_size")
+  >>> print(page_size)
 
 <a id="user_config.QuerySettings"></a>
 
@@ -1314,6 +2100,16 @@ class QuerySettings()
 ```
 
 User-configurable query settings.
+
+**Attributes**:
+
+- `default_page_size` - Default number of results per page
+- `max_page_size` - Maximum allowed page size
+- `default_timeout_seconds` - Default query timeout in seconds
+- `max_timeout_seconds` - Maximum allowed timeout in seconds
+- `enable_smart_optimization` - Whether to enable smart query optimization
+- `fallback_strategy` - Strategy for handling query failures
+- `max_query_complexity` - Maximum query complexity threshold
 
 <a id="user_config.QuerySettings.fallback_strategy"></a>
 
@@ -1332,6 +2128,14 @@ class PaginationSettings()
 
 User-configurable pagination settings.
 
+**Attributes**:
+
+- `default_method` - Default pagination method (page or cursor)
+- `max_pages_per_request` - Maximum pages per request
+- `cursor_timeout_seconds` - Cursor timeout in seconds
+- `enable_metadata` - Whether to include pagination metadata
+- `include_performance_metrics` - Whether to include performance metrics
+
 <a id="user_config.PaginationSettings.default_method"></a>
 
 #### default\_method
@@ -1349,6 +2153,14 @@ class StreamingSettings()
 
 User-configurable streaming settings.
 
+**Attributes**:
+
+- `default_chunk_size` - Default chunk size for streaming
+- `max_chunk_size` - Maximum allowed chunk size
+- `session_context_fields` - Fields to use for session context
+- `enable_session_summaries` - Whether to enable session summaries
+- `session_timeout_minutes` - Session timeout in minutes
+
 <a id="user_config.PerformanceSettings"></a>
 
 ## PerformanceSettings Objects
@@ -1359,6 +2171,15 @@ class PerformanceSettings()
 ```
 
 User-configurable performance settings.
+
+**Attributes**:
+
+- `enable_caching` - Whether to enable caching
+- `cache_ttl_seconds` - Cache time-to-live in seconds
+- `max_cache_size` - Maximum cache size
+- `enable_connection_pooling` - Whether to enable connection pooling
+- `connection_pool_size` - Connection pool size
+- `request_timeout_seconds` - Request timeout in seconds
 
 <a id="user_config.SecuritySettings"></a>
 
@@ -1371,6 +2192,15 @@ class SecuritySettings()
 
 User-configurable security settings.
 
+**Attributes**:
+
+- `rate_limit_requests_per_minute` - Rate limit for requests per minute
+- `max_query_results` - Maximum query results
+- `enable_field_validation` - Whether to enable field validation
+- `allowed_field_patterns` - Regex patterns for allowed fields
+- `block_sensitive_fields` - Whether to block sensitive fields
+- `sensitive_field_patterns` - Regex patterns for sensitive fields
+
 <a id="user_config.LoggingSettings"></a>
 
 ## LoggingSettings Objects
@@ -1381,6 +2211,15 @@ class LoggingSettings()
 ```
 
 User-configurable logging settings.
+
+**Attributes**:
+
+- `log_level` - Logging level
+- `log_format` - Log format (json, text)
+- `enable_query_logging` - Whether to enable query logging
+- `enable_performance_logging` - Whether to enable performance logging
+- `log_sensitive_data` - Whether to log sensitive data
+- `max_log_size_mb` - Maximum log size in MB
 
 <a id="user_config.CampaignSettings"></a>
 
@@ -1393,6 +2232,19 @@ class CampaignSettings()
 
 User-configurable campaign analysis settings.
 
+**Attributes**:
+
+- `correlation_window_minutes` - Correlation window in minutes
+- `min_confidence_threshold` - Minimum confidence threshold
+- `max_campaign_events` - Maximum campaign events
+- `enable_geospatial_correlation` - Whether to enable geospatial correlation
+- `enable_infrastructure_correlation` - Whether to enable infrastructure correlation
+- `enable_behavioral_correlation` - Whether to enable behavioral correlation
+- `enable_temporal_correlation` - Whether to enable temporal correlation
+- `enable_ip_correlation` - Whether to enable IP correlation
+- `max_expansion_depth` - Maximum expansion depth
+- `expansion_timeout_seconds` - Expansion timeout in seconds
+
 <a id="user_config.UserConfigManager"></a>
 
 ## UserConfigManager Objects
@@ -1402,6 +2254,47 @@ class UserConfigManager()
 ```
 
 Manages user-configurable settings with validation and environment variable support.
+
+This class provides a comprehensive configuration management system that
+supports multiple configuration sources with precedence ordering:
+1. Environment variables (highest priority)
+2. User configuration file
+3. Base configuration
+4. Default values (lowest priority)
+
+**Attributes**:
+
+- `config_path` - Path to the configuration file
+- `op_secrets` - OnePassword secrets manager
+- `base_config` - Base configuration dictionary
+- `query_settings` - Query-related settings
+- `pagination_settings` - Pagination-related settings
+- `streaming_settings` - Streaming-related settings
+- `performance_settings` - Performance-related settings
+- `security_settings` - Security-related settings
+- `logging_settings` - Logging-related settings
+- `campaign_settings` - Campaign analysis settings
+  
+
+**Example**:
+
+  >>> manager = UserConfigManager()
+  >>> page_size = manager.get_setting("query", "default_page_size")
+  >>> manager.update_setting("query", "default_page_size", 200)
+
+<a id="user_config.UserConfigManager.__init__"></a>
+
+#### \_\_init\_\_
+
+```python
+def __init__(config_path: Optional[str] = None) -> None
+```
+
+Initialize the UserConfigManager.
+
+**Arguments**:
+
+- `config_path` - Optional path to the configuration file
 
 <a id="user_config.UserConfigManager.get_setting"></a>
 
@@ -1413,15 +2306,42 @@ def get_setting(category: str, setting: str) -> Any
 
 Get a specific setting value.
 
+**Arguments**:
+
+- `category` - Setting category (query, pagination, streaming, etc.)
+- `setting` - Setting name within the category
+  
+
+**Returns**:
+
+  Setting value
+  
+
+**Raises**:
+
+- `KeyError` - If category or setting does not exist
+
 <a id="user_config.UserConfigManager.update_setting"></a>
 
 #### update\_setting
 
 ```python
-def update_setting(category: str, setting: str, value: Any)
+def update_setting(category: str, setting: str, value: Any) -> None
 ```
 
 Update a specific setting value.
+
+**Arguments**:
+
+- `category` - Setting category (query, pagination, streaming, etc.)
+- `setting` - Setting name within the category
+- `value` - New value for the setting
+  
+
+**Raises**:
+
+- `KeyError` - If category or setting does not exist
+- `ValueError` - If value is invalid for the setting
 
 <a id="user_config.UserConfigManager.export_config"></a>
 
@@ -1433,15 +2353,23 @@ def export_config() -> Dict[str, Any]
 
 Export current configuration as a dictionary.
 
+**Returns**:
+
+  Dictionary containing all current configuration settings
+
 <a id="user_config.UserConfigManager.save_user_config"></a>
 
 #### save\_user\_config
 
 ```python
-def save_user_config(file_path: Optional[str] = None)
+def save_user_config(file_path: Optional[str] = None) -> None
 ```
 
-Save current configuration to a user config file.
+Save current configuration to a file.
+
+**Arguments**:
+
+- `file_path` - Path to save the configuration file (default: auto-detected)
 
 <a id="user_config.UserConfigManager.get_environment_variables"></a>
 
@@ -1451,7 +2379,11 @@ Save current configuration to a user config file.
 def get_environment_variables() -> Dict[str, str]
 ```
 
-Get environment variable names and their current values.
+Get environment variables that can be used to override settings.
+
+**Returns**:
+
+  Dictionary mapping setting names to environment variable names
 
 <a id="user_config.get_user_config"></a>
 
@@ -1463,13 +2395,20 @@ def get_user_config() -> UserConfigManager
 
 Get the global user configuration manager instance.
 
+**Returns**:
+
+- `UserConfigManager` - The global configuration manager instance
+
 <a id="user_config.reset_user_config"></a>
 
 #### reset\_user\_config
 
 ```python
-def reset_user_config()
+def reset_user_config() -> None
 ```
 
 Reset the global user configuration manager instance.
+
+This function clears the global configuration manager, forcing
+a reload of configuration on the next get_user_config() call.
 

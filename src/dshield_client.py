@@ -1,5 +1,23 @@
 """
 DShield client for threat intelligence and IP reputation lookup.
+
+This module provides a client for interacting with the DShield threat intelligence API.
+It supports IP reputation lookups, attack summaries, batch enrichment, and detailed
+IP information retrieval. The client handles authentication, rate limiting, caching,
+and error handling for robust integration with DShield services.
+
+Features:
+- IP reputation and details lookup
+- Attack summary retrieval
+- Batch enrichment of IPs
+- Caching and rate limiting
+- Async context management
+
+Example:
+    >>> from src.dshield_client import DShieldClient
+    >>> async with DShieldClient() as client:
+    ...     rep = await client.get_ip_reputation("8.8.8.8")
+    ...     print(rep)
 """
 
 import asyncio
@@ -26,9 +44,43 @@ logger = structlog.get_logger(__name__)
 
 
 class DShieldClient:
-    """Client for interacting with DShield threat intelligence API."""
+    """Client for interacting with DShield threat intelligence API.
     
-    def __init__(self):
+    This class provides methods to query DShield for IP reputation, details,
+    attack summaries, and batch enrichment. It manages authentication, rate
+    limiting, caching, and session lifecycle for efficient API usage.
+    
+    Attributes:
+        api_key: API key for DShield authentication
+        base_url: Base URL for DShield API
+        session: aiohttp.ClientSession for HTTP requests
+        rate_limit_requests: Max requests per minute
+        rate_limit_window: Time window for rate limiting (seconds)
+        request_times: List of request timestamps for rate limiting
+        cache: In-memory cache for API responses
+        cache_ttl: Time-to-live for cache entries (seconds)
+        enable_caching: Whether caching is enabled
+        max_cache_size: Maximum cache size
+        request_timeout: Timeout for API requests (seconds)
+        enable_performance_logging: Whether to log performance metrics
+        headers: HTTP headers for API requests
+        batch_size: Maximum batch size for IP enrichment
+    
+    Example:
+        >>> async with DShieldClient() as client:
+        ...     rep = await client.get_ip_reputation("8.8.8.8")
+        ...     print(rep)
+    """
+    
+    def __init__(self) -> None:
+        """Initialize the DShield client.
+        
+        Loads configuration, resolves secrets, sets up rate limiting,
+        caching, and prepares HTTP headers for API requests.
+        
+        Raises:
+            RuntimeError: If configuration or secret resolution fails
+        """
         try:
             config = get_config()
             secrets_config = config.get("secrets", {})
@@ -74,17 +126,28 @@ class DShieldClient:
         
         self.batch_size = int(batch_size)
     
-    async def __aenter__(self):
-        """Async context manager entry."""
+    async def __aenter__(self) -> "DShieldClient":
+        """Async context manager entry.
+        
+        Returns:
+            DShieldClient: The initialized client instance
+        """
         await self.connect()
         return self
     
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit."""
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit.
+        
+        Closes the HTTP session on exit.
+        """
         await self.close()
     
-    async def connect(self):
-        """Initialize HTTP session."""
+    async def connect(self) -> None:
+        """Initialize HTTP session.
+        
+        Creates an aiohttp.ClientSession for making API requests.
+        Logs session initialization.
+        """
         if not self.session:
             timeout = aiohttp.ClientTimeout(total=30)
             self.session = aiohttp.ClientSession(
@@ -93,15 +156,29 @@ class DShieldClient:
             )
             logger.info("DShield client session initialized")
     
-    async def close(self):
-        """Close HTTP session."""
+    async def close(self) -> None:
+        """Close HTTP session.
+        
+        Closes the aiohttp.ClientSession and releases resources.
+        Logs session closure.
+        """
         if self.session:
             await self.session.close()
             self.session = None
             logger.info("DShield client session closed")
     
     async def get_ip_reputation(self, ip_address: str) -> Dict[str, Any]:
-        """Get IP reputation from DShield."""
+        """Get IP reputation from DShield.
+        
+        Looks up the reputation of a given IP address using the DShield API.
+        Utilizes caching and rate limiting for efficiency.
+        
+        Args:
+            ip_address: The IP address to look up
+        
+        Returns:
+            Dictionary containing reputation data for the IP
+        """
         
         # Check cache first
         cache_key = f"reputation_{ip_address}"
@@ -158,7 +235,17 @@ class DShieldClient:
             return self._create_default_reputation(ip_address)
     
     async def get_ip_details(self, ip_address: str) -> Dict[str, Any]:
-        """Get detailed IP information from DShield."""
+        """Get detailed IP information from DShield.
+        
+        Retrieves detailed information for a given IP address from the DShield API.
+        Utilizes caching and rate limiting for efficiency.
+        
+        Args:
+            ip_address: The IP address to look up
+        
+        Returns:
+            Dictionary containing detailed data for the IP
+        """
         
         # Check cache first
         cache_key = f"details_{ip_address}"
