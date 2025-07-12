@@ -22,21 +22,74 @@ logger = structlog.get_logger(__name__)
 
 
 class LaTeXTemplateTools:
-    """MCP tools for LaTeX template automation and document generation."""
+    """MCP tools for LaTeX template automation and document generation.
     
-    def __init__(self, template_base_path: Optional[str] = None):
+    Output files are always written to the user-configured output directory (default: ~/dshield-mcp-output).
+    """
+    
+    def __init__(self, template_base_path: Optional[str] = None, output_directory: Optional[str] = None):
         """Initialize LaTeXTemplateTools.
 
         Args:
             template_base_path: Base path for LaTeX templates. Defaults to templates/Attack_Report.
-
+            output_directory: Directory for generated outputs. If None, uses user config.
         """
-        self.template_base_path = Path(template_base_path or "templates/Attack_Report")
+        # Resolve template path relative to project root
+        if template_base_path:
+            self.template_base_path = Path(template_base_path)
+        else:
+            # Find project root by looking for setup.py or pyproject.toml
+            project_root = self._find_project_root()
+            self.template_base_path = project_root / "templates" / "Attack_Report"
+        
         self.user_config = get_user_config()
+        
+        # Output directory (from config or argument)
+        if output_directory:
+            self.output_directory = Path(os.path.expandvars(os.path.expanduser(output_directory))).absolute()
+        else:
+            self.output_directory = Path(self.user_config.output_directory).absolute()
+        self.output_directory.mkdir(parents=True, exist_ok=True)
         
         # Ensure template directory exists
         if not self.template_base_path.exists():
             raise FileNotFoundError(f"Template directory not found: {self.template_base_path}")
+    
+    def _find_project_root(self) -> Path:
+        """Find the project root directory by looking for setup.py or pyproject.toml.
+        
+        Returns:
+            Path to the project root directory.
+            
+        Raises:
+            FileNotFoundError: If project root cannot be found.
+        """
+        # Start from the current file's directory
+        current_path = Path(__file__).parent
+        
+        # Walk up the directory tree looking for project root indicators
+        while current_path != current_path.parent:
+            # Check for common project root indicators
+            if (current_path / "setup.py").exists() or (current_path / "pyproject.toml").exists():
+                return current_path
+            
+            # Check if we're at the root of the filesystem
+            if current_path == current_path.parent:
+                break
+                
+            current_path = current_path.parent
+        
+        # If we can't find project root, try relative to current working directory
+        cwd = Path.cwd()
+        if (cwd / "setup.py").exists() or (cwd / "pyproject.toml").exists():
+            return cwd
+        
+        # Last resort: try relative to the src directory
+        src_path = Path(__file__).parent.parent
+        if (src_path / "setup.py").exists() or (src_path / "pyproject.toml").exists():
+            return src_path
+        
+        raise FileNotFoundError("Could not find project root directory. Please ensure setup.py or pyproject.toml exists in the project root.")
     
     async def generate_document(
         self,
@@ -58,6 +111,7 @@ class LaTeXTemplateTools:
         Returns:
             Document generation results with file paths and metadata
 
+        Output files are always written to the configured output directory.
         """
         logger.info("Starting document generation",
                    template_name=template_name,
@@ -581,38 +635,13 @@ class LaTeXTemplateTools:
             }
     
     def _copy_output_files(self, temp_path: Path, template_name: str) -> Dict[str, str]:
-        """Copy output files to final location.
-        
-        Args:
-            temp_path: Temporary directory with output files
-            template_name: Name of the template
-        
-        Returns:
-            Dictionary of output file paths
-
-        """
+        """Copy output files from temp_path to the configured output directory."""
         output_files = {}
-        
-        # Create output directory
-        output_dir = Path("output") / template_name
-        output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Copy PDF if it exists
-        pdf_src = temp_path / "main_report.pdf"
-        if pdf_src.exists():
-            pdf_dst = output_dir / f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            import shutil
-            shutil.copy2(pdf_src, pdf_dst)
-            output_files["pdf"] = str(pdf_dst)
-        
-        # Copy source files
-        tex_src = temp_path / "main_report.tex"
-        if tex_src.exists():
-            tex_dst = output_dir / f"{template_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.tex"
-            import shutil
-            shutil.copy2(tex_src, tex_dst)
-            output_files["tex"] = str(tex_dst)
-        
+        for ext in ["pdf", "tex", "log"]:
+            for file in temp_path.glob(f"*.{ext}"):
+                dest = self.output_directory / f"{template_name}.{ext}"
+                file.replace(dest)
+                output_files[ext] = str(dest)
         return output_files
     
     def _infer_variable_types(self, template_config: Dict[str, Any]) -> Dict[str, str]:

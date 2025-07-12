@@ -14,6 +14,7 @@ This folder contains comprehensive documentation for the DShield MCP service.
 
 ### **User Guides**
 - **[USAGE.md](USAGE.md)** - Detailed usage examples and API reference
+- **[OUTPUT_DIRECTORY_CONFIGURATION.md](OUTPUT_DIRECTORY_CONFIGURATION.md)** - Output directory configuration and security considerations
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
 - **[RELEASE_NOTES_v1.0.md](RELEASE_NOTES_v1.0.md)** - Release notes for version 1.0
 
@@ -45,6 +46,7 @@ This folder contains comprehensive documentation for the DShield MCP service.
 docs/
 ├── README.md                    # This documentation index
 ├── USAGE.md                     # Detailed usage guide
+├── OUTPUT_DIRECTORY_CONFIGURATION.md # Output directory configuration guide
 ├── CHANGELOG.md                 # Version history
 ├── RELEASE_NOTES_v1.0.md        # Release notes
 ├── Enhancements.md              # Feature roadmap
@@ -102,6 +104,9 @@ DShield MCP supports robust user configuration management, allowing you to custo
 ### Example: user_config.yaml
 
 ```yaml
+# Output directory for generated files (PDF reports, LaTeX outputs, etc.)
+output_directory: ~/dshield-mcp-output
+
 query:
   default_page_size: 100
   max_page_size: 1000
@@ -117,6 +122,10 @@ pagination:
 ### Example: Environment Variable Override
 
 ```bash
+# Output directory
+export DMC_OUTPUT_DIRECTORY=/custom/path/to/outputs
+
+# Query settings
 export DEFAULT_PAGE_SIZE=50
 export ENABLE_SMART_OPTIMIZATION=false
 ```

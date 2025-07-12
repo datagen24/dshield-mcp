@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Configurable Output Directory**: Secure, user-writable output directory for generated files
+  - **Issue**: [#46](https://github.com/datagen24/dsheild-mcp/issues/46) - Server fails to start due to template directory path resolution
+  - **Scope**: Cross-platform output directory configuration with security best practices
+  - **Features**: 
+    - Default output directory: `~/dshield-mcp-output` (cross-platform)
+    - YAML configuration support via `output_directory` setting
+    - Environment variable override via `DMC_OUTPUT_DIRECTORY`
+    - Automatic directory creation with proper permissions
+    - Integration with LaTeX template tools for secure file output
+  - **Security**: Output files written outside installation directory for security and portability
+  - **Platform Support**: Full cross-platform support (macOS, Linux, Windows)
+  - **Documentation**: Comprehensive configuration guide and examples
+  - **Files**: `docs/OUTPUT_DIRECTORY_CONFIGURATION.md`, updated `user_config.example.yaml`
+
 - **LaTeX Template Automation**: Professional document generation with customizable LaTeX templates
   - **Issue**: [#44](https://github.com/datagen24/dsheild-mcp/issues/44) - LaTeX Template Automation for AI Document Generation
   - **Scope**: Complete LaTeX template system with variable substitution, validation, and PDF compilation

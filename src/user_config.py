@@ -210,11 +210,12 @@ class UserConfigManager:
         security_settings: Security-related settings
         logging_settings: Logging-related settings
         campaign_settings: Campaign analysis settings
+        output_directory: Directory for generated outputs (default: ~/dshield-mcp-output, configurable)
     
     Example:
         >>> manager = UserConfigManager()
-        >>> page_size = manager.get_setting("query", "default_page_size")
-        >>> manager.update_setting("query", "default_page_size", 200)
+        >>> output_dir = manager.output_directory
+        >>> print(output_dir)
     """
     
     def __init__(self, config_path: Optional[str] = None) -> None:
@@ -242,9 +243,19 @@ class UserConfigManager:
         self.logging_settings = LoggingSettings()
         self.campaign_settings = CampaignSettings()
         
+        # Output directory (default, can be overridden)
+        self.output_directory = None  # type: Optional[str]
+        
         # Load user configuration
         self._load_user_config()
         
+        # Ensure output directory exists
+        if self.output_directory is None:
+            self.output_directory = os.path.expanduser(os.getenv("DMC_OUTPUT_DIRECTORY", "~/dshield-mcp-output"))
+        self.output_directory = os.path.expandvars(self.output_directory)
+        self.output_directory = os.path.abspath(self.output_directory)
+        os.makedirs(self.output_directory, exist_ok=True)
+
     def _load_user_config(self) -> None:
         """Load user configuration from multiple sources with precedence.
         
@@ -255,6 +266,10 @@ class UserConfigManager:
         
         # Load from user config file
         user_config = self._load_user_config_file()
+        
+        # Output directory (YAML root key)
+        if "output_directory" in user_config:
+            self.output_directory = user_config["output_directory"]
         
         # Apply environment variable overrides
         self._apply_env_overrides()
@@ -594,6 +609,7 @@ class UserConfigManager:
             Dictionary containing all current configuration settings
         """
         return {
+            "output_directory": self.output_directory,
             "query": {
                 "default_page_size": self.query_settings.default_page_size,
                 "max_page_size": self.query_settings.max_page_size,
