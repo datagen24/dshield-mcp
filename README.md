@@ -176,6 +176,16 @@ copy .env.example .env
 
 See [docs/README.md](docs/README.md) (User Configuration Management section) for advanced settings, environment variable overrides, and runtime customization.
 
+#### Output Directory Configuration
+
+Generated files (PDF reports, LaTeX outputs, etc.) are written to a configurable output directory:
+
+- **Default**: `~/dshield-mcp-output` (cross-platform)
+- **YAML Config**: Add `output_directory: /path/to/outputs` to your `user_config.yaml`
+- **Environment Variable**: Set `DMC_OUTPUT_DIRECTORY=/path/to/outputs`
+
+The output directory is created automatically if it doesn't exist.
+
 ### Running the Application
 
 #### Activate Virtual Environment
