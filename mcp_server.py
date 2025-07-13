@@ -28,6 +28,7 @@ from src.user_config import get_user_config
 from src.campaign_analyzer import CampaignAnalyzer
 from src.campaign_mcp_tools import CampaignMCPTools
 from src.latex_template_tools import LaTeXTemplateTools
+from src.threat_intelligence_manager import ThreatIntelligenceManager
 
 # Configure structured logging
 structlog.configure(
@@ -90,6 +91,7 @@ class DShieldMCPServer:
         self.campaign_analyzer = None
         self.campaign_tools = None
         self.latex_tools = None
+        self.threat_intelligence_manager = None
         
         # Load user configuration
         try:
@@ -832,6 +834,91 @@ class DShieldMCPServer:
                             }
                         }
                     }
+                },
+                {
+                    "name": "enrich_ip_comprehensive",
+                    "description": "Comprehensive IP enrichment from multiple threat intelligence sources",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "ip_address": {
+                                "type": "string",
+                                "description": "IP address to enrich",
+                                "required": True
+                            },
+                            "sources": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Specific sources to query (default: all available)",
+                                "default": ["all"]
+                            },
+                            "include_raw_data": {
+                                "type": "boolean",
+                                "description": "Include raw data from sources (default: false)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "enrich_domain_comprehensive",
+                    "description": "Comprehensive domain enrichment from multiple threat intelligence sources",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "domain": {
+                                "type": "string",
+                                "description": "Domain to enrich",
+                                "required": True
+                            },
+                            "sources": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Specific sources to query (default: all available)",
+                                "default": ["all"]
+                            },
+                            "include_raw_data": {
+                                "type": "boolean",
+                                "description": "Include raw data from sources (default: false)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "correlate_threat_indicators",
+                    "description": "Correlate multiple threat indicators across sources",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "indicators": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of threat indicators to correlate (IPs, domains, hashes, etc.)",
+                                "required": True
+                            },
+                            "correlation_method": {
+                                "type": "string",
+                                "enum": ["comprehensive", "network", "temporal", "behavioral"],
+                                "description": "Correlation method to use (default: comprehensive)"
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "get_threat_intelligence_summary",
+                    "description": "Get summary of threat intelligence capabilities and status",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "include_source_status": {
+                                "type": "boolean",
+                                "description": "Include detailed source status (default: true)"
+                            },
+                            "include_cache_stats": {
+                                "type": "boolean",
+                                "description": "Include cache statistics (default: true)"
+                            }
+                        }
+                    }
                 }
             ]
         
@@ -893,6 +980,14 @@ class DShieldMCPServer:
                     return await self._get_latex_template_schema(arguments)
                 elif name == "validate_latex_document_data":
                     return await self._validate_latex_document_data(arguments)
+                elif name == "enrich_ip_comprehensive":
+                    return await self._enrich_ip_comprehensive(arguments)
+                elif name == "enrich_domain_comprehensive":
+                    return await self._enrich_domain_comprehensive(arguments)
+                elif name == "correlate_threat_indicators":
+                    return await self._correlate_threat_indicators(arguments)
+                elif name == "get_threat_intelligence_summary":
+                    return await self._get_threat_intelligence_summary(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
             except Exception as e:
@@ -997,6 +1092,9 @@ class DShieldMCPServer:
         
         # Initialize LaTeX template tools
         self.latex_tools = LaTeXTemplateTools()
+        
+        # Initialize threat intelligence manager
+        self.threat_intelligence_manager = ThreatIntelligenceManager()
         
         # Log user configuration summary
         logger.info("DShield MCP Server initialized successfully", 
@@ -2079,6 +2177,172 @@ class DShieldMCPServer:
                    json.dumps(result, indent=2, default=str)
         }]
     
+    # Enhanced Threat Intelligence Tool Handlers
+    
+    async def _enrich_ip_comprehensive(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Comprehensive IP enrichment from multiple threat intelligence sources."""
+        ip_address = arguments["ip_address"]
+        sources = arguments.get("sources", ["all"])
+        include_raw_data = arguments.get("include_raw_data", False)
+        
+        logger.info("Starting comprehensive IP enrichment", 
+                   ip_address=ip_address,
+                   sources=sources,
+                   include_raw_data=include_raw_data)
+        
+        try:
+            result = await self.threat_intelligence_manager.enrich_ip_comprehensive(ip_address)
+            
+            # Format response
+            response_data = {
+                "ip_address": result.ip_address,
+                "overall_threat_score": result.overall_threat_score,
+                "confidence_score": result.confidence_score,
+                "sources_queried": [source.value for source in result.sources_queried],
+                "threat_indicators": result.threat_indicators,
+                "geographic_data": result.geographic_data,
+                "network_data": result.network_data,
+                "first_seen": result.first_seen.isoformat() if result.first_seen else None,
+                "last_seen": result.last_seen.isoformat() if result.last_seen else None,
+                "cache_hit": result.cache_hit,
+                "query_timestamp": result.query_timestamp.isoformat()
+            }
+            
+            if include_raw_data:
+                response_data["source_results"] = result.source_results
+            
+            return [{
+                "type": "text",
+                "text": f"Comprehensive IP Enrichment Results for {ip_address}:\n\n" + 
+                       json.dumps(response_data, indent=2, default=str)
+            }]
+            
+        except Exception as e:
+            logger.error("Comprehensive IP enrichment failed", 
+                        ip_address=ip_address, 
+                        error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error enriching IP {ip_address}: {str(e)}"
+            }]
+    
+    async def _enrich_domain_comprehensive(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Comprehensive domain enrichment from multiple threat intelligence sources."""
+        domain = arguments["domain"]
+        sources = arguments.get("sources", ["all"])
+        include_raw_data = arguments.get("include_raw_data", False)
+        
+        logger.info("Starting comprehensive domain enrichment", 
+                   domain=domain,
+                   sources=sources,
+                   include_raw_data=include_raw_data)
+        
+        try:
+            result = await self.threat_intelligence_manager.enrich_domain_comprehensive(domain)
+            
+            # Format response
+            response_data = {
+                "domain": result.domain,
+                "threat_score": result.threat_score,
+                "reputation_score": result.reputation_score,
+                "ip_addresses": result.ip_addresses,
+                "nameservers": result.nameservers,
+                "registrar": result.registrar,
+                "creation_date": result.creation_date.isoformat() if result.creation_date else None,
+                "malware_families": result.malware_families,
+                "categories": result.categories,
+                "tags": result.tags,
+                "sources_queried": [source.value for source in result.sources_queried],
+                "cache_hit": result.cache_hit,
+                "query_timestamp": result.query_timestamp.isoformat()
+            }
+            
+            if include_raw_data:
+                response_data["source_results"] = result.source_results
+            
+            return [{
+                "type": "text",
+                "text": f"Comprehensive Domain Enrichment Results for {domain}:\n\n" + 
+                       json.dumps(response_data, indent=2, default=str)
+            }]
+            
+        except Exception as e:
+            logger.error("Comprehensive domain enrichment failed", 
+                        domain=domain, 
+                        error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error enriching domain {domain}: {str(e)}"
+            }]
+    
+    async def _correlate_threat_indicators(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Correlate multiple threat indicators across sources."""
+        indicators = arguments["indicators"]
+        correlation_method = arguments.get("correlation_method", "comprehensive")
+        
+        logger.info("Starting threat indicator correlation", 
+                   indicator_count=len(indicators),
+                   correlation_method=correlation_method)
+        
+        try:
+            result = await self.threat_intelligence_manager.correlate_threat_indicators(indicators)
+            
+            return [{
+                "type": "text",
+                "text": f"Threat Indicator Correlation Results:\n\n" + 
+                       json.dumps(result, indent=2, default=str)
+            }]
+            
+        except Exception as e:
+            logger.error("Threat indicator correlation failed", 
+                        indicators=indicators[:5],  # Log first 5 for privacy
+                        error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error correlating threat indicators: {str(e)}"
+            }]
+    
+    async def _get_threat_intelligence_summary(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get summary of threat intelligence capabilities and status."""
+        include_source_status = arguments.get("include_source_status", True)
+        include_cache_stats = arguments.get("include_cache_stats", True)
+        
+        logger.info("Getting threat intelligence summary")
+        
+        try:
+            summary = {
+                "available_sources": [source.value for source in self.threat_intelligence_manager.get_available_sources()],
+                "total_sources": len(self.threat_intelligence_manager.get_available_sources()),
+                "correlation_config": {
+                    "confidence_threshold": self.threat_intelligence_manager.confidence_threshold,
+                    "max_sources_per_query": self.threat_intelligence_manager.max_sources
+                }
+            }
+            
+            if include_source_status:
+                summary["source_status"] = self.threat_intelligence_manager.get_source_status()
+            
+            if include_cache_stats:
+                cache_size = len(self.threat_intelligence_manager.cache)
+                summary["cache_stats"] = {
+                    "cache_size": cache_size,
+                    "cache_ttl_hours": self.threat_intelligence_manager.cache_ttl.total_seconds() / 3600,
+                    "max_cache_size": self.threat_intelligence_manager.config.get("threat_intelligence", {}).get("max_cache_size", 1000)
+                }
+            
+            return [{
+                "type": "text",
+                "text": f"Threat Intelligence Summary:\n\n" + 
+                       json.dumps(summary, indent=2, default=str)
+            }]
+            
+        except Exception as e:
+            logger.error("Failed to get threat intelligence summary", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error getting threat intelligence summary: {str(e)}"
+            }]
+    
     async def cleanup(self) -> None:
         """Cleanup resources.
         
@@ -2088,6 +2352,8 @@ class DShieldMCPServer:
         """
         if self.elastic_client:
             await self.elastic_client.close()
+        if self.threat_intelligence_manager:
+            await self.threat_intelligence_manager.cleanup()
         logger.info("DShield MCP Server cleanup completed")
 
 

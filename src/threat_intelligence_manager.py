@@ -1,0 +1,912 @@
+"""
+Threat Intelligence Manager for DShield MCP.
+
+This module provides a centralized manager for coordinating multiple threat intelligence
+sources including DShield, VirusTotal, Shodan, and other security APIs. It handles
+source coordination, rate limiting, caching, and result correlation.
+
+Features:
+- Multi-source threat intelligence aggregation
+- Intelligent correlation and scoring
+- Advanced caching with configurable TTL
+- Rate limiting and error handling
+- Extensible architecture for new sources
+
+Example:
+    >>> from src.threat_intelligence_manager import ThreatIntelligenceManager
+    >>> async with ThreatIntelligenceManager() as manager:
+    ...     result = await manager.enrich_ip_comprehensive("8.8.8.8")
+    ...     print(result.overall_threat_score)
+"""
+
+import asyncio
+import time
+import sqlite3
+import json
+import os
+from typing import Dict, List, Optional, Any
+from datetime import datetime, timedelta
+import structlog
+
+from .models import ThreatIntelligenceResult, DomainIntelligence, ThreatIntelligenceSource
+from .dshield_client import DShieldClient
+from .config_loader import get_config
+from .user_config import get_user_config
+
+logger = structlog.get_logger(__name__)
+
+
+class ThreatIntelligenceManager:
+    """Manages multiple threat intelligence sources and correlation.
+    
+    This class provides a unified interface for querying multiple threat intelligence
+    sources, aggregating results, and providing comprehensive threat assessments.
+    It handles rate limiting, caching, error handling, and result correlation.
+    
+    Attributes:
+        config: Application configuration
+        user_config: User-specific configuration
+        clients: Dictionary of source clients
+        correlation_config: Correlation settings
+        confidence_threshold: Minimum confidence threshold
+        max_sources: Maximum sources per query
+        cache: In-memory cache for results
+        cache_ttl: Cache time-to-live
+        rate_limit_trackers: Rate limiting trackers per source
+        
+    Example:
+        >>> async with ThreatIntelligenceManager() as manager:
+        ...     result = await manager.enrich_ip_comprehensive("8.8.8.8")
+        ...     print(f"Threat score: {result.overall_threat_score}")
+    """
+    
+    def __init__(self) -> None:
+        """Initialize the threat intelligence manager.
+        
+        Loads configuration, initializes source clients, and sets up
+        correlation and caching parameters.
+        
+        Raises:
+            RuntimeError: If configuration loading fails
+        """
+        try:
+            self.config = get_config()
+            self.user_config = get_user_config()
+        except Exception as e:
+            raise RuntimeError(f"Failed to load configuration: {e}")
+        
+        # Initialize source clients
+        self.clients: Dict[ThreatIntelligenceSource, Any] = {}
+        self._initialize_clients()
+        
+        # Correlation settings
+        threat_intel_config = self.config.get("threat_intelligence", {})
+        self.correlation_config = threat_intel_config.get("correlation", {})
+        self.confidence_threshold = self.correlation_config.get("confidence_threshold", 0.7)
+        self.max_sources = self.correlation_config.get("max_sources_per_query", 3)
+        
+        # Cache for aggregated results
+        self.cache: Dict[str, ThreatIntelligenceResult] = {}
+        cache_ttl_hours = threat_intel_config.get("cache_ttl_hours", 1)
+        self.cache_ttl = timedelta(hours=cache_ttl_hours)
+        
+        # SQLite cache configuration
+        self.sqlite_cache_enabled = self.user_config.performance_settings.enable_sqlite_cache
+        self.sqlite_cache_path = self.user_config.get_cache_database_path()
+        self.sqlite_cache_ttl = timedelta(hours=self.user_config.performance_settings.sqlite_cache_ttl_hours)
+        
+        if self.sqlite_cache_enabled:
+            self._initialize_sqlite_cache()
+        
+        # Rate limiting trackers
+        self.rate_limit_trackers: Dict[ThreatIntelligenceSource, List[float]] = {}
+        self._initialize_rate_limit_trackers()
+        
+        # Elasticsearch client for enrichment writeback
+        self.elasticsearch_client = None
+        self._initialize_elasticsearch()
+        
+        logger.info("Enhanced Threat Intelligence Manager initialized", 
+                   sources=list(self.clients.keys()),
+                   confidence_threshold=self.confidence_threshold,
+                   max_sources=self.max_sources,
+                   cache_ttl_hours=cache_ttl_hours,
+                   sqlite_cache_enabled=self.sqlite_cache_enabled,
+                   sqlite_cache_path=self.sqlite_cache_path,
+                   elasticsearch_writeback_enabled=self.elasticsearch_client is not None)
+    
+    def _initialize_clients(self) -> None:
+        """Initialize threat intelligence source clients."""
+        sources_config = self.config.get("threat_intelligence", {}).get("sources", {})
+        
+        # Initialize DShield client (existing)
+        if sources_config.get("dshield", {}).get("enabled", True):
+            try:
+                self.clients[ThreatIntelligenceSource.DSHIELD] = DShieldClient()
+                logger.info("DShield client initialized")
+            except Exception as e:
+                logger.warning("Failed to initialize DShield client", error=str(e))
+        
+        # Initialize VirusTotal client (placeholder for future implementation)
+        if sources_config.get("virustotal", {}).get("enabled", False):
+            logger.info("VirusTotal client not yet implemented")
+            # self.clients[ThreatIntelligenceSource.VIRUSTOTAL] = VirusTotalClient()
+        
+        # Initialize Shodan client (placeholder for future implementation)
+        if sources_config.get("shodan", {}).get("enabled", False):
+            logger.info("Shodan client not yet implemented")
+            # self.clients[ThreatIntelligenceSource.SHODAN] = ShodanClient()
+        
+        if not self.clients:
+            logger.warning("No threat intelligence clients initialized")
+    
+    def _initialize_sqlite_cache(self) -> None:
+        """Initialize SQLite cache database.
+        
+        Creates the database file and tables if they don't exist.
+        Sets up proper indexes for efficient querying.
+        """
+        try:
+            # Ensure the database directory exists
+            db_dir = os.path.dirname(self.sqlite_cache_path)
+            os.makedirs(db_dir, exist_ok=True)
+            
+            with sqlite3.connect(self.sqlite_cache_path) as conn:
+                # Create the enrichment cache table
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS enrichment_cache (
+                        indicator TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        result_json TEXT NOT NULL,
+                        retrieved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        expires_at TIMESTAMP NOT NULL,
+                        PRIMARY KEY (indicator, source)
+                    )
+                """)
+                
+                # Create indexes for efficient querying
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_enrichment_expires_at ON enrichment_cache(expires_at)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_enrichment_indicator ON enrichment_cache(indicator)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_enrichment_source ON enrichment_cache(source)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_enrichment_retrieved_at ON enrichment_cache(retrieved_at)")
+                
+                # Clean up expired entries
+                conn.execute("DELETE FROM enrichment_cache WHERE expires_at < datetime('now')")
+                
+                conn.commit()
+            
+            logger.info("SQLite cache initialized", 
+                       db_path=self.sqlite_cache_path,
+                       ttl_hours=self.user_config.performance_settings.sqlite_cache_ttl_hours)
+        except Exception as e:
+            logger.warning("Failed to initialize SQLite cache", 
+                          error=str(e),
+                          db_path=self.sqlite_cache_path)
+            # Disable SQLite cache if initialization fails
+            self.sqlite_cache_enabled = False
+    
+    def _initialize_rate_limit_trackers(self) -> None:
+        """Initialize rate limiting trackers for each source."""
+        for source in self.clients.keys():
+            self.rate_limit_trackers[source] = []
+    
+    async def __aenter__(self) -> "ThreatIntelligenceManager":
+        """Async context manager entry.
+        
+        Returns:
+            ThreatIntelligenceManager: The initialized manager instance
+        """
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Async context manager exit.
+        
+        Cleans up resources and closes client connections.
+        """
+        await self.cleanup()
+    
+    async def enrich_ip_comprehensive(self, ip_address: str) -> ThreatIntelligenceResult:
+        """Comprehensive IP enrichment from multiple sources.
+        
+        Queries all enabled threat intelligence sources for information about
+        the specified IP address, aggregates results, and provides a comprehensive
+        threat assessment.
+        
+        Args:
+            ip_address: The IP address to enrich
+            
+        Returns:
+            ThreatIntelligenceResult: Comprehensive threat intelligence data
+            
+        Raises:
+            ValueError: If IP address is invalid
+            RuntimeError: If no sources are available
+        """
+        # Validate IP address
+        try:
+            import ipaddress
+            ipaddress.ip_address(ip_address)
+        except ValueError:
+            raise ValueError(f"Invalid IP address: {ip_address}")
+        
+        # Check cache first
+        cache_key = f"comprehensive_ip_{ip_address}"
+        
+        # Check SQLite cache first (if enabled)
+        if self.sqlite_cache_enabled:
+            cached_result = await self._get_sqlite_cached_result(cache_key)
+            if cached_result:
+                logger.debug("Returning SQLite cached IP enrichment result", ip_address=ip_address)
+                cached_result.cache_hit = True
+                return cached_result
+        
+        # Check memory cache as fallback
+        cached_result = self._get_cached_result(cache_key)
+        if cached_result:
+            logger.debug("Returning memory cached IP enrichment result", ip_address=ip_address)
+            cached_result.cache_hit = True
+            return cached_result
+        
+        if not self.clients:
+            raise RuntimeError("No threat intelligence sources available")
+        
+        logger.info("Starting comprehensive IP enrichment", 
+                   ip_address=ip_address,
+                   available_sources=list(self.clients.keys()))
+        
+        # Query all enabled sources concurrently
+        tasks = []
+        for source, client in self.clients.items():
+            if hasattr(client, 'get_ip_reputation'):
+                tasks.append(self._query_source_async(source, client, ip_address))
+        
+        # Wait for all queries to complete
+        source_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Process results
+        result = ThreatIntelligenceResult(ip_address=ip_address)
+        successful_sources = []
+        
+        for source, source_result in zip(self.clients.keys(), source_results):
+            if isinstance(source_result, Exception):
+                logger.warning("Source query failed", 
+                              source=source, 
+                              ip_address=ip_address, 
+                              error=str(source_result))
+                continue
+            
+            result.source_results[source] = source_result
+            successful_sources.append(source)
+        
+        result.sources_queried = successful_sources
+        
+        # Correlate and score results
+        await self._correlate_results(result)
+        
+        # Cache the result in both SQLite and memory
+        if self.sqlite_cache_enabled:
+            self._cache_result_to_sqlite(cache_key, result)
+        self._cache_result(cache_key, result)
+        
+        logger.info("IP enrichment completed", 
+                   ip_address=ip_address,
+                   sources_queried=len(successful_sources),
+                   overall_threat_score=result.overall_threat_score,
+                   confidence_score=result.confidence_score)
+        
+        return result
+    
+    async def enrich_domain_comprehensive(self, domain: str) -> DomainIntelligence:
+        """Comprehensive domain enrichment from multiple sources.
+        
+        Queries all enabled threat intelligence sources for information about
+        the specified domain, aggregates results, and provides a comprehensive
+        threat assessment.
+        
+        Args:
+            domain: The domain to enrich
+            
+        Returns:
+            DomainIntelligence: Comprehensive domain threat intelligence data
+            
+        Raises:
+            ValueError: If domain is invalid
+            RuntimeError: If no sources are available
+        """
+        # Validate domain
+        if not domain or '.' not in domain:
+            raise ValueError(f"Invalid domain: {domain}")
+        
+        # Check cache first
+        cache_key = f"comprehensive_domain_{domain.lower()}"
+        cached_result = self._get_cached_domain_result(cache_key)
+        if cached_result:
+            logger.debug("Returning cached domain enrichment result", domain=domain)
+            cached_result.cache_hit = True
+            return cached_result
+        
+        if not self.clients:
+            raise RuntimeError("No threat intelligence sources available")
+        
+        logger.info("Starting comprehensive domain enrichment", 
+                   domain=domain,
+                   available_sources=list(self.clients.keys()))
+        
+        # For now, return a basic result since domain enrichment is not yet implemented
+        result = DomainIntelligence(domain=domain.lower())
+        result.sources_queried = []
+        
+        # TODO: Implement domain enrichment when VirusTotal and other clients are added
+        
+        # Cache the result
+        self._cache_domain_result(cache_key, result)
+        
+        logger.info("Domain enrichment completed", 
+                   domain=domain,
+                   sources_queried=len(result.sources_queried))
+        
+        return result
+    
+    async def correlate_threat_indicators(self, indicators: List[str]) -> Dict[str, Any]:
+        """Correlate multiple threat indicators across sources.
+        
+        Analyzes multiple threat indicators (IPs, domains, hashes, etc.) and
+        finds correlations and relationships between them.
+        
+        Args:
+            indicators: List of threat indicators to correlate
+            
+        Returns:
+            Dictionary containing correlation results
+            
+        Raises:
+            ValueError: If indicators list is empty
+        """
+        if not indicators:
+            raise ValueError("Indicators list cannot be empty")
+        
+        logger.info("Starting threat indicator correlation", 
+                   indicator_count=len(indicators),
+                   indicators=indicators[:5])  # Log first 5 for privacy
+        
+        # TODO: Implement indicator correlation logic
+        # For now, return a basic structure
+        result = {
+            "correlation_id": f"corr_{int(time.time())}",
+            "indicators": indicators,
+            "correlations": [],
+            "relationships": [],
+            "confidence_score": 0.0,
+            "sources_queried": [],
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        logger.info("Threat indicator correlation completed", 
+                   correlation_id=result["correlation_id"],
+                   confidence_score=result["confidence_score"])
+        
+        return result
+    
+    async def _query_source_async(self, source: ThreatIntelligenceSource, 
+                                 client: Any, ip_address: str) -> Dict[str, Any]:
+        """Query a single source asynchronously.
+        
+        Args:
+            source: The threat intelligence source
+            client: The source client instance
+            ip_address: The IP address to query
+            
+        Returns:
+            Dictionary containing source-specific results
+            
+        Raises:
+            Exception: If the source query fails
+        """
+        # Check rate limiting
+        await self._check_rate_limit(source)
+        
+        try:
+            if source == ThreatIntelligenceSource.DSHIELD:
+                return await client.get_ip_reputation(ip_address)
+            # TODO: Add other sources when implemented
+            # elif source == ThreatIntelligenceSource.VIRUSTOTAL:
+            #     return await client.get_ip_report(ip_address)
+            # elif source == ThreatIntelligenceSource.SHODAN:
+            #     return await client.get_host_info(ip_address)
+            else:
+                raise ValueError(f"Unknown source: {source}")
+        except Exception as e:
+            logger.error("Source query failed", 
+                        source=source, 
+                        ip_address=ip_address, 
+                        error=str(e))
+            raise
+    
+    async def _correlate_results(self, result: ThreatIntelligenceResult) -> None:
+        """Correlate results from multiple sources.
+        
+        Analyzes results from different sources and calculates aggregated
+        threat scores and confidence levels.
+        
+        Args:
+            result: The threat intelligence result to correlate
+        """
+        if not result.source_results:
+            logger.warning("No source results to correlate")
+            return
+        
+        # Calculate overall threat score
+        threat_scores = []
+        confidence_scores = []
+        
+        for source, source_data in result.source_results.items():
+            if isinstance(source_data, dict):
+                # Extract threat score
+                if 'threat_score' in source_data:
+                    threat_scores.append(float(source_data['threat_score']))
+                elif 'reputation_score' in source_data and source_data['reputation_score'] is not None:
+                    # Convert reputation score to threat score (inverse relationship)
+                    rep_score = float(source_data['reputation_score'])
+                    threat_score = 100 - rep_score  # Higher reputation = lower threat
+                    threat_scores.append(threat_score)
+                
+                # Extract confidence score
+                if 'confidence' in source_data:
+                    confidence_scores.append(float(source_data['confidence']))
+                else:
+                    # Default confidence based on source
+                    default_confidence = {
+                        ThreatIntelligenceSource.DSHIELD: 0.8,
+                        ThreatIntelligenceSource.VIRUSTOTAL: 0.9,
+                        ThreatIntelligenceSource.SHODAN: 0.7
+                    }.get(source, 0.5)
+                    confidence_scores.append(default_confidence)
+        
+        # Calculate weighted averages
+        if threat_scores:
+            result.overall_threat_score = sum(threat_scores) / len(threat_scores)
+        
+        if confidence_scores:
+            result.confidence_score = sum(confidence_scores) / len(confidence_scores)
+        
+        # Correlate threat indicators
+        all_indicators = []
+        for source_data in result.source_results.values():
+            if isinstance(source_data, dict):
+                if 'indicators' in source_data:
+                    all_indicators.extend(source_data['indicators'])
+                elif 'attack_types' in source_data:
+                    all_indicators.extend(source_data['attack_types'])
+                elif 'tags' in source_data:
+                    all_indicators.extend(source_data['tags'])
+        
+        # Remove duplicates and correlate
+        result.threat_indicators = self._deduplicate_indicators(all_indicators)
+        
+        # Aggregate geographic and network data
+        self._aggregate_geographic_data(result)
+        self._aggregate_network_data(result)
+        
+        # Determine timestamps
+        self._determine_timestamps(result)
+    
+    def _deduplicate_indicators(self, indicators: List[Any]) -> List[Dict[str, Any]]:
+        """Remove duplicate indicators and merge metadata.
+        
+        Args:
+            indicators: List of raw indicators
+            
+        Returns:
+            List of deduplicated indicators with metadata
+        """
+        if not indicators:
+            return []
+        
+        # Convert to strings for deduplication
+        indicator_strings = [str(indicator).lower() for indicator in indicators]
+        unique_indicators = list(set(indicator_strings))
+        
+        # Create structured indicator objects
+        structured_indicators = []
+        for indicator in unique_indicators:
+            structured_indicators.append({
+                "indicator": indicator,
+                "type": self._classify_indicator(indicator),
+                "count": indicator_strings.count(indicator),
+                "sources": len(self.clients)  # All sources contributed
+            })
+        
+        return structured_indicators
+    
+    def _classify_indicator(self, indicator: str) -> str:
+        """Classify the type of indicator.
+        
+        Args:
+            indicator: The indicator string
+            
+        Returns:
+            The indicator type classification
+        """
+        indicator_lower = indicator.lower()
+        
+        # IP address patterns
+        if any(char.isdigit() for char in indicator_lower) and '.' in indicator_lower:
+            return "ip_address"
+        
+        # Domain patterns
+        if '.' in indicator_lower and not any(char.isdigit() for char in indicator_lower.split('.')[0]):
+            return "domain"
+        
+        # Hash patterns
+        if len(indicator_lower) in [32, 40, 64] and all(c in '0123456789abcdef' for c in indicator_lower):
+            return "hash"
+        
+        # CVE patterns
+        if indicator_lower.startswith('cve-'):
+            return "cve"
+        
+        # Default to generic
+        return "generic"
+    
+    def _aggregate_geographic_data(self, result: ThreatIntelligenceResult) -> None:
+        """Aggregate geographic data from multiple sources.
+        
+        Args:
+            result: The threat intelligence result to update
+        """
+        geographic_data = {}
+        
+        for source_data in result.source_results.values():
+            if isinstance(source_data, dict):
+                if 'geographic_data' in source_data:
+                    geographic_data.update(source_data['geographic_data'])
+                elif 'country' in source_data:
+                    geographic_data['country'] = source_data['country']
+        
+        result.geographic_data = geographic_data
+    
+    def _aggregate_network_data(self, result: ThreatIntelligenceResult) -> None:
+        """Aggregate network data from multiple sources.
+        
+        Args:
+            result: The threat intelligence result to update
+        """
+        network_data = {}
+        
+        for source_data in result.source_results.values():
+            if isinstance(source_data, dict):
+                if 'network_data' in source_data:
+                    network_data.update(source_data['network_data'])
+                elif 'asn' in source_data:
+                    network_data['asn'] = source_data['asn']
+                elif 'organization' in source_data:
+                    network_data['organization'] = source_data['organization']
+        
+        result.network_data = network_data
+    
+    def _determine_timestamps(self, result: ThreatIntelligenceResult) -> None:
+        """Determine first and last seen timestamps across sources.
+        
+        Args:
+            result: The threat intelligence result to update
+        """
+        first_seen_times = []
+        last_seen_times = []
+        
+        for source_data in result.source_results.values():
+            if isinstance(source_data, dict):
+                if 'first_seen' in source_data and source_data['first_seen']:
+                    first_seen_times.append(source_data['first_seen'])
+                if 'last_seen' in source_data and source_data['last_seen']:
+                    last_seen_times.append(source_data['last_seen'])
+        
+        if first_seen_times:
+            result.first_seen = min(first_seen_times)
+        
+        if last_seen_times:
+            result.last_seen = max(last_seen_times)
+    
+    async def _check_rate_limit(self, source: ThreatIntelligenceSource) -> None:
+        """Check and enforce rate limiting for a source.
+        
+        Args:
+            source: The source to check rate limiting for
+            
+        Raises:
+            RuntimeError: If rate limit would be exceeded
+        """
+        if source not in self.rate_limit_trackers:
+            return
+        
+        current_time = time.time()
+        tracker = self.rate_limit_trackers[source]
+        
+        # Remove old entries (older than 1 minute)
+        tracker[:] = [t for t in tracker if current_time - t < 60]
+        
+        # Get rate limit configuration
+        sources_config = self.config.get("threat_intelligence", {}).get("sources", {})
+        source_config = sources_config.get(source.value, {})
+        rate_limit = source_config.get("rate_limit_requests_per_minute", 60)
+        
+        if len(tracker) >= rate_limit:
+            raise RuntimeError(f"Rate limit exceeded for {source.value}")
+        
+        tracker.append(current_time)
+    
+    def _get_cached_result(self, cache_key: str) -> Optional[ThreatIntelligenceResult]:
+        """Get cached result if available and not expired.
+        
+        Args:
+            cache_key: The cache key to look up
+            
+        Returns:
+            Cached result if available and valid, None otherwise
+        """
+        if cache_key in self.cache:
+            cached = self.cache[cache_key]
+            if datetime.now() - cached.query_timestamp < self.cache_ttl:
+                return cached
+            else:
+                del self.cache[cache_key]
+        return None
+    
+    def _cache_result(self, cache_key: str, result: ThreatIntelligenceResult) -> None:
+        """Cache a result.
+        
+        Args:
+            cache_key: The cache key
+            result: The result to cache
+        """
+        self.cache[cache_key] = result
+        
+        # Implement cache size limit
+        max_cache_size = self.config.get("threat_intelligence", {}).get("max_cache_size", 1000)
+        if len(self.cache) > max_cache_size:
+            # Remove oldest entries
+            oldest_keys = sorted(self.cache.keys(), 
+                               key=lambda k: self.cache[k].query_timestamp)[:len(self.cache) - max_cache_size]
+            for key in oldest_keys:
+                del self.cache[key]
+    
+    def _get_cached_domain_result(self, cache_key: str) -> Optional[DomainIntelligence]:
+        """Get cached domain result if available and not expired.
+        
+        Args:
+            cache_key: The cache key to look up
+            
+        Returns:
+            Cached domain result if available and valid, None otherwise
+        """
+        # TODO: Implement domain result caching
+        return None
+    
+    def _cache_domain_result(self, cache_key: str, result: DomainIntelligence) -> None:
+        """Cache a domain result.
+        
+        Args:
+            cache_key: The cache key
+            result: The domain result to cache
+        """
+        # TODO: Implement domain result caching
+        pass
+
+    async def _get_sqlite_cached_result(self, cache_key: str) -> Optional[ThreatIntelligenceResult]:
+        """Get cached result from SQLite if available and not expired.
+        
+        Args:
+            cache_key: The cache key to look up
+            
+        Returns:
+            Cached result if available and valid, None otherwise
+        """
+        if not self.sqlite_cache_enabled:
+            return None
+
+        try:
+            with sqlite3.connect(self.sqlite_cache_path) as conn:
+                cursor = conn.execute("""
+                    SELECT result_json, retrieved_at, expires_at
+                    FROM enrichment_cache
+                    WHERE indicator = ? AND source = ?
+                """, (cache_key, "comprehensive_ip")) # Assuming source is "comprehensive_ip" for now
+                
+                row = cursor.fetchone()
+                
+                if row:
+                    result_json, retrieved_at_str, expires_at_str = row
+                    retrieved_at = datetime.fromisoformat(retrieved_at_str)
+                    expires_at = datetime.fromisoformat(expires_at_str)
+                    
+                    if datetime.now() < expires_at:
+                        result = ThreatIntelligenceResult.model_validate_json(result_json)
+                        result.cache_hit = True
+                        return result
+                    else:
+                        # Delete expired entry
+                        conn.execute("DELETE FROM enrichment_cache WHERE indicator = ? AND source = ?", (cache_key, "comprehensive_ip"))
+                        conn.commit()
+                        return None
+                else:
+                    return None
+        except Exception as e:
+            logger.warning("Failed to get SQLite cached result", 
+                          error=str(e),
+                          cache_key=cache_key)
+            return None
+    
+    def _cache_result_to_sqlite(self, cache_key: str, result: ThreatIntelligenceResult) -> None:
+        """Cache a result to SQLite.
+        
+        Args:
+            cache_key: The cache key
+            result: The result to cache
+        """
+        if not self.sqlite_cache_enabled:
+            return
+
+        try:
+            with sqlite3.connect(self.sqlite_cache_path) as conn:
+                # Convert datetime objects to strings for JSON serialization
+                retrieved_at_str = result.query_timestamp.isoformat()
+                expires_at_str = (result.query_timestamp + self.sqlite_cache_ttl).isoformat()
+                
+                conn.execute("""
+                    INSERT OR REPLACE INTO enrichment_cache (indicator, source, result_json, retrieved_at, expires_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (cache_key, "comprehensive_ip", result.model_dump_json(), retrieved_at_str, expires_at_str))
+                conn.commit()
+            logger.debug("Cached result to SQLite", cache_key=cache_key)
+        except Exception as e:
+            logger.warning("Failed to cache result to SQLite", 
+                          error=str(e),
+                          cache_key=cache_key)
+    
+    async def _write_to_elasticsearch(self, result: "ThreatIntelligenceResult") -> None:
+        """Write enrichment result to Elasticsearch for correlation, if enabled in config."""
+        es_config = self.config.get("threat_intelligence", {}).get("elasticsearch", {})
+        writeback_enabled = es_config.get("writeback_enabled", False)
+        if not (self.elasticsearch_client and writeback_enabled):
+            return
+        try:
+            # Prepare document for Elasticsearch
+            doc = {
+                "indicator": result.ip_address,
+                "indicator_type": "ip",
+                "sources": result.source_results,
+                "asn": result.network_data.get("asn"),
+                "geo": result.geographic_data,
+                "tags": [indicator.get("type", "unknown") for indicator in result.threat_indicators],
+                "timestamp": result.query_timestamp.isoformat(),
+                "threat_score": result.overall_threat_score,
+                "confidence_score": result.confidence_score
+            }
+            # Use index prefix from config if present
+            index_prefix = es_config.get("index_prefix", "enrichment-intel")
+            index_name = f"{index_prefix}-{result.query_timestamp.strftime('%Y.%m')}"
+            await self.elasticsearch_client.index(
+                index=index_name,
+                document=doc,
+                id=f"{result.ip_address}_{result.query_timestamp.isoformat()}"
+            )
+        except Exception as e:
+            import structlog
+            logger = structlog.get_logger(__name__)
+            logger.warning("Failed to write to Elasticsearch", error=str(e))
+    
+    async def cleanup(self) -> None:
+        """Clean up resources and close connections."""
+        try:
+            # Clean up expired entries from SQLite cache
+            if self.sqlite_cache_enabled:
+                self._cleanup_sqlite_cache()
+            
+            # Close client connections
+            for client in self.clients.values():
+                if hasattr(client, 'cleanup'):
+                    await client.cleanup()
+            
+            logger.info("Threat Intelligence Manager cleanup completed")
+        except Exception as e:
+            logger.error("Error during cleanup", error=str(e))
+    
+    def _cleanup_sqlite_cache(self) -> None:
+        """Clean up expired entries from SQLite cache."""
+        if not self.sqlite_cache_enabled:
+            return
+        
+        try:
+            with sqlite3.connect(self.sqlite_cache_path) as conn:
+                # Delete expired entries
+                deleted_count = conn.execute("DELETE FROM enrichment_cache WHERE expires_at < datetime('now')").rowcount
+                conn.commit()
+                
+                if deleted_count > 0:
+                    logger.info("Cleaned up expired SQLite cache entries", deleted_count=deleted_count)
+        except Exception as e:
+            logger.warning("Failed to cleanup SQLite cache", error=str(e))
+    
+    def get_available_sources(self) -> List[ThreatIntelligenceSource]:
+        """Get list of available threat intelligence sources.
+        
+        Returns:
+            List of available sources
+        """
+        return list(self.clients.keys())
+    
+    def get_source_status(self) -> Dict[str, Any]:
+        """Get status of all threat intelligence sources.
+        
+        Returns:
+            Dictionary containing source status information
+        """
+        status = {}
+        for source, client in self.clients.items():
+            status[source.value] = {
+                "enabled": True,
+                "client_type": type(client).__name__,
+                "rate_limit_tracker": len(self.rate_limit_trackers.get(source, []))
+            }
+        return status
+    
+    def get_cache_statistics(self) -> Dict[str, Any]:
+        """Get cache statistics for both memory and SQLite caches.
+        
+        Returns:
+            Dictionary containing cache statistics
+        """
+        stats = {
+            "memory_cache": {
+                "enabled": True,
+                "size": len(self.cache),
+                "ttl_hours": self.cache_ttl.total_seconds() / 3600
+            },
+            "sqlite_cache": {
+                "enabled": self.sqlite_cache_enabled,
+                "path": self.sqlite_cache_path,
+                "ttl_hours": self.sqlite_cache_ttl.total_seconds() / 3600
+            }
+        }
+        
+        # Get SQLite cache statistics if enabled
+        if self.sqlite_cache_enabled:
+            try:
+                with sqlite3.connect(self.sqlite_cache_path) as conn:
+                    # Get total entries
+                    total_entries = conn.execute("SELECT COUNT(*) FROM enrichment_cache").fetchone()[0]
+                    
+                    # Get expired entries
+                    expired_entries = conn.execute("SELECT COUNT(*) FROM enrichment_cache WHERE expires_at < datetime('now')").fetchone()[0]
+                    
+                    # Get database size
+                    db_size = os.path.getsize(self.sqlite_cache_path) if os.path.exists(self.sqlite_cache_path) else 0
+                    
+                    stats["sqlite_cache"].update({
+                        "total_entries": total_entries,
+                        "expired_entries": expired_entries,
+                        "valid_entries": total_entries - expired_entries,
+                        "database_size_bytes": db_size
+                    })
+            except Exception as e:
+                logger.warning("Failed to get SQLite cache statistics", error=str(e))
+                stats["sqlite_cache"]["error"] = str(e)
+        
+        return stats 
+
+    def _initialize_elasticsearch(self) -> None:
+        """Initialize Elasticsearch client for enrichment writeback if enabled in config."""
+        es_config = self.config.get("threat_intelligence", {}).get("elasticsearch", {})
+        if es_config.get("enabled", False):
+            try:
+                from elasticsearch import AsyncElasticsearch
+                self.elasticsearch_client = AsyncElasticsearch(
+                    hosts=es_config.get("hosts", ["localhost:9200"]),
+                    basic_auth=(
+                        es_config.get("username", "elastic"),
+                        es_config.get("password", "")
+                    )
+                )
+            except ImportError:
+                self.elasticsearch_client = None
+        else:
+            self.elasticsearch_client = None 
