@@ -1,0 +1,234 @@
+--- ENHANCED_THREAT_INTELLIGENCE_IMPLEMENTATION.md
++++ ENHANCED_THREAT_INTELLIGENCE_IMPLEMENTATION.md
+@@
+ 
+  Enhanced Threat Intelligence Tools                         
+
+ 
+  
+ enrich_ip_comprehensive                                  
+
+ 
+  
+ enrich_domain_comprehensive                              
+
+ 
+  
+ correlate_threat_indicators                              
+
+ 
+  
+ get_threat_intelligence_summary                          
+
++
+  
+ elasticsearch_enrichment_writeback                       
+
+ 
+ ## Dependencies and Requirements
+ 
+@@
+ 
+ # mcp_config.yaml additions
+ secrets:
+   virustotal_api_key: "op://secrets/virustotal_api_key"
+   shodan_api_key: "op://secrets/shodan_api_key"
+   abuseipdb_api_key: "op://secrets/abuseipdb_api_key"
+   
+ threat_intelligence:
+   sources:
+     virustotal:
+       enabled: true
+       priority: 1
+       rate_limit_requests_per_minute: 4
+       cache_ttl_seconds: 3600
++      cache_db_path: "./outputs/enrichment_cache.sqlite3"
+     shodan:
+       enabled: true
+       priority: 2
+       rate_limit_requests_per_minute: 60
+       cache_ttl_seconds: 1800
+     dshield:
+       enabled: true
+       priority: 3
+       rate_limit_requests_per_minute: 60
+       cache_ttl_seconds: 300
+     abuseipdb:
+       enabled: false
+       priority: 4
+       rate_limit_requests_per_minute: 1000
+       cache_ttl_seconds: 3600
+ 
+@@
+ 
+ ## Implementation Details and Code Examples
+ 
++## Elasticsearch Enrichment Index
++
++A dedicated enrichment index will store threat intel results for correlation.
++
++**Index naming convention**:
++```
++enrichment-intel-*
++```
++
++**Document structure**:
++```json
++{
++  "indicator": "1.2.3.4",
++  "indicator_type": "ip",
++  "sources": {
++    "dshield": {...},
++    "virustotal": {...},
++    "shodan": {...}
++  },
++  "asn": 12345,
++  "geo": {
++    "country": "US",
++    "region": "California",
++    "city": "San Francisco"
++  },
++  "tags": ["botnet", "scanner"],
++  "timestamp": "2025-07-11T12:34:56Z"
++}
++```
++
++**Mapping recommendations**:
++- `indicator`: keyword
++- `indicator_type`: keyword
++- `sources`: flattened or nested
++- `asn`: integer
++- `geo`: object
++- `tags`: keyword array
++- `timestamp`: date
++
++This index will support future use of Elasticsearch Enrich Processors for automated tagging of new logs.
+ 
+ ### 2. Threat Intelligence Manager
+ 
+@@
+ class ThreatIntelligenceManager:
+-    """Manages multiple threat intelligence sources and correlation."""
++    """Manages multiple threat intelligence sources, rate limiting, caching, and correlation."""
+ 
+     def __init__(self) -> None:
+         """Initialize the threat intelligence manager."""
+@@
+         return result
+ 
+     async def enrich_domain_comprehensive(self, domain: str) -> DomainIntelligence:
+         """Comprehensive domain enrichment from multiple sources."""
+         # Similar implementation to IP enrichment
+         pass
+ 
+     async def correlate_threat_indicators(self, indicators: List[str]) -> Dict[str, Any]:
+         """Correlate multiple threat indicators across sources."""
+         # Implementation for indicator correlation
+         pass
++
++    async def _enforce_rate_limit(self, source: ThreatIntelligenceSource) -> None:
++        """Enforce rate limiting for the specified source."""
++        client = self.clients.get(source)
++        if hasattr(client, "enforce_rate_limit"):
++            await client.enforce_rate_limit()
+ 
+     async def _query_source_async(self, source: ThreatIntelligenceSource, 
+                                  client: Any, ip_address: str) -> Dict[str, Any]:
+         """Query a single source asynchronously."""
+@@
+         }]
+
++ return [
++     {
++         "type": "status_update",
++         "message": f"Enriched {ip_address} using sources: {', '.join(result.sources_queried)}"
++     },
++     {
++         "type": "text",
++         "text": f"Comprehensive threat intelligence for {ip_address}:\n\n" + 
++                 json.dumps(result.dict(), indent=2, default=str)
++     }
++ ]
+ 
+ ### 2. Integration Tests
+ 
+ ```python
+@@
+         pass
+ 
+ ### 1. Unit Tests
+ 
+ ```python
+ # tests/test_threat_intelligence_manager.py
+@@
+     @pytest.mark.asyncio
+     async def test_enrich_ip_comprehensive_partial_failure(self, manager):
+         """Test IP enrichment with some source failures."""
+         # Mock one successful and one failing source
+         manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+         manager.clients[ThreatIntelligenceSource.VIRUSTOTAL] = AsyncMock()
+         
+         manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+             "threat_score": 75.0,
+             "confidence": 0.8
+         }
+         manager.clients[ThreatIntelligenceSource.VIRUSTOTAL].get_ip_report.side_effect = Exception("API Error")
+         
+         result = await manager.enrich_ip_comprehensive("8.8.8.8")
+         
+         assert result.ip_address == "8.8.8.8"
+         assert len(result.sources_queried) == 1
+         assert ThreatIntelligenceSource.DSHIELD in result.sources_queried
++
++    @pytest.mark.asyncio
++    async def test_cache_behavior(self, manager):
++        """Test that repeated enrichment uses cache."""
++        ip = "8.8.8.8"
++        result1 = await manager.enrich_ip_comprehensive(ip)
++        result2 = await manager.enrich_ip_comprehensive(ip)
++        assert result2.cache_hit
+ 
+ ### 2. Integration Tests
+ 
+ ```python
+@@
+ 
+ ### 1. Caching Strategy
+ 
+ - Multi-level caching (memory, disk, distributed)
+ - Configurable TTL per source
+ - Cache invalidation on data updates
+ - Cache warming for frequently queried IPs
++- SQLite database stored in user-defined output directory
++- Schema includes indicator, source, result_json, retrieved_at, expires_at
++- Supports expiry-aware lookups to avoid stale enrichment
+ 
+ ### 2. Concurrent Processing
+ 
+ - Async/await for all API calls
++ - Async/await for all API calls with per-source concurrency limits
+ - Connection pooling for HTTP clients
+ - Parallel source queries with timeout management
++ - Parallel source queries with timeout management and rate limit compliance
+ - Graceful handling of slow sources
+ 
+ ### 3. Resource Management
+ 
+@@
+ 
+ ### 1. Additional Sources
+ 
+ - AbuseIPDB integration
+ - AlienVault OTX integration
+ - ThreatFox integration
+ - Custom threat intelligence feeds
++- Integration with Elasticsearch Enrich Pipelines
++- Support for indicator relationships (graphs)
++- UI dashboard for enrichment monitoring
+ 
+ ### 2. Advanced Features
+ 
+ - Machine learning-based threat scoring
+ - Behavioral analysis integration
+ - Threat hunting automation
+ - Incident response integration

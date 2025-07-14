@@ -108,6 +108,9 @@ class PerformanceSettings:
         enable_connection_pooling: Whether to enable connection pooling
         connection_pool_size: Connection pool size
         request_timeout_seconds: Request timeout in seconds
+        enable_sqlite_cache: Whether to enable SQLite persistent caching
+        sqlite_cache_ttl_hours: SQLite cache time-to-live in hours
+        sqlite_cache_db_name: SQLite database filename
     """
     enable_caching: bool = True
     cache_ttl_seconds: int = 300
@@ -115,6 +118,9 @@ class PerformanceSettings:
     enable_connection_pooling: bool = True
     connection_pool_size: int = 10
     request_timeout_seconds: int = 30
+    enable_sqlite_cache: bool = True
+    sqlite_cache_ttl_hours: int = 24
+    sqlite_cache_db_name: str = "enrichment_cache.sqlite3"
 
 
 @dataclass
@@ -347,6 +353,9 @@ class UserConfigManager:
         self.performance_settings.enable_connection_pooling = os.getenv("ENABLE_CONNECTION_POOLING", str(self.performance_settings.enable_connection_pooling)).lower() == "true"
         self.performance_settings.connection_pool_size = int(os.getenv("CONNECTION_POOL_SIZE", self.performance_settings.connection_pool_size))
         self.performance_settings.request_timeout_seconds = int(os.getenv("REQUEST_TIMEOUT_SECONDS", self.performance_settings.request_timeout_seconds))
+        self.performance_settings.enable_sqlite_cache = os.getenv("ENABLE_SQLITE_CACHE", str(self.performance_settings.enable_sqlite_cache)).lower() == "true"
+        self.performance_settings.sqlite_cache_ttl_hours = int(os.getenv("SQLITE_CACHE_TTL_HOURS", self.performance_settings.sqlite_cache_ttl_hours))
+        self.performance_settings.sqlite_cache_db_name = os.getenv("SQLITE_CACHE_DB_NAME", self.performance_settings.sqlite_cache_db_name)
         
         # Security Settings
         self.security_settings.rate_limit_requests_per_minute = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", self.security_settings.rate_limit_requests_per_minute))
@@ -425,6 +434,9 @@ class UserConfigManager:
             self.performance_settings.enable_connection_pooling = performance_config.get("enable_connection_pooling", self.performance_settings.enable_connection_pooling)
             self.performance_settings.connection_pool_size = performance_config.get("connection_pool_size", self.performance_settings.connection_pool_size)
             self.performance_settings.request_timeout_seconds = performance_config.get("request_timeout_seconds", self.performance_settings.request_timeout_seconds)
+            self.performance_settings.enable_sqlite_cache = performance_config.get("enable_sqlite_cache", self.performance_settings.enable_sqlite_cache)
+            self.performance_settings.sqlite_cache_ttl_hours = performance_config.get("sqlite_cache_ttl_hours", self.performance_settings.sqlite_cache_ttl_hours)
+            self.performance_settings.sqlite_cache_db_name = performance_config.get("sqlite_cache_db_name", self.performance_settings.sqlite_cache_db_name)
         
         # Security Settings
         if "security" in user_config:
@@ -639,7 +651,10 @@ class UserConfigManager:
                 "max_cache_size": self.performance_settings.max_cache_size,
                 "enable_connection_pooling": self.performance_settings.enable_connection_pooling,
                 "connection_pool_size": self.performance_settings.connection_pool_size,
-                "request_timeout_seconds": self.performance_settings.request_timeout_seconds
+                "request_timeout_seconds": self.performance_settings.request_timeout_seconds,
+                "enable_sqlite_cache": self.performance_settings.enable_sqlite_cache,
+                "sqlite_cache_ttl_hours": self.performance_settings.sqlite_cache_ttl_hours,
+                "sqlite_cache_db_name": self.performance_settings.sqlite_cache_db_name
             },
             "security": {
                 "rate_limit_requests_per_minute": self.security_settings.rate_limit_requests_per_minute,
@@ -729,6 +744,9 @@ class UserConfigManager:
             "ENABLE_CONNECTION_POOLING": str(self.performance_settings.enable_connection_pooling),
             "CONNECTION_POOL_SIZE": str(self.performance_settings.connection_pool_size),
             "REQUEST_TIMEOUT_SECONDS": str(self.performance_settings.request_timeout_seconds),
+            "ENABLE_SQLITE_CACHE": str(self.performance_settings.enable_sqlite_cache),
+            "SQLITE_CACHE_TTL_HOURS": str(self.performance_settings.sqlite_cache_ttl_hours),
+            "SQLITE_CACHE_DB_NAME": self.performance_settings.sqlite_cache_db_name,
             
             # Security Settings
             "RATE_LIMIT_REQUESTS_PER_MINUTE": str(self.security_settings.rate_limit_requests_per_minute),
@@ -758,6 +776,25 @@ class UserConfigManager:
             "MAX_EXPANSION_DEPTH": str(self.campaign_settings.max_expansion_depth),
             "EXPANSION_TIMEOUT_SECONDS": str(self.campaign_settings.expansion_timeout_seconds)
         }
+
+    def get_database_directory(self) -> str:
+        """Get the database directory path.
+        
+        Returns:
+            str: Path to the database directory (~/dshield-mcp-output/db)
+        """
+        db_dir = os.path.join(self.output_directory, "db")
+        os.makedirs(db_dir, exist_ok=True)
+        return db_dir
+    
+    def get_cache_database_path(self) -> str:
+        """Get the full path to the cache database file.
+        
+        Returns:
+            str: Full path to the cache database file
+        """
+        db_dir = self.get_database_directory()
+        return os.path.join(db_dir, self.performance_settings.sqlite_cache_db_name)
 
 
 # Global instance for easy access

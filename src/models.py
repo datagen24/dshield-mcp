@@ -310,6 +310,16 @@ class DShieldPortData(BaseModel):
         return v
 
 
+class ThreatIntelligenceSource(str, Enum):
+    """Threat intelligence sources."""
+    DSHIELD = "dshield"
+    VIRUSTOTAL = "virustotal"
+    SHODAN = "shodan"
+    ABUSEIPDB = "abuseipdb"
+    ALIENVAULT = "alienvault"
+    THREATFOX = "threatfox"
+
+
 class ThreatIntelligence(BaseModel):
     """Model for DShield threat intelligence data."""
     
@@ -344,6 +354,124 @@ class ThreatIntelligence(BaseModel):
         """Validate reputation score range."""
         if v is not None and (v < 0 or v > 100):
             raise ValueError(f"Reputation score must be between 0 and 100: {v}")
+        return v
+
+
+class ThreatIntelligenceResult(BaseModel):
+    """Enhanced threat intelligence result from multiple sources."""
+    
+    ip_address: str = Field(..., description="IP address")
+    domain: Optional[str] = Field(None, description="Associated domain")
+    
+    # Aggregated threat scores
+    overall_threat_score: Optional[float] = Field(None, description="Overall threat score (0-100)")
+    confidence_score: Optional[float] = Field(None, description="Confidence in assessment (0-1)")
+    
+    # Source-specific data
+    source_results: Dict[ThreatIntelligenceSource, Dict[str, Any]] = Field(
+        default_factory=dict, description="Results from each source"
+    )
+    
+    # Correlated indicators
+    threat_indicators: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Correlated threat indicators"
+    )
+    
+    # Geographic and network data
+    geographic_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Geographic information"
+    )
+    network_data: Dict[str, Any] = Field(
+        default_factory=dict, description="Network infrastructure data"
+    )
+    
+    # Timestamps
+    first_seen: Optional[datetime] = Field(None, description="First seen across sources")
+    last_seen: Optional[datetime] = Field(None, description="Last seen across sources")
+    
+    # Metadata
+    sources_queried: List[ThreatIntelligenceSource] = Field(
+        default_factory=list, description="Sources that were queried"
+    )
+    query_timestamp: datetime = Field(default_factory=datetime.now, description="Query timestamp")
+    cache_hit: bool = Field(False, description="Whether result was from cache")
+    
+    # Correlation metrics
+    correlation_metrics: Optional[Dict[str, Any]] = Field(
+        None, description="Correlation quality metrics and statistics"
+    )
+    
+    @field_validator('ip_address')
+    @classmethod
+    def validate_ip_address(cls, v):
+        """Validate IP address format."""
+        try:
+            ipaddress.ip_address(v)
+        except ValueError:
+            raise ValueError(f"Invalid IP address: {v}")
+        return v
+    
+    @field_validator('overall_threat_score')
+    @classmethod
+    def validate_overall_threat_score(cls, v):
+        """Validate overall threat score range."""
+        if v is not None and (v < 0 or v > 100):
+            raise ValueError(f"Overall threat score must be between 0 and 100: {v}")
+        return v
+    
+    @field_validator('confidence_score')
+    @classmethod
+    def validate_confidence_score(cls, v):
+        """Validate confidence score range."""
+        if v is not None and (v < 0 or v > 1):
+            raise ValueError(f"Confidence score must be between 0 and 1: {v}")
+        return v
+
+
+class DomainIntelligence(BaseModel):
+    """Domain threat intelligence data."""
+    
+    domain: str = Field(..., description="Domain name")
+    threat_score: Optional[float] = Field(None, description="Threat score (0-100)")
+    reputation_score: Optional[float] = Field(None, description="Reputation score (0-100)")
+    
+    # DNS and infrastructure
+    ip_addresses: List[str] = Field(default_factory=list, description="Associated IP addresses")
+    nameservers: List[str] = Field(default_factory=list, description="Nameservers")
+    registrar: Optional[str] = Field(None, description="Domain registrar")
+    creation_date: Optional[datetime] = Field(None, description="Domain creation date")
+    
+    # Threat indicators
+    malware_families: List[str] = Field(default_factory=list, description="Associated malware")
+    categories: List[str] = Field(default_factory=list, description="Threat categories")
+    tags: List[str] = Field(default_factory=list, description="Threat tags")
+    
+    # Source data
+    source_results: Dict[ThreatIntelligenceSource, Dict[str, Any]] = Field(
+        default_factory=dict, description="Results from each source"
+    )
+    
+    # Metadata
+    sources_queried: List[ThreatIntelligenceSource] = Field(
+        default_factory=list, description="Sources that were queried"
+    )
+    query_timestamp: datetime = Field(default_factory=datetime.now, description="Query timestamp")
+    cache_hit: bool = Field(False, description="Whether result was from cache")
+    
+    @field_validator('domain')
+    @classmethod
+    def validate_domain(cls, v):
+        """Validate domain name format."""
+        if not v or '.' not in v:
+            raise ValueError(f"Invalid domain name: {v}")
+        return v.lower()
+    
+    @field_validator('threat_score', 'reputation_score')
+    @classmethod
+    def validate_score(cls, v):
+        """Validate score range."""
+        if v is not None and (v < 0 or v > 100):
+            raise ValueError(f"Score must be between 0 and 100: {v}")
         return v
 
 

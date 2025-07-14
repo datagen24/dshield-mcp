@@ -1982,6 +1982,16 @@ def validate_port(cls, v)
 
 Validate port number.
 
+<a id="models.ThreatIntelligenceSource"></a>
+
+## ThreatIntelligenceSource Objects
+
+```python
+class ThreatIntelligenceSource(str, Enum)
+```
+
+Threat intelligence sources.
+
 <a id="models.ThreatIntelligence"></a>
 
 ## ThreatIntelligence Objects
@@ -2015,6 +2025,86 @@ def validate_reputation_score(cls, v)
 ```
 
 Validate reputation score range.
+
+<a id="models.ThreatIntelligenceResult"></a>
+
+## ThreatIntelligenceResult Objects
+
+```python
+class ThreatIntelligenceResult(BaseModel)
+```
+
+Enhanced threat intelligence result from multiple sources.
+
+<a id="models.ThreatIntelligenceResult.validate_ip_address"></a>
+
+#### validate\_ip\_address
+
+```python
+@field_validator('ip_address')
+@classmethod
+def validate_ip_address(cls, v)
+```
+
+Validate IP address format.
+
+<a id="models.ThreatIntelligenceResult.validate_overall_threat_score"></a>
+
+#### validate\_overall\_threat\_score
+
+```python
+@field_validator('overall_threat_score')
+@classmethod
+def validate_overall_threat_score(cls, v)
+```
+
+Validate overall threat score range.
+
+<a id="models.ThreatIntelligenceResult.validate_confidence_score"></a>
+
+#### validate\_confidence\_score
+
+```python
+@field_validator('confidence_score')
+@classmethod
+def validate_confidence_score(cls, v)
+```
+
+Validate confidence score range.
+
+<a id="models.DomainIntelligence"></a>
+
+## DomainIntelligence Objects
+
+```python
+class DomainIntelligence(BaseModel)
+```
+
+Domain threat intelligence data.
+
+<a id="models.DomainIntelligence.validate_domain"></a>
+
+#### validate\_domain
+
+```python
+@field_validator('domain')
+@classmethod
+def validate_domain(cls, v)
+```
+
+Validate domain name format.
+
+<a id="models.DomainIntelligence.validate_score"></a>
+
+#### validate\_score
+
+```python
+@field_validator('threat_score', 'reputation_score')
+@classmethod
+def validate_score(cls, v)
+```
+
+Validate score range.
 
 <a id="models.AttackReport"></a>
 
@@ -2319,6 +2409,9 @@ User-configurable performance settings.
 - `enable_connection_pooling` - Whether to enable connection pooling
 - `connection_pool_size` - Connection pool size
 - `request_timeout_seconds` - Request timeout in seconds
+- `enable_sqlite_cache` - Whether to enable SQLite persistent caching
+- `sqlite_cache_ttl_hours` - SQLite cache time-to-live in hours
+- `sqlite_cache_db_name` - SQLite database filename
 
 <a id="user_config.SecuritySettings"></a>
 
@@ -2413,13 +2506,14 @@ supports multiple configuration sources with precedence ordering:
 - `security_settings` - Security-related settings
 - `logging_settings` - Logging-related settings
 - `campaign_settings` - Campaign analysis settings
+- `output_directory` - Directory for generated outputs (default: ~/dshield-mcp-output, configurable)
   
 
 **Example**:
 
   >>> manager = UserConfigManager()
-  >>> page_size = manager.get_setting("query", "default_page_size")
-  >>> manager.update_setting("query", "default_page_size", 200)
+  >>> output_dir = manager.output_directory
+  >>> print(output_dir)
 
 <a id="user_config.UserConfigManager.__init__"></a>
 
@@ -2523,6 +2617,34 @@ Get environment variables that can be used to override settings.
 **Returns**:
 
   Dictionary mapping setting names to environment variable names
+
+<a id="user_config.UserConfigManager.get_database_directory"></a>
+
+#### get\_database\_directory
+
+```python
+def get_database_directory() -> str
+```
+
+Get the database directory path.
+
+**Returns**:
+
+- `str` - Path to the database directory (~/dshield-mcp-output/db)
+
+<a id="user_config.UserConfigManager.get_cache_database_path"></a>
+
+#### get\_cache\_database\_path
+
+```python
+def get_cache_database_path() -> str
+```
+
+Get the full path to the cache database file.
+
+**Returns**:
+
+- `str` - Full path to the cache database file
 
 <a id="user_config.get_user_config"></a>
 

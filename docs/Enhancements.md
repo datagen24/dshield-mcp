@@ -329,15 +329,6 @@ Comprehensive debugging and resolution of campaign analysis system issues.
   }
 }
 ```
-## 10. Enhanced Threat Intelligence Integration
-Bulk IP enrichment with caching
-'''python 
-enrich_bulk_ips(
-    ip_list=["1.2.3.4", "5.6.7.8"],
-    sources=["dshield", "virustotal", "shodan"],
-    cache_duration_hours=24
-)
-'''
 ## 11. Query Performance Metrics
 Return query performance data
 '''python 
