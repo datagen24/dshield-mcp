@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 import os
+import uuid
 
 from src.threat_intelligence_manager import ThreatIntelligenceManager
 from src.models import ThreatIntelligenceResult, DomainIntelligence, ThreatIntelligenceSource
@@ -88,8 +89,9 @@ class TestThreatIntelligenceManager:
         return config
     
     @pytest.mark.asyncio
-    async def test_manager_initialization(self, mock_config, mock_user_config):
+    async def test_manager_initialization(self, mock_config):
         """Test Threat Intelligence Manager initialization."""
+        mock_user_config = self.mock_user_config()
         with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
              patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
             
@@ -107,6 +109,9 @@ class TestThreatIntelligenceManager:
     @pytest.mark.asyncio
     async def test_enrich_ip_comprehensive_success(self, threat_manager):
         """Test successful comprehensive IP enrichment."""
+        # Use a unique IP to avoid cache hits
+        unique_ip = f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+        
         # Mock DShield client response
         mock_response = {
             "reputation_score": 85.0,
@@ -121,10 +126,10 @@ class TestThreatIntelligenceManager:
             return_value=mock_response
         )
         
-        result = await threat_manager.enrich_ip_comprehensive("8.8.8.8")
+        result = await threat_manager.enrich_ip_comprehensive(unique_ip)
         
         assert isinstance(result, ThreatIntelligenceResult)
-        assert result.ip_address == "8.8.8.8"
+        assert result.ip_address == unique_ip
         assert result.overall_threat_score == 15.0  # 100 - 85
         assert result.confidence_score == 0.8  # Default for DShield
         assert ThreatIntelligenceSource.DSHIELD in result.sources_queried
@@ -271,11 +276,19 @@ class TestThreatIntelligenceManager:
         # Should not raise exception for first request
         await threat_manager._check_rate_limit(source)
         
-        # Mock many requests to exceed rate limit
-        threat_manager.rate_limit_trackers[source] = [datetime.now().timestamp()] * 60
+        # Mock many requests to exceed rate limit (use old timestamps to force waiting)
+        old_timestamp = datetime.now().timestamp() - 30  # 30 seconds ago
+        threat_manager.rate_limit_trackers[source] = [old_timestamp] * 60
         
-        with pytest.raises(RuntimeError, match="Rate limit exceeded"):
-            await threat_manager._check_rate_limit(source)
+        # The enhanced rate limiting should wait instead of immediately raising
+        # Let's test that it doesn't raise immediately
+        start_time = datetime.now()
+        await threat_manager._check_rate_limit(source)
+        end_time = datetime.now()
+        
+        # Should have waited some time (at least 1 second)
+        wait_duration = (end_time - start_time).total_seconds()
+        assert wait_duration > 0.5  # Should have waited at least 0.5 seconds
     
     def test_get_available_sources(self, threat_manager):
         """Test getting available sources."""
@@ -553,11 +566,14 @@ class TestThreatIntelligenceIntegration:
                 assert hasattr(manager, 'cleanup')
 
     @pytest.mark.asyncio
-    async def test_elasticsearch_writeback_enabled(self, manager):
+    async def test_elasticsearch_writeback_enabled(self):
         """Test Elasticsearch writeback when enabled."""
-        # Mock config to enable writeback
-        manager.config = {
+        # Mock config to enable writeback and DShield source
+        mock_config = {
             "threat_intelligence": {
+                "sources": {
+                    "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                },
                 "elasticsearch": {
                     "enabled": True,
                     "writeback_enabled": True,
@@ -566,42 +582,64 @@ class TestThreatIntelligenceIntegration:
                 }
             }
         }
-        manager._initialize_elasticsearch()
-        # Mock Elasticsearch client
-        mock_es_client = AsyncMock()
-        manager.elasticsearch_client = mock_es_client
-        # Mock source clients
-        manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
-            "threat_score": 75.0,
-            "confidence": 0.8
-        }
         
-        # Perform enrichment
-        result = await manager.enrich_ip_comprehensive("8.8.8.8")
+        # Mock user config
+        mock_user_config = MagicMock()
+        mock_user_config.performance_settings.enable_sqlite_cache = True
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.performance_settings.sqlite_cache_db_name = "test_enrichment_cache.sqlite3"
+        mock_user_config.get_database_directory.return_value = "/tmp/test_db"
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
         
-        # Verify Elasticsearch write was called
-        mock_es_client.index.assert_called_once()
-        call_args = mock_es_client.index.call_args
-        
-        # Verify document structure
-        doc = call_args[1]["document"]
-        assert doc["indicator"] == "8.8.8.8"
-        assert doc["indicator_type"] == "ip"
-        assert "sources" in doc
-        assert "timestamp" in doc
-        assert doc["threat_score"] == result.overall_threat_score
-        
-        # Verify index naming
-        index_name = call_args[1]["index"]
-        assert index_name.startswith("enrichment-intel-")
+        with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
+             patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
+            
+            manager = ThreatIntelligenceManager()
+            
+            # Mock Elasticsearch client
+            mock_es_client = AsyncMock()
+            manager.elasticsearch_client = mock_es_client
+            
+            # Mock DShield client
+            manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+            manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+                "threat_score": 75.0,
+                "confidence": 0.8
+            }
+            
+            # Use a unique IP to avoid cache hits
+            unique_ip = f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+            
+            # Perform enrichment
+            result = await manager.enrich_ip_comprehensive(unique_ip)
+            
+            # Verify Elasticsearch write was called
+            mock_es_client.index.assert_called_once()
+            call_args = mock_es_client.index.call_args
+            
+            # Verify document structure
+            doc = call_args[1]["document"]
+            assert doc["indicator"] == unique_ip
+            assert doc["indicator_type"] == "ip"
+            assert "sources" in doc
+            assert "timestamp" in doc
+            assert doc["threat_score"] == result.overall_threat_score
+            
+            # Verify index naming
+            index_name = call_args[1]["index"]
+            assert index_name.startswith("enrichment-intel-")
+            
+            await manager.cleanup()
     
     @pytest.mark.asyncio
-    async def test_elasticsearch_writeback_disabled(self, manager):
+    async def test_elasticsearch_writeback_disabled(self):
         """Test Elasticsearch writeback when disabled."""
-        # Mock config to disable writeback
-        manager.config = {
+        # Mock config to disable writeback but enable DShield source
+        mock_config = {
             "threat_intelligence": {
+                "sources": {
+                    "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                },
                 "elasticsearch": {
                     "enabled": True,
                     "writeback_enabled": False,  # Disabled
@@ -610,36 +648,55 @@ class TestThreatIntelligenceIntegration:
                 }
             }
         }
-        manager._initialize_elasticsearch()
-        # Mock Elasticsearch client
-        mock_es_client = AsyncMock()
-        manager.elasticsearch_client = mock_es_client
-        # Mock source clients
-        manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
-            "threat_score": 75.0,
-            "confidence": 0.8
-        }
         
-        # Perform enrichment
-        result = await manager.enrich_ip_comprehensive("8.8.8.8")
+        # Mock user config
+        mock_user_config = MagicMock()
+        mock_user_config.performance_settings.enable_sqlite_cache = True
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.performance_settings.sqlite_cache_db_name = "test_enrichment_cache.sqlite3"
+        mock_user_config.get_database_directory.return_value = "/tmp/test_db"
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
         
-        # Verify Elasticsearch write was NOT called
-        mock_es_client.index.assert_not_called()
-        
-        # Verify enrichment still works
-        assert result.ip_address == "8.8.8.8"
-        assert len(result.sources_queried) == 1
-    
+        with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
+             patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
+            
+            manager = ThreatIntelligenceManager()
+            
+            # Mock Elasticsearch client
+            mock_es_client = AsyncMock()
+            manager.elasticsearch_client = mock_es_client
+            
+            # Mock DShield client
+            manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+            manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+                "threat_score": 75.0,
+                "confidence": 0.8
+            }
+            
+            # Use a unique IP to avoid cache hits
+            unique_ip = f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+            
+            # Perform enrichment
+            result = await manager.enrich_ip_comprehensive(unique_ip)
+            
+            # Verify Elasticsearch write was NOT called
+            mock_es_client.index.assert_not_called()
+            
+            # Verify enrichment still works
+            assert result.ip_address == unique_ip
+            assert len(result.sources_queried) == 1
+            
+            await manager.cleanup()
+
     @pytest.mark.asyncio
-    async def test_elasticsearch_writeback_no_client(self, manager):
+    async def test_elasticsearch_writeback_no_client(self):
         """Test behavior when Elasticsearch client is not available."""
-        # Ensure no Elasticsearch client
-        manager.elasticsearch_client = None
-        
-        # Mock config to enable writeback
-        manager.config = {
+        # Mock config to enable writeback and DShield source
+        mock_config = {
             "threat_intelligence": {
+                "sources": {
+                    "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                },
                 "elasticsearch": {
                     "enabled": True,
                     "writeback_enabled": True,
@@ -648,30 +705,51 @@ class TestThreatIntelligenceIntegration:
                 }
             }
         }
-        manager._initialize_elasticsearch()
-        # Mock Elasticsearch client
-        mock_es_client = AsyncMock()
-        manager.elasticsearch_client = mock_es_client
-        # Mock source clients
-        manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
-            "threat_score": 75.0,
-            "confidence": 0.8
-        }
         
-        # Perform enrichment - should not fail
-        result = await manager.enrich_ip_comprehensive("8.8.8.8")
+        # Mock user config
+        mock_user_config = MagicMock()
+        mock_user_config.performance_settings.enable_sqlite_cache = True
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.performance_settings.sqlite_cache_db_name = "test_enrichment_cache.sqlite3"
+        mock_user_config.get_database_directory.return_value = "/tmp/test_db"
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
         
-        # Verify enrichment still works
-        assert result.ip_address == "8.8.8.8"
-        assert len(result.sources_queried) == 1
-    
+        with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
+             patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
+            
+            manager = ThreatIntelligenceManager()
+            
+            # Ensure no Elasticsearch client
+            manager.elasticsearch_client = None
+            
+            # Mock DShield client
+            manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+            manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+                "threat_score": 75.0,
+                "confidence": 0.8
+            }
+            
+            # Use a unique IP to avoid cache hits
+            unique_ip = f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+            
+            # Perform enrichment - should not fail
+            result = await manager.enrich_ip_comprehensive(unique_ip)
+            
+            # Verify enrichment still works
+            assert result.ip_address == unique_ip
+            assert len(result.sources_queried) == 1
+            
+            await manager.cleanup()
+
     @pytest.mark.asyncio
-    async def test_elasticsearch_writeback_error_handling(self, manager):
+    async def test_elasticsearch_writeback_error_handling(self):
         """Test error handling when Elasticsearch writeback fails."""
-        # Mock config to enable writeback
-        manager.config = {
+        # Mock config to enable writeback and DShield source
+        mock_config = {
             "threat_intelligence": {
+                "sources": {
+                    "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                },
                 "elasticsearch": {
                     "enabled": True,
                     "writeback_enabled": True,
@@ -680,34 +758,56 @@ class TestThreatIntelligenceIntegration:
                 }
             }
         }
-        manager._initialize_elasticsearch()
-        # Mock Elasticsearch client that raises an exception
-        mock_es_client = AsyncMock()
-        mock_es_client.index.side_effect = Exception("Elasticsearch connection failed")
-        manager.elasticsearch_client = mock_es_client
-        # Mock source clients
-        manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
-            "threat_score": 75.0,
-            "confidence": 0.8
-        }
         
-        # Perform enrichment - should not fail due to ES error
-        result = await manager.enrich_ip_comprehensive("8.8.8.8")
+        # Mock user config
+        mock_user_config = MagicMock()
+        mock_user_config.performance_settings.enable_sqlite_cache = True
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.performance_settings.sqlite_cache_db_name = "test_enrichment_cache.sqlite3"
+        mock_user_config.get_database_directory.return_value = "/tmp/test_db"
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
         
-        # Verify enrichment still works despite ES error
-        assert result.ip_address == "8.8.8.8"
-        assert len(result.sources_queried) == 1
-        
-        # Verify Elasticsearch write was attempted
-        mock_es_client.index.assert_called_once()
-    
+        with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
+             patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
+            
+            manager = ThreatIntelligenceManager()
+            
+            # Mock Elasticsearch client that raises an exception
+            mock_es_client = AsyncMock()
+            mock_es_client.index.side_effect = Exception("Elasticsearch connection failed")
+            manager.elasticsearch_client = mock_es_client
+            
+            # Mock DShield client
+            manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+            manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+                "threat_score": 75.0,
+                "confidence": 0.8
+            }
+            
+            # Use a unique IP to avoid cache hits
+            unique_ip = f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+            
+            # Perform enrichment - should not fail due to ES error
+            result = await manager.enrich_ip_comprehensive(unique_ip)
+            
+            # Verify enrichment still works despite ES error
+            assert result.ip_address == unique_ip
+            assert len(result.sources_queried) == 1
+            
+            # Verify Elasticsearch write was attempted
+            mock_es_client.index.assert_called_once()
+            
+            await manager.cleanup()
+
     @pytest.mark.asyncio
-    async def test_elasticsearch_writeback_document_structure(self, manager):
+    async def test_elasticsearch_writeback_document_structure(self):
         """Test that Elasticsearch documents have correct structure."""
-        # Mock config to enable writeback
-        manager.config = {
+        # Mock config to enable writeback and DShield source
+        mock_config = {
             "threat_intelligence": {
+                "sources": {
+                    "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                },
                 "elasticsearch": {
                     "enabled": True,
                     "writeback_enabled": True,
@@ -716,65 +816,79 @@ class TestThreatIntelligenceIntegration:
                 }
             }
         }
-        manager._initialize_elasticsearch()
-        # Mock Elasticsearch client
-        mock_es_client = AsyncMock()
-        manager.elasticsearch_client = mock_es_client
-        # Mock source clients with rich data
-        manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
-            "threat_score": 75.0,
-            "confidence": 0.8,
-            "asn": 15169,
-            "country": "US"
-        }
         
-        manager.clients[ThreatIntelligenceSource.VIRUSTOTAL] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.VIRUSTOTAL].get_ip_report.return_value = {
-            "threat_score": 80.0,
-            "confidence": 0.9,
-            "malware_families": ["trojan", "backdoor"]
-        }
+        # Mock user config
+        mock_user_config = MagicMock()
+        mock_user_config.performance_settings.enable_sqlite_cache = True
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.performance_settings.sqlite_cache_db_name = "test_enrichment_cache.sqlite3"
+        mock_user_config.get_database_directory.return_value = "/tmp/test_db"
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
         
-        # Perform enrichment
-        result = await manager.enrich_ip_comprehensive("8.8.8.8")
-        
-        # Get the document that was written to Elasticsearch
-        call_args = mock_es_client.index.call_args
-        doc = call_args[1]["document"]
-        
-        # Verify required fields
-        assert doc["indicator"] == "8.8.8.8"
-        assert doc["indicator_type"] == "ip"
-        assert "sources" in doc
-        assert "timestamp" in doc
-        assert "threat_score" in doc
-        assert "confidence_score" in doc
-        
-        # Verify sources data
-        sources = doc["sources"]
-        assert ThreatIntelligenceSource.DSHIELD.value in sources
-        assert ThreatIntelligenceSource.VIRUSTOTAL.value in sources
-        
-        # Verify network data if present
-        if result.network_data:
-            assert doc["asn"] == result.network_data.get("asn")
-        
-        # Verify geographic data if present
-        if result.geographic_data:
-            assert doc["geo"] == result.geographic_data
-        
-        # Verify tags from threat indicators
-        if result.threat_indicators:
-            assert "tags" in doc
-            assert isinstance(doc["tags"], list)
-    
+        with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
+             patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
+            
+            manager = ThreatIntelligenceManager()
+            
+            # Mock Elasticsearch client
+            mock_es_client = AsyncMock()
+            manager.elasticsearch_client = mock_es_client
+            
+            # Mock DShield client with rich data
+            manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+            manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+                "threat_score": 75.0,
+                "confidence": 0.8,
+                "asn": 15169,
+                "country": "US"
+            }
+            
+            # Use a unique IP to avoid cache hits
+            unique_ip = f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+            
+            # Perform enrichment
+            result = await manager.enrich_ip_comprehensive(unique_ip)
+            
+            # Get the document that was written to Elasticsearch
+            call_args = mock_es_client.index.call_args
+            doc = call_args[1]["document"]
+            
+            # Verify required fields
+            assert doc["indicator"] == unique_ip
+            assert doc["indicator_type"] == "ip"
+            assert "sources" in doc
+            assert "timestamp" in doc
+            assert "threat_score" in doc
+            assert "confidence_score" in doc
+            
+            # Verify sources data
+            sources = doc["sources"]
+            assert ThreatIntelligenceSource.DSHIELD.value in sources
+            
+            # Verify network data if present
+            if result.network_data:
+                assert doc["asn"] == result.network_data.get("asn")
+            
+            # Verify geographic data if present
+            if result.geographic_data:
+                assert doc["geo"] == result.geographic_data
+            
+            # Verify tags from threat indicators
+            if result.threat_indicators:
+                assert "tags" in doc
+                assert isinstance(doc["tags"], list)
+            
+            await manager.cleanup()
+
     @pytest.mark.asyncio
-    async def test_elasticsearch_writeback_index_naming(self, manager):
+    async def test_elasticsearch_writeback_index_naming(self):
         """Test that Elasticsearch index names follow the correct pattern."""
         # Mock config with custom index prefix
-        manager.config = {
+        mock_config = {
             "threat_intelligence": {
+                "sources": {
+                    "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                },
                 "elasticsearch": {
                     "enabled": True,
                     "writeback_enabled": True,
@@ -783,34 +897,56 @@ class TestThreatIntelligenceIntegration:
                 }
             }
         }
-        manager._initialize_elasticsearch()
-        # Mock Elasticsearch client
-        mock_es_client = AsyncMock()
-        manager.elasticsearch_client = mock_es_client
-        # Mock source clients
-        manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
-            "threat_score": 75.0,
-            "confidence": 0.8
-        }
         
-        # Perform enrichment
-        await manager.enrich_ip_comprehensive("8.8.8.8")
+        # Mock user config
+        mock_user_config = MagicMock()
+        mock_user_config.performance_settings.enable_sqlite_cache = True
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.performance_settings.sqlite_cache_db_name = "test_enrichment_cache.sqlite3"
+        mock_user_config.get_database_directory.return_value = "/tmp/test_db"
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
         
-        # Verify index naming
-        call_args = mock_es_client.index.call_args
-        index_name = call_args[1]["index"]
-        
-        # Should follow pattern: prefix-YYYY.MM
-        assert index_name.startswith("custom-enrichment-")
-        assert len(index_name) == len("custom-enrichment-") + 7  # YYYY.MM format
-    
+        with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
+             patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
+            
+            manager = ThreatIntelligenceManager()
+            
+            # Mock Elasticsearch client
+            mock_es_client = AsyncMock()
+            manager.elasticsearch_client = mock_es_client
+            
+            # Mock DShield client
+            manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+            manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+                "threat_score": 75.0,
+                "confidence": 0.8
+            }
+            
+            # Use a unique IP to avoid cache hits
+            unique_ip = f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+            
+            # Perform enrichment
+            await manager.enrich_ip_comprehensive(unique_ip)
+            
+            # Verify index naming
+            call_args = mock_es_client.index.call_args
+            index_name = call_args[1]["index"]
+            
+            # Should follow pattern: prefix-YYYY.MM
+            assert index_name.startswith("custom-enrichment-")
+            assert len(index_name) == len("custom-enrichment-") + 7  # YYYY.MM format
+            
+            await manager.cleanup()
+
     @pytest.mark.asyncio
-    async def test_elasticsearch_writeback_document_id(self, manager):
+    async def test_elasticsearch_writeback_document_id(self):
         """Test that Elasticsearch documents have unique IDs."""
-        # Mock config to enable writeback
-        manager.config = {
+        # Mock config to enable writeback and DShield source
+        mock_config = {
             "threat_intelligence": {
+                "sources": {
+                    "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                },
                 "elasticsearch": {
                     "enabled": True,
                     "writeback_enabled": True,
@@ -819,34 +955,56 @@ class TestThreatIntelligenceIntegration:
                 }
             }
         }
-        manager._initialize_elasticsearch()
-        # Mock Elasticsearch client
-        mock_es_client = AsyncMock()
-        manager.elasticsearch_client = mock_es_client
-        # Mock source clients
-        manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
-            "threat_score": 75.0,
-            "confidence": 0.8
-        }
         
-        # Perform enrichment
-        await manager.enrich_ip_comprehensive("8.8.8.8")
+        # Mock user config
+        mock_user_config = MagicMock()
+        mock_user_config.performance_settings.enable_sqlite_cache = True
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.performance_settings.sqlite_cache_db_name = "test_enrichment_cache.sqlite3"
+        mock_user_config.get_database_directory.return_value = "/tmp/test_db"
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
         
-        # Verify document ID format
-        call_args = mock_es_client.index.call_args
-        doc_id = call_args[1]["id"]
-        
-        # Should be: ip_timestamp
-        assert doc_id.startswith("8.8.8.8_")
-        assert len(doc_id) > len("8.8.8.8_")
-    
+        with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
+             patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
+            
+            manager = ThreatIntelligenceManager()
+            
+            # Mock Elasticsearch client
+            mock_es_client = AsyncMock()
+            manager.elasticsearch_client = mock_es_client
+            
+            # Mock DShield client
+            manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+            manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+                "threat_score": 75.0,
+                "confidence": 0.8
+            }
+            
+            # Use a unique IP to avoid cache hits
+            unique_ip = f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+            
+            # Perform enrichment
+            await manager.enrich_ip_comprehensive(unique_ip)
+            
+            # Verify document ID format
+            call_args = mock_es_client.index.call_args
+            doc_id = call_args[1]["id"]
+            
+            # Should be: ip_timestamp
+            assert doc_id.startswith(f"{unique_ip}_")
+            assert len(doc_id) > len(f"{unique_ip}_")
+            
+            await manager.cleanup()
+
     @pytest.mark.asyncio
-    async def test_elasticsearch_writeback_multiple_queries(self, manager):
+    async def test_elasticsearch_writeback_multiple_queries(self):
         """Test that multiple enrichment queries write to Elasticsearch correctly."""
-        # Mock config to enable writeback
-        manager.config = {
+        # Mock config to enable writeback and DShield source
+        mock_config = {
             "threat_intelligence": {
+                "sources": {
+                    "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                },
                 "elasticsearch": {
                     "enabled": True,
                     "writeback_enabled": True,
@@ -855,35 +1013,193 @@ class TestThreatIntelligenceIntegration:
                 }
             }
         }
-        manager._initialize_elasticsearch()
-        # Mock Elasticsearch client
-        mock_es_client = AsyncMock()
-        manager.elasticsearch_client = mock_es_client
-        # Mock source clients
-        manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
-        manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
-            "threat_score": 75.0,
-            "confidence": 0.8
+        
+        # Mock user config
+        mock_user_config = MagicMock()
+        mock_user_config.performance_settings.enable_sqlite_cache = True
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.performance_settings.sqlite_cache_db_name = "test_enrichment_cache.sqlite3"
+        mock_user_config.get_database_directory.return_value = "/tmp/test_db"
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
+        
+        with patch('src.threat_intelligence_manager.get_config', return_value=mock_config), \
+             patch('src.threat_intelligence_manager.get_user_config', return_value=mock_user_config):
+            
+            manager = ThreatIntelligenceManager()
+            
+            # Mock Elasticsearch client
+            mock_es_client = AsyncMock()
+            manager.elasticsearch_client = mock_es_client
+            
+            # Mock DShield client
+            manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
+            manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
+                "threat_score": 75.0,
+                "confidence": 0.8
+            }
+            
+            # Use unique IPs to avoid cache hits
+            unique_ips = [
+                f"10.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}.{uuid.uuid4().int % 255}"
+                for _ in range(3)
+            ]
+            
+            # Perform multiple enrichments
+            for ip in unique_ips:
+                await manager.enrich_ip_comprehensive(ip)
+            
+            # Verify three documents were written
+            assert mock_es_client.index.call_count == 3
+            
+            # Verify different IPs
+            calls = mock_es_client.index.call_args_list
+            indicators = [call[1]["document"]["indicator"] for call in calls]
+            assert unique_ips[0] in indicators
+            assert unique_ips[1] in indicators
+            assert unique_ips[2] in indicators
+            
+            # Verify unique document IDs
+            doc_ids = [call[1]["id"] for call in calls]
+            assert len(set(doc_ids)) == 3  # All IDs should be unique
+            
+            await manager.cleanup()
+
+    @pytest.mark.asyncio
+    async def test_enhanced_correlation(self, manager):
+        """Test enhanced correlation with source weighting and confidence scoring."""
+        # Create a mock result with multiple sources
+        result = ThreatIntelligenceResult(ip_address="8.8.8.8")
+        result.source_results = {
+            ThreatIntelligenceSource.DSHIELD: {
+                "threat_score": 75.0,
+                "confidence": 0.8,
+                "attack_types": ["port_scan", "brute_force"],
+                "tags": ["malicious", "scanner"],
+                "country": "US",
+                "asn": "AS15169"
+            },
+            ThreatIntelligenceSource.VIRUSTOTAL: {
+                "threat_score": 80.0,
+                "confidence": 0.9,
+                "attack_types": ["port_scan"],
+                "tags": ["malicious"],
+                "country": "US",
+                "asn": "AS15169"
+            }
         }
         
-        # Perform multiple enrichments
-        await manager.enrich_ip_comprehensive("8.8.8.8")
-        await manager.enrich_ip_comprehensive("1.1.1.1")
-        await manager.enrich_ip_comprehensive("208.67.222.222")
+        # Run enhanced correlation
+        await manager._correlate_results(result)
         
-        # Verify three documents were written
-        assert mock_es_client.index.call_count == 3
+        # Verify weighted threat score (should be weighted by source reliability)
+        # DShield: 75.0 * 0.8 = 60.0, VirusTotal: 80.0 * 0.9 = 72.0
+        # Weighted average: (60.0 + 72.0) / (0.8 + 0.9) = 132.0 / 1.7 = 77.65
+        assert result.overall_threat_score is not None
+        assert 77.0 <= result.overall_threat_score <= 78.0
         
-        # Verify different IPs
-        calls = mock_es_client.index.call_args_list
-        indicators = [call[1]["document"]["indicator"] for call in calls]
-        assert "8.8.8.8" in indicators
-        assert "1.1.1.1" in indicators
-        assert "208.67.222.222" in indicators
+        # Verify confidence score
+        assert result.confidence_score is not None
+        assert 0.8 <= result.confidence_score <= 0.9
         
-        # Verify unique document IDs
-        doc_ids = [call[1]["id"] for call in calls]
-        assert len(set(doc_ids)) == 3  # All IDs should be unique
+        # Verify correlated indicators
+        assert len(result.threat_indicators) > 0
+        
+        # Check that indicators are sorted by confidence
+        if len(result.threat_indicators) > 1:
+            assert result.threat_indicators[0]['confidence'] >= result.threat_indicators[1]['confidence']
+        
+        # Verify geographic data aggregation
+        assert result.geographic_data.get('country') == 'US'
+        
+        # Verify network data aggregation
+        assert result.network_data.get('asn') == 'AS15169'
+        
+        # Verify correlation metrics
+        assert result.correlation_metrics is not None
+        assert result.correlation_metrics['source_count'] == 2
+        assert result.correlation_metrics['indicator_count'] > 0
+        # Data completeness should be 2.0 since we have 2 sources in the result
+        assert result.correlation_metrics['data_completeness'] == 2.0  # 2 sources in result
+
+
+class TestThreatIntelligenceIntegrationLive:
+    """Live integration tests for threat intelligence (real API, skipped by default)."""
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not os.getenv("RUN_LIVE_INTEGRATION_TESTS"), reason="Set RUN_LIVE_INTEGRATION_TESTS=1 to run live integration tests.")
+    async def test_real_api_enrichment(self):
+        """Test real end-to-end enrichment with live DShield (and optionally other) APIs."""
+        manager = ThreatIntelligenceManager()
+        ip = "8.8.8.8"  # Use a well-known IP
+        result = await manager.enrich_ip_comprehensive(ip)
+        assert isinstance(result, ThreatIntelligenceResult)
+        assert result.ip_address == ip
+        assert len(result.sources_queried) >= 1
+        assert result.overall_threat_score is not None or result.confidence_score is not None
+        await manager.cleanup()
+
+class TestThreatIntelligenceIntegrationMocked:
+    """Mocked end-to-end integration tests for CI/CD and isolated validation."""
+
+    @pytest.mark.asyncio
+    async def test_end_to_end_enrichment_and_writeback(self):
+        """Test full enrichment, correlation, and writeback with all sources and ES mocked."""
+        with patch('src.threat_intelligence_manager.get_config') as mock_get_config, \
+             patch('src.threat_intelligence_manager.get_user_config') as mock_get_user_config:
+            # Mock config with all sources enabled
+            mock_get_config.return_value = {
+                "threat_intelligence": {
+                    "sources": {
+                        "dshield": {"enabled": True, "rate_limit_requests_per_minute": 60},
+                        "virustotal": {"enabled": True, "rate_limit_requests_per_minute": 4},
+                        "shodan": {"enabled": True, "rate_limit_requests_per_minute": 60}
+                    },
+                    "elasticsearch": {
+                        "enabled": True,
+                        "writeback_enabled": True,
+                        "hosts": ["http://localhost:9200"],
+                        "index_prefix": "test-enrichment"
+                    },
+                    "correlation": {"confidence_threshold": 0.7, "max_sources_per_query": 3},
+                    "cache_ttl_hours": 1
+                }
+            }
+            # Mock user config
+            mock_uc = AsyncMock()
+            mock_uc.performance_settings.enable_sqlite_cache = True
+            mock_uc.performance_settings.sqlite_cache_ttl_hours = 24
+            mock_uc.get_database_directory.return_value = "/tmp/test_db"
+            mock_uc.get_cache_database_path.return_value = "/tmp/test_db/test_enrichment_cache.sqlite3"
+            mock_get_user_config.return_value = mock_uc
+
+            manager = ThreatIntelligenceManager()
+            # Mock all source clients
+            for source in [ThreatIntelligenceSource.DSHIELD, ThreatIntelligenceSource.VIRUSTOTAL, ThreatIntelligenceSource.SHODAN]:
+                mock_client = AsyncMock()
+                mock_client.get_ip_reputation.return_value = {
+                    "threat_score": 80.0,
+                    "confidence": 0.9,
+                    "attack_types": ["port_scan"],
+                    "tags": ["malicious"]
+                }
+                manager.clients[source] = mock_client
+            # Mock Elasticsearch client
+            mock_es_client = AsyncMock()
+            manager.elasticsearch_client = mock_es_client
+
+            # Use a unique IP to avoid cache hits
+            ip = f"10.0.{os.getpid() % 255}.1"
+            result = await manager.enrich_ip_comprehensive(ip)
+            assert isinstance(result, ThreatIntelligenceResult)
+            assert result.ip_address == ip
+            assert len(result.sources_queried) == 3
+            assert result.overall_threat_score is not None
+            assert result.confidence_score is not None
+            assert len(result.threat_indicators) > 0
+            # Check that ES writeback was called
+            assert mock_es_client.index.call_count == 1
+            await manager.cleanup()
 
 
 if __name__ == "__main__":

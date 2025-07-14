@@ -396,6 +396,11 @@ class ThreatIntelligenceResult(BaseModel):
     query_timestamp: datetime = Field(default_factory=datetime.now, description="Query timestamp")
     cache_hit: bool = Field(False, description="Whether result was from cache")
     
+    # Correlation metrics
+    correlation_metrics: Optional[Dict[str, Any]] = Field(
+        None, description="Correlation quality metrics and statistics"
+    )
+    
     @field_validator('ip_address')
     @classmethod
     def validate_ip_address(cls, v):

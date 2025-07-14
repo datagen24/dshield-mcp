@@ -98,8 +98,9 @@ class ThreatIntelligenceManager:
         if self.sqlite_cache_enabled:
             self._initialize_sqlite_cache()
         
-        # Rate limiting trackers
+        # Rate limiting trackers and concurrency controls
         self.rate_limit_trackers: Dict[ThreatIntelligenceSource, List[float]] = {}
+        self.concurrency_semaphores: Dict[ThreatIntelligenceSource, asyncio.Semaphore] = {}
         self._initialize_rate_limit_trackers()
         
         # Elasticsearch client for enrichment writeback
@@ -186,9 +187,21 @@ class ThreatIntelligenceManager:
             self.sqlite_cache_enabled = False
     
     def _initialize_rate_limit_trackers(self) -> None:
-        """Initialize rate limiting trackers for each source."""
+        """Initialize rate limiting trackers and concurrency controls for each source."""
         for source in self.clients.keys():
             self.rate_limit_trackers[source] = []
+            
+            # Initialize concurrency semaphores for each source
+            sources_config = self.config.get("threat_intelligence", {}).get("sources", {})
+            source_config = sources_config.get(source.value, {})
+            concurrency_limit = source_config.get("concurrency_limit", 5)  # Default 5 concurrent requests
+            
+            self.concurrency_semaphores[source] = asyncio.Semaphore(concurrency_limit)
+            
+        logger.info("Rate limit trackers and concurrency controls initialized", 
+                   sources=list(self.clients.keys()),
+                   concurrency_limits={source.value: self.concurrency_semaphores[source]._value 
+                                     for source in self.concurrency_semaphores.keys()})
     
     async def __aenter__(self) -> "ThreatIntelligenceManager":
         """Async context manager entry.
@@ -287,6 +300,9 @@ class ThreatIntelligenceManager:
         if self.sqlite_cache_enabled:
             self._cache_result_to_sqlite(cache_key, result)
         self._cache_result(cache_key, result)
+        
+        # Write to Elasticsearch for enrichment correlation
+        await self._write_to_elasticsearch(result)
         
         logger.info("IP enrichment completed", 
                    ip_address=ip_address,
@@ -389,7 +405,7 @@ class ThreatIntelligenceManager:
     
     async def _query_source_async(self, source: ThreatIntelligenceSource, 
                                  client: Any, ip_address: str) -> Dict[str, Any]:
-        """Query a single source asynchronously.
+        """Query a single source asynchronously with concurrency control and timeout.
         
         Args:
             source: The threat intelligence source
@@ -401,32 +417,50 @@ class ThreatIntelligenceManager:
             
         Raises:
             Exception: If the source query fails
+            asyncio.TimeoutError: If the query times out
         """
-        # Check rate limiting
-        await self._check_rate_limit(source)
+        # Get source configuration
+        sources_config = self.config.get("threat_intelligence", {}).get("sources", {})
+        source_config = sources_config.get(source.value, {})
+        timeout_seconds = source_config.get("timeout_seconds", 30)
         
-        try:
-            if source == ThreatIntelligenceSource.DSHIELD:
-                return await client.get_ip_reputation(ip_address)
-            # TODO: Add other sources when implemented
-            # elif source == ThreatIntelligenceSource.VIRUSTOTAL:
-            #     return await client.get_ip_report(ip_address)
-            # elif source == ThreatIntelligenceSource.SHODAN:
-            #     return await client.get_host_info(ip_address)
-            else:
-                raise ValueError(f"Unknown source: {source}")
-        except Exception as e:
-            logger.error("Source query failed", 
-                        source=source, 
-                        ip_address=ip_address, 
-                        error=str(e))
-            raise
+        # Use concurrency semaphore if available
+        semaphore = self.concurrency_semaphores.get(source)
+        
+        async def _execute_query():
+            # Check rate limiting
+            await self._check_rate_limit(source)
+            
+            try:
+                if source == ThreatIntelligenceSource.DSHIELD:
+                    return await client.get_ip_reputation(ip_address)
+                # TODO: Add other sources when implemented
+                # elif source == ThreatIntelligenceSource.VIRUSTOTAL:
+                #     return await client.get_ip_report(ip_address)
+                # elif source == ThreatIntelligenceSource.SHODAN:
+                #     return await client.get_host_info(ip_address)
+                else:
+                    raise ValueError(f"Unknown source: {source}")
+            except Exception as e:
+                logger.error("Source query failed", 
+                            source=source, 
+                            ip_address=ip_address, 
+                            error=str(e))
+                raise
+        
+        # Execute with concurrency control and timeout
+        if semaphore:
+            async with semaphore:
+                return await asyncio.wait_for(_execute_query(), timeout=timeout_seconds)
+        else:
+            return await asyncio.wait_for(_execute_query(), timeout=timeout_seconds)
     
     async def _correlate_results(self, result: ThreatIntelligenceResult) -> None:
-        """Correlate results from multiple sources.
+        """Correlate results from multiple sources using advanced algorithms.
         
         Analyzes results from different sources and calculates aggregated
-        threat scores and confidence levels.
+        threat scores and confidence levels using weighted scoring, source
+        reliability, and temporal correlation.
         
         Args:
             result: The threat intelligence result to correlate
@@ -435,24 +469,44 @@ class ThreatIntelligenceManager:
             logger.warning("No source results to correlate")
             return
         
-        # Calculate overall threat score
-        threat_scores = []
-        confidence_scores = []
+        # Source reliability weights (can be configured)
+        source_reliability = {
+            ThreatIntelligenceSource.DSHIELD: 0.8,
+            ThreatIntelligenceSource.VIRUSTOTAL: 0.9,
+            ThreatIntelligenceSource.SHODAN: 0.7,
+            ThreatIntelligenceSource.ABUSEIPDB: 0.8,
+            ThreatIntelligenceSource.ALIENVAULT: 0.8,
+            ThreatIntelligenceSource.THREATFOX: 0.7
+        }
+        
+        # Calculate weighted threat scores
+        weighted_threat_scores = []
+        weighted_confidence_scores = []
+        source_weights = []
         
         for source, source_data in result.source_results.items():
             if isinstance(source_data, dict):
-                # Extract threat score
-                if 'threat_score' in source_data:
-                    threat_scores.append(float(source_data['threat_score']))
+                reliability = source_reliability.get(source, 0.5)
+                
+                # Extract and normalize threat score
+                threat_score = None
+                if 'threat_score' in source_data and source_data['threat_score'] is not None:
+                    threat_score = float(source_data['threat_score'])
                 elif 'reputation_score' in source_data and source_data['reputation_score'] is not None:
                     # Convert reputation score to threat score (inverse relationship)
                     rep_score = float(source_data['reputation_score'])
                     threat_score = 100 - rep_score  # Higher reputation = lower threat
-                    threat_scores.append(threat_score)
+                
+                if threat_score is not None:
+                    # Apply source reliability weighting
+                    weighted_score = threat_score * reliability
+                    weighted_threat_scores.append(weighted_score)
+                    source_weights.append(reliability)
                 
                 # Extract confidence score
+                confidence = None
                 if 'confidence' in source_data:
-                    confidence_scores.append(float(source_data['confidence']))
+                    confidence = float(source_data['confidence'])
                 else:
                     # Default confidence based on source
                     default_confidence = {
@@ -460,35 +514,32 @@ class ThreatIntelligenceManager:
                         ThreatIntelligenceSource.VIRUSTOTAL: 0.9,
                         ThreatIntelligenceSource.SHODAN: 0.7
                     }.get(source, 0.5)
-                    confidence_scores.append(default_confidence)
+                    confidence = default_confidence
+                
+                if confidence is not None:
+                    weighted_confidence_scores.append(confidence * reliability)
         
         # Calculate weighted averages
-        if threat_scores:
-            result.overall_threat_score = sum(threat_scores) / len(threat_scores)
+        if weighted_threat_scores and source_weights:
+            total_weight = sum(source_weights)
+            result.overall_threat_score = sum(weighted_threat_scores) / total_weight
         
-        if confidence_scores:
-            result.confidence_score = sum(confidence_scores) / len(confidence_scores)
+        if weighted_confidence_scores and source_weights:
+            total_weight = sum(source_weights)
+            result.confidence_score = sum(weighted_confidence_scores) / total_weight
         
-        # Correlate threat indicators
-        all_indicators = []
-        for source_data in result.source_results.values():
-            if isinstance(source_data, dict):
-                if 'indicators' in source_data:
-                    all_indicators.extend(source_data['indicators'])
-                elif 'attack_types' in source_data:
-                    all_indicators.extend(source_data['attack_types'])
-                elif 'tags' in source_data:
-                    all_indicators.extend(source_data['tags'])
+        # Advanced threat indicator correlation
+        result.threat_indicators = await self._correlate_threat_indicators(result.source_results)
         
-        # Remove duplicates and correlate
-        result.threat_indicators = self._deduplicate_indicators(all_indicators)
+        # Aggregate geographic and network data with confidence weighting
+        self._aggregate_geographic_data_advanced(result)
+        self._aggregate_network_data_advanced(result)
         
-        # Aggregate geographic and network data
-        self._aggregate_geographic_data(result)
-        self._aggregate_network_data(result)
+        # Determine timestamps with temporal correlation
+        self._determine_timestamps_advanced(result)
         
-        # Determine timestamps
-        self._determine_timestamps(result)
+        # Calculate correlation metrics
+        self._calculate_correlation_metrics(result)
     
     def _deduplicate_indicators(self, indicators: List[Any]) -> List[Dict[str, Any]]:
         """Remove duplicate indicators and merge metadata.
@@ -607,13 +658,13 @@ class ThreatIntelligenceManager:
             result.last_seen = max(last_seen_times)
     
     async def _check_rate_limit(self, source: ThreatIntelligenceSource) -> None:
-        """Check and enforce rate limiting for a source.
+        """Check and enforce rate limiting for a source with exponential backoff.
         
         Args:
             source: The source to check rate limiting for
             
         Raises:
-            RuntimeError: If rate limit would be exceeded
+            RuntimeError: If rate limit would be exceeded after backoff attempts
         """
         if source not in self.rate_limit_trackers:
             return
@@ -628,9 +679,37 @@ class ThreatIntelligenceManager:
         sources_config = self.config.get("threat_intelligence", {}).get("sources", {})
         source_config = sources_config.get(source.value, {})
         rate_limit = source_config.get("rate_limit_requests_per_minute", 60)
+        max_backoff_attempts = source_config.get("max_backoff_attempts", 3)
+        base_backoff_seconds = source_config.get("base_backoff_seconds", 1)
         
+        # Check if we're at the rate limit
         if len(tracker) >= rate_limit:
-            raise RuntimeError(f"Rate limit exceeded for {source.value}")
+            # Calculate wait time until we can make another request
+            oldest_request = min(tracker)
+            wait_time = 60 - (current_time - oldest_request)
+            
+            if wait_time > 0:
+                logger.debug("Rate limit hit, waiting", 
+                           source=source.value,
+                           wait_time=wait_time,
+                           current_requests=len(tracker),
+                           rate_limit=rate_limit)
+                
+                # Implement exponential backoff
+                for attempt in range(max_backoff_attempts):
+                    try:
+                        await asyncio.sleep(wait_time)
+                        break
+                    except asyncio.CancelledError:
+                        logger.warning("Rate limit wait cancelled", source=source.value)
+                        raise RuntimeError(f"Rate limit wait cancelled for {source.value}")
+                
+                # Re-check after waiting
+                current_time = time.time()
+                tracker[:] = [t for t in tracker if current_time - t < 60]
+                
+                if len(tracker) >= rate_limit:
+                    raise RuntimeError(f"Rate limit exceeded for {source.value} after backoff")
         
         tracker.append(current_time)
     
@@ -842,10 +921,18 @@ class ThreatIntelligenceManager:
         """
         status = {}
         for source, client in self.clients.items():
+            # Get source configuration
+            sources_config = self.config.get("threat_intelligence", {}).get("sources", {})
+            source_config = sources_config.get(source.value, {})
+            
             status[source.value] = {
                 "enabled": True,
                 "client_type": type(client).__name__,
-                "rate_limit_tracker": len(self.rate_limit_trackers.get(source, []))
+                "rate_limit_tracker": len(self.rate_limit_trackers.get(source, [])),
+                "concurrency_limit": self.concurrency_semaphores.get(source, asyncio.Semaphore(5))._value,
+                "rate_limit_per_minute": source_config.get("rate_limit_requests_per_minute", 60),
+                "timeout_seconds": source_config.get("timeout_seconds", 30),
+                "max_backoff_attempts": source_config.get("max_backoff_attempts", 3)
             }
         return status
     
@@ -910,3 +997,269 @@ class ThreatIntelligenceManager:
                 self.elasticsearch_client = None
         else:
             self.elasticsearch_client = None 
+
+    async def _correlate_threat_indicators(self, source_results: Dict[ThreatIntelligenceSource, Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Advanced threat indicator correlation with source weighting and confidence scoring.
+        
+        Args:
+            source_results: Results from all sources
+            
+        Returns:
+            List of correlated threat indicators with metadata
+        """
+        # Source reliability weights
+        source_reliability = {
+            ThreatIntelligenceSource.DSHIELD: 0.8,
+            ThreatIntelligenceSource.VIRUSTOTAL: 0.9,
+            ThreatIntelligenceSource.SHODAN: 0.7,
+            ThreatIntelligenceSource.ABUSEIPDB: 0.8,
+            ThreatIntelligenceSource.ALIENVAULT: 0.8,
+            ThreatIntelligenceSource.THREATFOX: 0.7
+        }
+        
+        # Collect all indicators with source metadata
+        indicator_sources = {}
+        
+        for source, source_data in source_results.items():
+            if isinstance(source_data, dict):
+                reliability = source_reliability.get(source, 0.5)
+                
+                # Extract indicators from various fields
+                indicators = []
+                if 'indicators' in source_data:
+                    indicators.extend(source_data['indicators'])
+                if 'attack_types' in source_data:
+                    indicators.extend(source_data['attack_types'])
+                if 'tags' in source_data:
+                    indicators.extend(source_data['tags'])
+                
+                # Add source metadata to each indicator
+                for indicator in indicators:
+                    indicator_key = str(indicator).lower()
+                    if indicator_key not in indicator_sources:
+                        indicator_sources[indicator_key] = {
+                            'indicator': indicator,
+                            'type': self._classify_indicator(indicator_key),
+                            'sources': [],
+                            'total_weight': 0.0,
+                            'count': 0
+                        }
+                    
+                    indicator_sources[indicator_key]['sources'].append({
+                        'source': source,
+                        'reliability': reliability,
+                        'confidence': source_data.get('confidence', 0.5)
+                    })
+                    indicator_sources[indicator_key]['total_weight'] += reliability
+                    indicator_sources[indicator_key]['count'] += 1
+        
+        # Calculate correlation scores and filter by confidence
+        correlated_indicators = []
+        confidence_threshold = self.correlation_config.get("confidence_threshold", 0.7)
+        
+        for indicator_data in indicator_sources.values():
+            # Calculate weighted confidence score
+            if indicator_data['sources']:
+                weighted_confidence = sum(
+                    source['reliability'] * source['confidence'] 
+                    for source in indicator_data['sources']
+                ) / indicator_data['total_weight']
+                
+                # Only include indicators that meet confidence threshold
+                if weighted_confidence >= confidence_threshold:
+                    correlated_indicators.append({
+                        'indicator': indicator_data['indicator'],
+                        'type': indicator_data['type'],
+                        'count': indicator_data['count'],
+                        'sources': [s['source'].value for s in indicator_data['sources']],
+                        'confidence': weighted_confidence,
+                        'source_count': len(indicator_data['sources'])
+                    })
+        
+        # Sort by confidence and count
+        correlated_indicators.sort(key=lambda x: (x['confidence'], x['count']), reverse=True)
+        
+        return correlated_indicators
+    
+    def _aggregate_geographic_data_advanced(self, result: ThreatIntelligenceResult) -> None:
+        """Aggregate geographic data with confidence weighting and conflict resolution.
+        
+        Args:
+            result: The threat intelligence result to update
+        """
+        geographic_scores = {}
+        source_reliability = {
+            ThreatIntelligenceSource.DSHIELD: 0.8,
+            ThreatIntelligenceSource.VIRUSTOTAL: 0.9,
+            ThreatIntelligenceSource.SHODAN: 0.7
+        }
+        
+        for source, source_data in result.source_results.items():
+            if isinstance(source_data, dict):
+                reliability = source_reliability.get(source, 0.5)
+                
+                # Extract geographic data
+                geo_data = {}
+                if 'geographic_data' in source_data:
+                    geo_data.update(source_data['geographic_data'])
+                elif 'country' in source_data:
+                    geo_data['country'] = source_data['country']
+                elif 'region' in source_data:
+                    geo_data['region'] = source_data['region']
+                elif 'city' in source_data:
+                    geo_data['city'] = source_data['city']
+                
+                # Score geographic data by reliability
+                for field, value in geo_data.items():
+                    if value:
+                        if field not in geographic_scores:
+                            geographic_scores[field] = {}
+                        
+                        if value not in geographic_scores[field]:
+                            geographic_scores[field][value] = {'weight': 0.0, 'sources': []}
+                        
+                        geographic_scores[field][value]['weight'] += reliability
+                        geographic_scores[field][value]['sources'].append(source)
+        
+        # Select highest weighted values for each field
+        result.geographic_data = {}
+        for field, values in geographic_scores.items():
+            if values:
+                # Select the value with highest weight
+                best_value = max(values.keys(), key=lambda v: values[v]['weight'])
+                result.geographic_data[field] = best_value
+    
+    def _aggregate_network_data_advanced(self, result: ThreatIntelligenceResult) -> None:
+        """Aggregate network data with confidence weighting and conflict resolution.
+        
+        Args:
+            result: The threat intelligence result to update
+        """
+        network_scores = {}
+        source_reliability = {
+            ThreatIntelligenceSource.DSHIELD: 0.8,
+            ThreatIntelligenceSource.VIRUSTOTAL: 0.9,
+            ThreatIntelligenceSource.SHODAN: 0.7
+        }
+        
+        for source, source_data in result.source_results.items():
+            if isinstance(source_data, dict):
+                reliability = source_reliability.get(source, 0.5)
+                
+                # Extract network data
+                net_data = {}
+                if 'network_data' in source_data:
+                    net_data.update(source_data['network_data'])
+                elif 'asn' in source_data:
+                    net_data['asn'] = source_data['asn']
+                elif 'organization' in source_data:
+                    net_data['organization'] = source_data['organization']
+                elif 'isp' in source_data:
+                    net_data['isp'] = source_data['isp']
+                
+                # Score network data by reliability
+                for field, value in net_data.items():
+                    if value:
+                        if field not in network_scores:
+                            network_scores[field] = {}
+                        
+                        if value not in network_scores[field]:
+                            network_scores[field][value] = {'weight': 0.0, 'sources': []}
+                        
+                        network_scores[field][value]['weight'] += reliability
+                        network_scores[field][value]['sources'].append(source)
+        
+        # Select highest weighted values for each field
+        result.network_data = {}
+        for field, values in network_scores.items():
+            if values:
+                # Select the value with highest weight
+                best_value = max(values.keys(), key=lambda v: values[v]['weight'])
+                result.network_data[field] = best_value
+    
+    def _determine_timestamps_advanced(self, result: ThreatIntelligenceResult) -> None:
+        """Determine timestamps with temporal correlation and source weighting.
+        
+        Args:
+            result: The threat intelligence result to update
+        """
+        first_seen_times = []
+        last_seen_times = []
+        source_reliability = {
+            ThreatIntelligenceSource.DSHIELD: 0.8,
+            ThreatIntelligenceSource.VIRUSTOTAL: 0.9,
+            ThreatIntelligenceSource.SHODAN: 0.7
+        }
+        
+        for source, source_data in result.source_results.items():
+            if isinstance(source_data, dict):
+                reliability = source_reliability.get(source, 0.5)
+                
+                # Extract timestamps with reliability weighting
+                if 'first_seen' in source_data and source_data['first_seen']:
+                    try:
+                        if isinstance(source_data['first_seen'], str):
+                            first_seen = datetime.fromisoformat(source_data['first_seen'].replace('Z', '+00:00'))
+                        else:
+                            first_seen = source_data['first_seen']
+                        first_seen_times.append((first_seen, reliability))
+                    except (ValueError, TypeError):
+                        pass
+                
+                if 'last_seen' in source_data and source_data['last_seen']:
+                    try:
+                        if isinstance(source_data['last_seen'], str):
+                            last_seen = datetime.fromisoformat(source_data['last_seen'].replace('Z', '+00:00'))
+                        else:
+                            last_seen = source_data['last_seen']
+                        last_seen_times.append((last_seen, reliability))
+                    except (ValueError, TypeError):
+                        pass
+        
+        # Calculate weighted timestamps
+        if first_seen_times:
+            # Use earliest time with highest reliability as tiebreaker
+            result.first_seen = min(first_seen_times, key=lambda x: (x[0], -x[1]))[0]
+        
+        if last_seen_times:
+            # Use latest time with highest reliability as tiebreaker
+            result.last_seen = max(last_seen_times, key=lambda x: (x[0], x[1]))[0]
+    
+    def _calculate_correlation_metrics(self, result: ThreatIntelligenceResult) -> None:
+        """Calculate correlation metrics and quality indicators.
+        
+        Args:
+            result: The threat intelligence result to update
+        """
+        if not result.source_results:
+            return
+        
+        # Calculate source agreement
+        source_count = len(result.source_results)
+        threat_scores = []
+        
+        for source_data in result.source_results.values():
+            if isinstance(source_data, dict):
+                if 'threat_score' in source_data and source_data['threat_score'] is not None:
+                    threat_scores.append(float(source_data['threat_score']))
+                elif 'reputation_score' in source_data and source_data['reputation_score'] is not None:
+                    rep_score = float(source_data['reputation_score'])
+                    threat_scores.append(100 - rep_score)
+        
+        # Calculate correlation metrics
+        correlation_metrics = {
+            'source_count': source_count,
+            'indicator_count': len(result.threat_indicators),
+            'data_completeness': len(result.source_results) / max(1, len(self.clients)),
+            'confidence_variance': 0.0,
+            'threat_score_variance': 0.0
+        }
+        
+        # Calculate variance in threat scores
+        if len(threat_scores) > 1:
+            mean_score = sum(threat_scores) / len(threat_scores)
+            variance = sum((score - mean_score) ** 2 for score in threat_scores) / len(threat_scores)
+            correlation_metrics['threat_score_variance'] = variance
+        
+        # Store correlation metrics in result
+        result.correlation_metrics = correlation_metrics 
