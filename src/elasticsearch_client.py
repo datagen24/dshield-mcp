@@ -16,6 +16,8 @@ from elasticsearch.exceptions import RequestError, TransportError
 from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
 from .config_loader import get_config, ConfigError
 from .user_config import get_user_config
+from packaging import version
+import elasticsearch as es_module
 
 logger = structlog.get_logger(__name__)
 
@@ -162,8 +164,12 @@ class ElasticsearchClient:
                 retry_on_timeout=True,
                 **ssl_options
             )
-            if self.compatibility_mode:
+            # Only add compatibility_mode if the client supports it (>=8.7.0)
+            es_version = version.parse(getattr(es_module, '__version__', '0.0.0'))
+            if self.compatibility_mode and es_version >= version.parse('8.7.0'):
                 es_kwargs['compatibility_mode'] = True
+            elif self.compatibility_mode:
+                logger.warning("compatibility_mode requested but not supported by elasticsearch client version %s", es_version)
             self.client = AsyncElasticsearch(**es_kwargs)
             
             # Test connection
