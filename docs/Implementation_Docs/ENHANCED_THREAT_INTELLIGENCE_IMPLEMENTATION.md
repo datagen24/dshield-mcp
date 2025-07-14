@@ -733,7 +733,6 @@ op item create --category=api-credential \
 secrets:
   virustotal_api_key: "op://dshield-mcp/VirusTotal API Key/password"
   shodan_api_key: "op://dshield-mcp/Shodan API Key/password"
-  elasticsearch_password: "op://dshield-mcp/Elasticsearch Password/password"
 
 threat_intelligence:
   sources:

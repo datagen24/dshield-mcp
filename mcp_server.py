@@ -16,6 +16,7 @@ import structlog
 from mcp.server import Server
 from mcp.server import NotificationOptions
 from mcp.server.models import InitializationOptions
+from mcp.types import Tool  # Fixed import for Tool
 from mcp.server.stdio import stdio_server
 
 from src.elasticsearch_client import ElasticsearchClient
@@ -121,13 +122,13 @@ class DShieldMCPServer:
         """
         
         @self.server.list_tools()
-        async def handle_list_tools() -> List[Dict[str, Any]]:
+        async def handle_list_tools() -> List[Tool]:
             """List all available tools."""
             return [
-                {
-                    "name": "query_dshield_events",
-                    "description": "Query DShield events from Elasticsearch SIEM with enhanced pagination support",
-                    "inputSchema": {
+                Tool(
+                    name="query_dshield_events",
+                    description="Query DShield events from Elasticsearch SIEM with enhanced pagination support",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "time_range_hours": {
@@ -213,11 +214,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "stream_dshield_events_with_session_context",
-                    "description": "Stream DShield events with smart session-based chunking for event correlation",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="stream_dshield_events_with_session_context",
+                    description="Stream DShield events with smart session-based chunking for event correlation",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "time_range_hours": {
@@ -261,11 +262,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "query_dshield_aggregations",
-                    "description": "Get aggregated summary data without full records",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="query_dshield_aggregations",
+                    description="Get aggregated summary data without full records",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "time_range_hours": {
@@ -313,11 +314,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "stream_dshield_events",
-                    "description": "Stream DShield events for very large datasets with chunked processing",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="stream_dshield_events",
+                    description="Stream DShield events for very large datasets with chunked processing",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "time_range_hours": {
@@ -368,11 +369,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "query_dshield_attacks",
-                    "description": "Query DShield attack data specifically with pagination",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="query_dshield_attacks",
+                    description="Query DShield attack data specifically with pagination",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "time_range_hours": {
@@ -393,11 +394,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "query_dshield_reputation",
-                    "description": "Query DShield reputation data for IP addresses",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="query_dshield_reputation",
+                    description="Query DShield reputation data for IP addresses",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "ip_addresses": {
@@ -411,11 +412,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "query_dshield_top_attackers",
-                    "description": "Query DShield top attackers data",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="query_dshield_top_attackers",
+                    description="Query DShield top attackers data",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "hours": {
@@ -428,11 +429,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "query_dshield_geographic_data",
-                    "description": "Query DShield geographic attack data",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="query_dshield_geographic_data",
+                    description="Query DShield geographic attack data",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "countries": {
@@ -446,11 +447,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "query_dshield_port_data",
-                    "description": "Query DShield port attack data",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="query_dshield_port_data",
+                    description="Query DShield port attack data",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "ports": {
@@ -464,11 +465,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "get_dshield_statistics",
-                    "description": "Get comprehensive DShield statistics and summary",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="get_dshield_statistics",
+                    description="Get comprehensive DShield statistics and summary",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "time_range_hours": {
@@ -477,11 +478,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "enrich_ip_with_dshield",
-                    "description": "Enrich IP address with DShield threat intelligence",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="enrich_ip_with_dshield",
+                    description="Enrich IP address with DShield threat intelligence",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "ip_address": {
@@ -491,11 +492,11 @@ class DShieldMCPServer:
                         },
                         "required": ["ip_address"]
                     }
-                },
-                {
-                    "name": "generate_attack_report",
-                    "description": "Generate structured attack report with DShield data",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="generate_attack_report",
+                    description="Generate structured attack report with DShield data",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "events": {
@@ -508,11 +509,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "query_events_by_ip",
-                    "description": "Query DShield events for specific IP addresses",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="query_events_by_ip",
+                    description="Query DShield events for specific IP addresses",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "ip_addresses": {
@@ -527,11 +528,11 @@ class DShieldMCPServer:
                         },
                         "required": ["ip_addresses"]
                     }
-                },
-                {
-                    "name": "get_security_summary",
-                    "description": "Get security summary with DShield enrichment",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="get_security_summary",
+                    description="Get security summary with DShield enrichment",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "include_threat_intelligence": {
@@ -540,19 +541,19 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "test_elasticsearch_connection",
-                    "description": "Test connection to Elasticsearch and show available indices",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="test_elasticsearch_connection",
+                    description="Test connection to Elasticsearch and show available indices",
+                    inputSchema={
                         "type": "object",
                         "properties": {}
                     }
-                },
-                {
-                    "name": "get_data_dictionary",
-                    "description": "Get comprehensive data dictionary for DShield SIEM fields and analysis guidelines",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="get_data_dictionary",
+                    description="Get comprehensive data dictionary for DShield SIEM fields and analysis guidelines",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "format": {
@@ -566,11 +567,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "analyze_campaign",
-                    "description": "Analyze attack campaigns from seed indicators with multi-stage correlation",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="analyze_campaign",
+                    description="Analyze attack campaigns from seed indicators with multi-stage correlation",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "seed_indicators": {
@@ -602,11 +603,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "expand_campaign_indicators",
-                    "description": "Expand IOCs to find related indicators and infrastructure",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="expand_campaign_indicators",
+                    description="Expand IOCs to find related indicators and infrastructure",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "campaign_id": {
@@ -633,11 +634,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "get_campaign_timeline",
-                    "description": "Build detailed attack timelines with TTP analysis",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="get_campaign_timeline",
+                    description="Build detailed attack timelines with TTP analysis",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "campaign_id": {
@@ -660,11 +661,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "compare_campaigns",
-                    "description": "Compare multiple campaigns for similarities and patterns",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="compare_campaigns",
+                    description="Compare multiple campaigns for similarities and patterns",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "campaign_ids": {
@@ -684,11 +685,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "detect_ongoing_campaigns",
-                    "description": "Real-time detection of active campaigns",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="detect_ongoing_campaigns",
+                    description="Real-time detection of active campaigns",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "time_window_hours": {
@@ -709,11 +710,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "search_campaigns",
-                    "description": "Search existing campaigns by criteria",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="search_campaigns",
+                    description="Search existing campaigns by criteria",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "search_criteria": {
@@ -735,11 +736,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "get_campaign_details",
-                    "description": "Get comprehensive campaign information with threat intelligence",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="get_campaign_details",
+                    description="Get comprehensive campaign information with threat intelligence",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "campaign_id": {
@@ -761,11 +762,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "generate_latex_document",
-                    "description": "Generate complete and fully referenced documents using LaTeX templates",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="generate_latex_document",
+                    description="Generate complete and fully referenced documents using LaTeX templates",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "template_name": {
@@ -793,19 +794,19 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "list_latex_templates",
-                    "description": "List all available LaTeX templates with metadata and requirements",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="list_latex_templates",
+                    description="List all available LaTeX templates with metadata and requirements",
+                    inputSchema={
                         "type": "object",
                         "properties": {}
                     }
-                },
-                {
-                    "name": "get_latex_template_schema",
-                    "description": "Get the schema and requirements for a specific LaTeX template",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="get_latex_template_schema",
+                    description="Get the schema and requirements for a specific LaTeX template",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "template_name": {
@@ -815,11 +816,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "validate_latex_document_data",
-                    "description": "Validate document data against template requirements",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="validate_latex_document_data",
+                    description="Validate document data against template requirements",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "template_name": {
@@ -834,11 +835,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "enrich_ip_comprehensive",
-                    "description": "Comprehensive IP enrichment from multiple threat intelligence sources",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="enrich_ip_comprehensive",
+                    description="Comprehensive IP enrichment from multiple threat intelligence sources",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "ip_address": {
@@ -858,11 +859,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "enrich_domain_comprehensive",
-                    "description": "Comprehensive domain enrichment from multiple threat intelligence sources",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="enrich_domain_comprehensive",
+                    description="Comprehensive domain enrichment from multiple threat intelligence sources",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "domain": {
@@ -882,11 +883,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "correlate_threat_indicators",
-                    "description": "Correlate multiple threat indicators across sources",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="correlate_threat_indicators",
+                    description="Correlate multiple threat indicators across sources",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "indicators": {
@@ -902,11 +903,11 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                },
-                {
-                    "name": "get_threat_intelligence_summary",
-                    "description": "Get summary of threat intelligence capabilities and status",
-                    "inputSchema": {
+                ),
+                Tool(
+                    name="get_threat_intelligence_summary",
+                    description="Get summary of threat intelligence capabilities and status",
+                    inputSchema={
                         "type": "object",
                         "properties": {
                             "include_source_status": {
@@ -919,7 +920,7 @@ class DShieldMCPServer:
                             }
                         }
                     }
-                }
+                )
             ]
         
         @self.server.call_tool()
