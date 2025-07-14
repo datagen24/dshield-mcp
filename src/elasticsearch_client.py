@@ -39,12 +39,30 @@ class ElasticsearchClient:
         try:
             config = get_config()
             es_config = config["elasticsearch"]
+            
+            # Debug: Log raw config values
+            logger.debug("Raw Elasticsearch config", 
+                        url=es_config.get("url"),
+                        username_type=type(es_config.get("username")).__name__,
+                        password_type=type(es_config.get("password")).__name__,
+                        username_length=len(str(es_config.get("username", ""))) if es_config.get("username") else 0,
+                        password_length=len(str(es_config.get("password", ""))) if es_config.get("password") else 0)
+            
         except Exception as e:
             raise RuntimeError(f"Failed to load Elasticsearch config: {e}")
 
         self.url = es_config["url"]
         self.username = es_config.get("username", "")
         self.password = es_config.get("password", "")
+        
+        # Debug: Log processed values
+        logger.debug("Processed Elasticsearch credentials",
+                    url=self.url,
+                    username_type=type(self.username).__name__,
+                    password_type=type(self.password).__name__,
+                    username_length=len(str(self.username)) if self.username else 0,
+                    password_length=len(str(self.password)) if self.password else 0)
+        
         self.verify_ssl = es_config.get("verify_ssl", True)
         self.ca_certs = es_config.get("ca_certs", None)
         self.timeout = int(es_config.get("timeout", 30))
@@ -139,13 +157,22 @@ class ElasticsearchClient:
     async def connect(self):
         """Connect to Elasticsearch cluster."""
         try:
+            logger.info("Starting Elasticsearch connection", url=self.url, username=self.username[:3] + "***" if self.username else None)
+            
             # Parse URL to extract host and port
-            parsed_url = urlparse(self.url)
+            try:
+                parsed_url = urlparse(self.url)
+                logger.debug("URL parsed successfully", hostname=parsed_url.hostname, port=parsed_url.port, scheme=parsed_url.scheme)
+            except Exception as e:
+                logger.error("Failed to parse URL", url=self.url, error=str(e))
+                raise
+            
             hosts = [{
                 'host': parsed_url.hostname,
                 'port': parsed_url.port or 9200,
                 'scheme': parsed_url.scheme or 'http'
             }]
+            logger.debug("Hosts configuration", hosts=hosts)
             
             # Configure SSL/TLS
             ssl_options = {}
@@ -155,31 +182,65 @@ class ElasticsearchClient:
                 ssl_options['verify_certs'] = False
                 ssl_options['ssl_show_warn'] = False
             
+            logger.debug("SSL options", ssl_options=ssl_options)
+            
+            # Handle authentication
+            auth_config = None
+            if self.password:
+                try:
+                    # Ensure password is string
+                    password_str = str(self.password) if self.password is not None else ""
+                    username_str = str(self.username) if self.username is not None else ""
+                    auth_config = (username_str, password_str)
+                    logger.debug("Authentication configured", username=username_str[:3] + "***")
+                except Exception as e:
+                    logger.error("Failed to configure authentication", error=str(e))
+                    raise
+            
             # Create client
             es_kwargs = dict(
                 hosts=hosts,
-                http_auth=(self.username, self.password) if self.password else None,
+                http_auth=auth_config,
                 request_timeout=self.timeout,
                 max_retries=3,
                 retry_on_timeout=True,
                 **ssl_options
             )
+            
             # Only add compatibility_mode if the client supports it (>=8.7.0)
-            es_version = version.parse(getattr(es_module, '__version__', '0.0.0'))
-            if self.compatibility_mode and es_version >= version.parse('8.7.0'):
-                es_kwargs['compatibility_mode'] = True
-            elif self.compatibility_mode:
-                logger.warning("compatibility_mode requested but not supported by elasticsearch client version %s", es_version)
-            self.client = AsyncElasticsearch(**es_kwargs)
+            try:
+                es_version = version.parse(getattr(es_module, '__version__', '0.0.0'))
+                logger.debug("Elasticsearch client version", version=str(es_version))
+                
+                if self.compatibility_mode and es_version >= version.parse('8.7.0'):
+                    es_kwargs['compatibility_mode'] = True
+                    logger.debug("Added compatibility_mode to client kwargs")
+                elif self.compatibility_mode:
+                    logger.warning("compatibility_mode requested but not supported by elasticsearch client version %s", es_version)
+            except Exception as e:
+                logger.error("Failed to check elasticsearch client version", error=str(e))
+            
+            logger.debug("Creating AsyncElasticsearch client", kwargs_keys=list(es_kwargs.keys()))
+            
+            try:
+                self.client = AsyncElasticsearch(**es_kwargs)
+                logger.debug("AsyncElasticsearch client created successfully")
+            except Exception as e:
+                logger.error("Failed to create AsyncElasticsearch client", error=str(e), kwargs_keys=list(es_kwargs.keys()))
+                raise
             
             # Test connection
-            info = await self.client.info()
-            logger.info("Connected to Elasticsearch", 
-                       cluster_name=info['cluster_name'],
-                       version=info['version']['number'])
+            try:
+                info = await self.client.info()
+                logger.info("Connected to Elasticsearch", 
+                           cluster_name=info['cluster_name'],
+                           version=info['version']['number'])
+            except Exception as e:
+                logger.error("Failed to get Elasticsearch info", error=str(e))
+                raise
             
         except Exception as e:
-            logger.error("Failed to connect to Elasticsearch", error=str(e))
+            logger.error("Failed to connect to Elasticsearch", error=str(e), error_type=type(e).__name__)
             raise
     
     async def close(self):
@@ -1505,10 +1566,19 @@ class ElasticsearchClient:
             source = hit['_source']
             self.log_unmapped_fields(source)
             
+            # Defensive: ensure source is a dict
+            if not isinstance(source, dict):
+                logger.error("Elasticsearch hit _source is not a dict", hit=hit)
+                return None
+            
             # Extract timestamp using DShield field mappings
             timestamp = self._extract_field_mapped(source, 'timestamp')
             if isinstance(timestamp, str):
-                timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                try:
+                    timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                except Exception as e:
+                    logger.warning("Failed to parse timestamp string", value=timestamp, error=str(e))
+                    timestamp = datetime.utcnow()
             elif not isinstance(timestamp, datetime):
                 timestamp = datetime.utcnow()
             
@@ -1540,7 +1610,7 @@ class ElasticsearchClient:
                 elif http_method:
                     description = f"HTTP {http_method} request"
                 elif user_agent:
-                    description = f"Request with user agent: {user_agent[:50]}..."
+                    description = f"Request with user agent: {str(user_agent)[:50]}..."
                 else:
                     description = f"{event_type} event from {source_ip or 'unknown'} to {destination_ip or 'unknown'}"
             
@@ -1585,8 +1655,8 @@ class ElasticsearchClient:
                 event_type = 'unknown'
             
             event = {
-                'id': hit['_id'],
-                'timestamp': timestamp.isoformat(),
+                'id': hit.get('_id'),
+                'timestamp': timestamp.isoformat() if isinstance(timestamp, datetime) else str(timestamp),
                 'source_ip': source_ip,
                 'destination_ip': destination_ip,
                 'source_port': source_port,
@@ -1610,7 +1680,9 @@ class ElasticsearchClient:
             }
             
             return event
-            
+        except TypeError as e:
+            logger.error("TypeError while parsing Elasticsearch hit", hit=hit, error=str(e))
+            return None
         except Exception as e:
             logger.warning("Failed to parse DShield event", hit_id=hit.get('_id'), error=str(e))
             return None
