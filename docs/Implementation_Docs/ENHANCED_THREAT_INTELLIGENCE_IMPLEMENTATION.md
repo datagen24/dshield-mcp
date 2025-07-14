@@ -674,6 +674,37 @@ threat_intelligence:
 
 ---
 
+## [2024-06-XX] Elasticsearch Compatibility Mode Option
+
+### Motivation
+Some deployments use Elasticsearch server v8.x but the Python client library may be v9.x, which by default sends incompatible Accept headers (e.g., `compatible-with=9`). This causes errors unless the client is forced to use compatibility mode.
+
+### Implementation
+- Added a new `compatibility_mode` option to the `elasticsearch` section of `mcp_config.yaml`.
+- When set to `true`, the MCP server passes `compatibility_mode=True` to the Python Elasticsearch client, ensuring it sends headers compatible with ES 8.x servers.
+- This is configurable per deployment and defaults to `false` for maximum flexibility.
+
+### Configuration Example
+```yaml
+elasticsearch:
+  url: "https://your-es-server:9200"
+  username: "..."
+  password: "..."
+  verify_ssl: true
+  compatibility_mode: true
+  # ... other options ...
+```
+
+### Usage
+- Set `compatibility_mode: true` if you see errors about Accept headers or are running an ES 8.x server with a v9.x Python client.
+- Leave as `false` if your client and server are the same major version or you do not need compatibility headers.
+
+### Impact
+- Resolves compatibility issues between ES v9 Python client and ES v8 server.
+- No impact on existing deployments unless the option is enabled.
+
+---
+
 ## Configuration and Setup Instructions
 
 ### 1. Environment Configuration

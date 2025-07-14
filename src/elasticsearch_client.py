@@ -28,6 +28,10 @@ class ElasticsearchClient:
         
         Sets up the client connection, field mappings, and configuration
         for DShield SIEM integration.
+        
+        New config option:
+            - 'compatibility_mode' (bool, default: false):
+                If true, sets compatibility_mode=True on the Elasticsearch Python client (for ES 8.x servers).
         """
         self.client: Optional[AsyncElasticsearch] = None
         try:
@@ -43,6 +47,7 @@ class ElasticsearchClient:
         self.ca_certs = es_config.get("ca_certs", None)
         self.timeout = int(es_config.get("timeout", 30))
         self.max_results = int(es_config.get("max_results", 1000))
+        self.compatibility_mode = es_config.get("compatibility_mode", False)
         
         # Load user configuration
         user_config = get_user_config()
@@ -149,7 +154,7 @@ class ElasticsearchClient:
                 ssl_options['ssl_show_warn'] = False
             
             # Create client
-            self.client = AsyncElasticsearch(
+            es_kwargs = dict(
                 hosts=hosts,
                 http_auth=(self.username, self.password) if self.password else None,
                 request_timeout=self.timeout,
@@ -157,6 +162,9 @@ class ElasticsearchClient:
                 retry_on_timeout=True,
                 **ssl_options
             )
+            if self.compatibility_mode:
+                es_kwargs['compatibility_mode'] = True
+            self.client = AsyncElasticsearch(**es_kwargs)
             
             # Test connection
             info = await self.client.info()

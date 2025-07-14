@@ -141,3 +141,22 @@ export ENABLE_SMART_OPTIMIZATION=false
 
 ### Testing
 - Run `python dev_tools/test_user_configuration.py` to verify configuration management and integration. 
+
+## Elasticsearch Configuration
+
+The `elasticsearch` section in `mcp_config.yaml` supports a new option:
+
+- `compatibility_mode` (bool, default: false):
+    - If set to `true`, the Python Elasticsearch client will use compatibility headers (e.g., `Accept: application/vnd.elasticsearch+json; compatible-with=8`) to ensure compatibility with Elasticsearch 8.x servers when using a v9 client library.
+    - Set this to `true` if you see errors about incompatible Accept headers or if your Elasticsearch server only supports compatibility with version 8 or below.
+    - Example:
+      ```yaml
+      elasticsearch:
+        url: "https://your-es-server:9200"
+        username: "..."
+        password: "..."
+        verify_ssl: true
+        compatibility_mode: true
+        # ... other options ...
+      ```
+    - If your server and client are the same major version, or you are using an 8.x client, you can leave this as `false`. 
