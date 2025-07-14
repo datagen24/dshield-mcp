@@ -144,6 +144,23 @@ export ENABLE_SMART_OPTIMIZATION=false
 
 ## Elasticsearch Configuration
 
+> **Important:**
+> The Python Elasticsearch client version in your `requirements.txt` **must match the major version of your Elasticsearch server** for best compatibility. If you are running Elasticsearch 7.x, use the `elasticsearch7` package. For 8.x, use `elasticsearch` v8.x or v9.x with `compatibility_mode` as needed. For 9.x, use `elasticsearch` v9.x.
+>
+> **To upgrade to a new major version:**
+> 1. Upgrade your Elasticsearch server first.
+> 2. Then upgrade the Python client in your requirements file.
+>
+> | Elasticsearch Server | Python Client Package      | Version Constraint Example         |
+> |---------------------|---------------------------|------------------------------------|
+> | 7.x                 | elasticsearch7            | elasticsearch7>=7.17,<8.0          |
+> | 8.x                 | elasticsearch             | elasticsearch>=8.7,<9.0            |
+> | 8.x                 | elasticsearch             | elasticsearch>=9.0,<10.0 + compat. |
+> | 9.x                 | elasticsearch             | elasticsearch>=9.0,<10.0           |
+>
+> - If using a newer client with an older server (e.g., 9.x client with 8.x server), set `compatibility_mode: true` in your config.
+> - Only pass `compatibility_mode` if your client version is >=8.7.0.
+
 The `elasticsearch` section in `mcp_config.yaml` supports a new option:
 
 - `compatibility_mode` (bool, default: false):
