@@ -1,0 +1,15 @@
+---
+description: MCP security and safety implementation following official guidelines
+globs: **/*.py, **/*.ts, **/*.js
+alwaysApply: true
+---
+- Implement comprehensive input validation for all tool arguments and resource requests.
+- Sanitize file paths to prevent directory traversal attacks using absolute path validation.
+- Use command allowlists and never execute arbitrary user-provided commands.
+- Implement explicit user consent flows for potentially dangerous operations.
+- Validate all inputs against JSON schemas before processing tool calls or resource access.
+- Use shell=False for subprocess execution and proper argument parsing with shlex.
+- Enforce timeout limits on all external operations and tool executions.
+- Implement rate limiting and concurrent operation controls to prevent resource exhaustion.
+- Store sensitive configuration in environment variables, never hardcode credentials.
+- Follow principle of least privilege for file system access and external service permissions.

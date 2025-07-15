@@ -1,0 +1,15 @@
+---
+description: Core MCP protocol implementation requirements following modelcontextprotocol.io specifications
+globs: **/*.py, **/*.ts, **/*.js
+alwaysApply: true
+---
+- MUST implement JSON-RPC 2.0 as the wire protocol for all MCP communications.
+- MUST support stateful connections with proper session management during MCP lifecycle.
+- MUST implement capability negotiation during initialization phase.
+- MUST provide one or more of: Resources, Tools, or Prompts as defined in MCP specification.
+- MUST follow semantic versioning for server versions and protocol compatibility.
+- JSON-RPC messages MUST include: "jsonrpc": "2.0", proper id handling, and correct method/result structure.
+- Handle initialize method first, negotiate protocol version, respond with server capabilities.
+- Wait for initialized notification before processing other requests.
+- Implement required methods based on declared capabilities: tools/list, tools/call, resources/list, resources/read, prompts/list, prompts/get.
+- Only declare capabilities that are actually implemented and functional.

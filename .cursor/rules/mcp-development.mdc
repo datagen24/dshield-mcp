@@ -1,0 +1,14 @@
+---
+description: MCP server development workflow and standards
+globs: **/*.py, **/*.ts, **/*.js
+---
+- Structure MCP servers with separate modules for tools, resources, prompts, and utilities.
+- Implement proper configuration management using environment variables for all settings.
+- Create comprehensive tool and resource definitions with detailed descriptions and schemas.
+- Use type hints and validation libraries (Pydantic for Python, Zod for TypeScript) for all inputs.
+- Implement proper resource management with context managers for file operations and external connections.
+- Follow naming conventions: use descriptive tool names and clear resource URIs.
+- Implement caching strategies for frequently accessed resources to improve performance.
+- Use structured logging with consistent format and context information.
+- Version all tools and resources appropriately when making breaking changes.
+- Document security implications and limitations of all tools and resources.

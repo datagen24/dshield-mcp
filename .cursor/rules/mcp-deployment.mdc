@@ -1,0 +1,14 @@
+---
+description: MCP server deployment and configuration management
+globs: **/*.py, **/*.ts, **/*.js
+---
+- Use absolute paths in all MCP host configurations to ensure reliable operation.
+- Configure environment variables for all runtime settings and feature flags.
+- Implement proper logging configuration that respects debug modes and log levels.
+- Test server deployment with multiple MCP hosts before production release.
+- Implement health checks and monitoring for production MCP server deployments.
+- Use semantic versioning for all server releases and maintain compatibility matrices.
+- Provide clear installation instructions for different platforms and environments.
+- Document system requirements, dependencies, and compatibility constraints.
+- Implement graceful degradation when optional dependencies are unavailable.
+- Use configuration validation to catch deployment issues early.

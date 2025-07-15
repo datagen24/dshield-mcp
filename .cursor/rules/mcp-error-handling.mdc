@@ -1,0 +1,14 @@
+---
+description: MCP-specific error handling patterns and JSON-RPC error responses
+globs: **/*.py, **/*.ts, **/*.js
+alwaysApply: true
+---
+- Implement robust error handling for all MCP method handlers with proper JSON-RPC error codes.
+- Use standard JSON-RPC error codes: PARSE_ERROR (-32700), INVALID_REQUEST (-32600), METHOD_NOT_FOUND (-32601), INVALID_PARAMS (-32602), INTERNAL_ERROR (-32603).
+- Server-defined errors start at -32000 and should include descriptive messages.
+- Wrap all tool and resource execution logic in try-catch blocks with detailed error logging to stderr.
+- Return valid JSON-RPC error responses instead of crashing the server process.
+- Log errors with context including request ID, method name, and relevant parameters.
+- Validate all inputs against schemas before processing and return appropriate validation errors.
+- Handle timeouts, resource limitations, and external service failures gracefully.
+- Never expose internal system details or stack traces in error responses to clients.

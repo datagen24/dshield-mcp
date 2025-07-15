@@ -1,0 +1,12 @@
+---
+description: User consent and authorization implementation for MCP tools
+globs: **/*.py, **/*.ts, **/*.js
+---
+- Require explicit user consent before invoking any tool that modifies system state.
+- Implement clear consent prompts that describe the operation being performed.
+- Log all consent decisions to stderr for audit trails and debugging.
+- Provide users with sufficient information to make informed consent decisions.
+- Never bypass consent mechanisms or auto-approve dangerous operations.
+- Implement consent timeouts and re-prompt for long-running operations.
+- Document all operations that require consent in tool descriptions and documentation.
+- Store consent preferences securely when appropriate for user experience.

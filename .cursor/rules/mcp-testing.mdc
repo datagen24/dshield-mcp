@@ -1,0 +1,14 @@
+---
+description: MCP-specific testing requirements and patterns
+globs: **/*.py, **/*.ts, **/*.js
+---
+- Write comprehensive unit tests for all MCP method handlers (initialize, tools/list, tools/call, etc.).
+- Implement integration tests using subprocess to test full STDIO transport communication.
+- Test error conditions, invalid inputs, and edge cases for all tools and resources.
+- Use MCP Inspector for interactive testing and validation during development.
+- Mock external dependencies and services in unit tests for reliable test execution.
+- Test capability negotiation and protocol version compatibility scenarios.
+- Validate JSON-RPC message structure and compliance in all test cases.
+- Test signal handling and graceful shutdown procedures in integration tests.
+- Include performance testing for resource-intensive tools and operations.
+- Test with multiple concurrent requests to validate session management and threading.

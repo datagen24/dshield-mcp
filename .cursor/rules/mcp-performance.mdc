@@ -1,0 +1,14 @@
+---
+description: Performance optimization and monitoring for MCP servers
+globs: **/*.py, **/*.ts, **/*.js
+---
+- Implement rate limiting and concurrent operation controls to prevent resource exhaustion.
+- Use caching strategies for frequently accessed resources and expensive computations.
+- Implement timeout controls for all external operations and tool executions.
+- Monitor memory usage and implement cleanup procedures for long-running operations.
+- Use connection pooling for database and external service connections.
+- Implement lazy loading for resources that are expensive to initialize.
+- Profile tool execution times and optimize performance bottlenecks.
+- Use asynchronous operations where appropriate to improve concurrency.
+- Implement proper resource cleanup and garbage collection for temporary files.
+- Monitor and log performance metrics for production debugging and optimization.

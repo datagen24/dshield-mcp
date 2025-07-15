@@ -1,0 +1,14 @@
+---
+description: MCP-specific documentation requirements
+globs: **/*.py, **/*.ts, **/*.js
+---
+- Document all tools with comprehensive descriptions, input schemas, and usage examples.
+- Include security considerations and limitations in all tool and resource documentation.
+- Provide clear setup instructions for different MCP hosts (Claude Desktop, VS Code, etc.).
+- Document configuration options and environment variables with examples.
+- Create troubleshooting guides covering common STDIO transport issues.
+- Include example client configurations for popular MCP hosts.
+- Document the server's capabilities, protocol version support, and compatibility requirements.
+- Provide migration guides when updating protocol versions or making breaking changes.
+- Include performance characteristics and resource requirements in documentation.
+- Document testing procedures and provide example test cases for validation.

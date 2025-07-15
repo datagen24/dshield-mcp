@@ -1,0 +1,15 @@
+---
+description: STDIO transport implementation rules for MCP servers - CRITICAL for protocol compliance
+globs: **/*.py, **/*.ts, **/*.js
+alwaysApply: true
+---
+- CRITICAL: Use stdout EXCLUSIVELY for JSON-RPC protocol messages - never log to stdout.
+- CRITICAL: Send ALL logging, debug output, and diagnostics to stderr only.
+- MUST process one JSON-RPC message per line on stdin.
+- MUST send one JSON-RPC message per line on stdout.
+- MUST flush stdout after each message to ensure immediate delivery.
+- MUST handle process termination gracefully (SIGINT, SIGTERM) with proper cleanup.
+- Configure all logging frameworks to use stderr stream explicitly.
+- Implement signal handlers for graceful shutdown procedures.
+- Use console.error() in JavaScript/TypeScript, logging to stderr in Python.
+- Never output debugging information, status messages, or application logs to stdout.
