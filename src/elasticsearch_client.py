@@ -9,6 +9,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union, Tuple
 from urllib.parse import urlparse
+import inspect
 
 import structlog
 from elasticsearch import AsyncElasticsearch
@@ -188,9 +189,21 @@ class ElasticsearchClient:
             auth_config = None
             if self.password:
                 try:
-                    # Ensure password is string
-                    password_str = str(self.password) if self.password is not None else ""
+                    # Ensure password is string and not None
+                    if self.password is None:
+                        logger.error("Password is None - 1Password secret resolution may have failed")
+                        raise ValueError("Password is None - check 1Password CLI configuration")
+                    
+                    password_str = str(self.password)
                     username_str = str(self.username) if self.username is not None else ""
+                    
+                    # Validate credentials
+                    if not username_str or not password_str:
+                        logger.error("Invalid credentials - username or password is empty", 
+                                   username_length=len(username_str), 
+                                   password_length=len(password_str))
+                        raise ValueError("Invalid credentials - username or password is empty")
+                    
                     auth_config = (username_str, password_str)
                     logger.debug("Authentication configured", username=username_str[:3] + "***")
                 except Exception as e:
@@ -207,18 +220,27 @@ class ElasticsearchClient:
                 **ssl_options
             )
             
-            # Only add compatibility_mode if the client supports it (>=8.7.0)
+            # Only add compatibility_mode if the client supports it (>=8.7.0) and the argument exists
             try:
-                es_version = version.parse(getattr(es_module, '__version__', '0.0.0'))
-                logger.debug("Elasticsearch client version", version=str(es_version))
-                
-                if self.compatibility_mode and es_version >= version.parse('8.7.0'):
+                es_version_raw = getattr(es_module, '__version__', '0.0.0')
+                if isinstance(es_version_raw, tuple):
+                    es_version_str = '.'.join(str(x) for x in es_version_raw)
+                else:
+                    es_version_str = str(es_version_raw)
+                logger.debug("Raw elasticsearch module version", es_version_raw=es_version_raw, es_version_str=es_version_str)
+                es_version = version.parse(es_version_str)
+
+                # Check if compatibility_mode is a valid argument
+                compat_mode_supported = 'compatibility_mode' in inspect.signature(AsyncElasticsearch.__init__).parameters
+                logger.debug("compatibility_mode supported", compat_mode_supported=compat_mode_supported)
+
+                if self.compatibility_mode and es_version >= version.parse('8.7.0') and compat_mode_supported:
                     es_kwargs['compatibility_mode'] = True
                     logger.debug("Added compatibility_mode to client kwargs")
-                elif self.compatibility_mode:
-                    logger.warning("compatibility_mode requested but not supported by elasticsearch client version %s", es_version)
+                elif self.compatibility_mode and not compat_mode_supported:
+                    logger.warning("compatibility_mode requested but not supported by this elasticsearch client version or class signature")
             except Exception as e:
-                logger.error("Failed to check elasticsearch client version", error=str(e))
+                logger.error("Failed to check elasticsearch client version or compatibility_mode support", error=str(e))
             
             logger.debug("Creating AsyncElasticsearch client", kwargs_keys=list(es_kwargs.keys()))
             

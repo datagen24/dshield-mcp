@@ -101,14 +101,14 @@ class OnePasswordSecrets:
                 ["op", "read", op_url],
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=5,  # Reduced timeout from 10 to 5 seconds
                 check=True
             )
             secret_value = result.stdout.strip()
             logger.debug("Successfully resolved 1Password URL", op_url=op_url)
             return secret_value
         except subprocess.TimeoutExpired:
-            logger.error("Timeout resolving 1Password URL", op_url=op_url)
+            logger.error("Timeout resolving 1Password URL (5s timeout)", op_url=op_url)
             return None
         except subprocess.CalledProcessError as e:
             logger.error("Failed to resolve 1Password URL", 
@@ -143,8 +143,13 @@ class OnePasswordSecrets:
             if resolved is not None:
                 return resolved
             else:
-                logger.warning("Failed to resolve op:// URL, using original value", 
-                             original_value=value)
+                logger.error("Failed to resolve op:// URL, this may cause authentication issues", 
+                           original_value=value)
+                # For critical credentials, return None instead of the raw URL
+                if "password" in value.lower() or "username" in value.lower():
+                    logger.error("Critical credential resolution failed - returning None", 
+                               credential_type="username" if "username" in value.lower() else "password")
+                    return None
                 return value
         # Check if the value contains op:// URLs (for complex values)
         op_pattern = r'op://[^\s]+'
