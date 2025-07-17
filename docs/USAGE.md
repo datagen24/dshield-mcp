@@ -38,6 +38,27 @@ python config.py validate
 python mcp_server.py
 ```
 
+## Dependencies
+
+- **Python Packages:**
+  - `elasticsearch` (for Elasticsearch queries and backend integration)
+  - `structlog` (for structured logging and error reporting)
+  - `aiohttp` (for async HTTP requests)
+  - `pydantic` (for data validation and typing)
+  - `pytest` (for running tests)
+  - `ruff` (for linting and docstring compliance)
+  - `pdoc` (for HTML API documentation generation)
+  - `pydoc-markdown` (for Markdown API documentation generation)
+- **Elasticsearch:**
+  - Requires a running Elasticsearch instance (version 7.x, 8.x, or 9.x; see compatibility notes in docs/README.md)
+- **Testing and Documentation Tools:**
+  - `pytest` for test automation
+  - `ruff` for linting and docstring checks
+  - `pdoc` for HTML API docs
+  - `pydoc-markdown` for Markdown API docs
+
+See `requirements.txt` and `requirements-dev.txt` for full dependency lists and version constraints.
+
 ## Configuration
 
 ### Environment Variables
@@ -142,6 +163,33 @@ The data dictionary is automatically provided to AI models during initialization
    - Copy the generated context
    - Paste it into your ChatGPT conversation
    - Ask ChatGPT to analyze the security data
+
+## Using with Claude and Cursor
+
+1. **Configure Claude/Cursor**:
+   - Add the MCP server URL to your Claude/Cursor configuration
+   - Example: `http://localhost:8000`
+   - Ensure the server is accessible from your Claude/Cursor instance
+
+2. **Available Tools**:
+   - `dshield-elastic-mcp.query_dshield_events`: Query DShield events from Elasticsearch
+   - `dshield-elastic-mcp.query_dshield_attacks`: Query DShield attack data specifically
+   - `dshield-elastic-mcp.query_dshield_reputation`: Query DShield reputation data for IP addresses
+   - `dshield-elastic-mcp.query_dshield_top_attackers`: Query DShield top attackers data
+   - `dshield-elastic-mcp.query_dshield_geographic_data`: Query DShield geographic attack data
+   - `dshield-elastic-mcp.query_dshield_port_data`: Query DShield port attack data
+   - `dshield-elastic-mcp.get_dshield_statistics`: Get comprehensive DShield statistics
+   - `dshield-elastic-mcp.enrich_ip_with_dshield`: Enrich IP address with DShield threat intelligence
+   - `dshield-elastic-mcp.generate_attack_report`: Generate structured attack reports
+   - `dshield-elastic-mcp.query_events_by_ip`: Query events for specific IP addresses
+   - `dshield-elastic-mcp.get_security_summary`: Get security summary for the last 24 hours
+   - `dshield-elastic-mcp.get_data_dictionary`: Get comprehensive data dictionary for DShield SIEM fields
+   - `dshield-elastic-mcp.test_elasticsearch_connection`: Test connection to Elasticsearch and show available indices
+
+3. **Usage Notes**:
+   - The tools are available as `dshield-elastic-mcp.tool_name`
+   - You can call them directly in your Claude/Cursor conversation
+   - Example: `@dshield-elastic-mcp.query_dshield_events`
 
 ## Data Dictionary Usage
 
