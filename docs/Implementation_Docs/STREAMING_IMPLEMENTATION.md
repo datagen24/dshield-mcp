@@ -217,6 +217,34 @@ Potential improvements for the streaming functionality:
 3. **Streaming Export** - Export large datasets in chunks
 4. **Streaming Templates** - Pre-built streaming queries
 
+## Dependencies
+
+- **Python Packages:**
+  - `elasticsearch` (for Elasticsearch queries and streaming)
+  - `structlog` (for structured logging and error reporting)
+- **Elasticsearch:**
+  - Requires a running Elasticsearch instance (version 7.x or 8.x recommended)
+- **Testing:**
+  - `pytest` for test scripts
+
+## 🔒 Security Implications
+
+- **Input Validation:** All streaming parameters (`chunk_size`, `max_chunks`, filters, stream_id) are validated to prevent injection attacks and ensure only valid values are processed.
+- **Resource Controls:** Limits are enforced on `chunk_size` (default: 500, max: 1000) and `max_chunks` (default: 20) to prevent excessive memory or resource usage and mitigate DoS risks.
+- **Error Handling:** Robust error handling and logging are implemented for all streaming and chunked processing operations. Errors are logged to stderr with context, and no sensitive information is exposed to clients.
+- **Data Exposure:** Only authorized users and tools can access streaming results. Sensitive data is redacted or summarized in client-facing outputs as appropriate.
+- **Protocol Compliance:** All MCP communications use JSON-RPC 2.0 with strict schema validation, preventing malformed or malicious requests from affecting the server.
+
+## 🔄 Migration Notes
+
+- **Backward Compatibility:** The streaming feature is fully backward compatible. Existing queries without streaming parameters will continue to work as before, with default values applied.
+- **Configuration:** No additional configuration is required. Streaming parameters are optional and have sensible defaults (`chunk_size=500`, `max_chunks=20`).
+- **Upgrade Steps:**
+  1. Update your MCP server and dependencies to the latest version.
+  2. Review and test streaming features with your existing workflows.
+  3. Monitor performance and resource usage after deployment, and adjust chunk size as needed.
+- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved.
+
 ## Conclusion
 
 The streaming implementation successfully addresses the large dataset problem by:
