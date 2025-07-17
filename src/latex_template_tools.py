@@ -731,3 +731,9 @@ class LaTeXTemplateTools:
                     example_data[var] = f"Example {var}"
         
         return example_data 
+
+    async def health_check(self) -> bool:
+        """Check if LaTeX compilation is available (placeholder)."""
+        # TODO: Implement actual binary check
+        await asyncio.sleep(0.01)
+        return True 
