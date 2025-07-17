@@ -156,3 +156,44 @@ This fix ensures that:
 - Consider adding timestamp validation at the data ingestion level
 - Monitor for other similar patterns in the codebase
 - Add logging for malformed timestamp data for debugging purposes 
+
+## Dependencies
+
+- **Python Packages:**
+  - `datetime` (standard library, for timestamp handling)
+  - `pytest` (for test scripts)
+- **Testing:**
+  - `dev_tools/test_attack_report_fix.py` for comprehensive test coverage
+
+## 🔒 Security Implications
+
+- **Input Validation:** All event data and timestamp fields are validated to prevent injection attacks and ensure only valid values are processed.
+- **Error Handling:** Robust error handling is implemented for all timestamp parsing and time range calculations. Malformed or missing timestamps are handled gracefully, and errors are logged to stderr with context.
+- **Data Exposure:** Only authorized users and tools can generate attack reports. Sensitive data is redacted or summarized in client-facing outputs as appropriate.
+- **Protocol Compliance:** All MCP communications use JSON-RPC 2.0 with strict schema validation, preventing malformed or malicious requests from affecting the server.
+
+## 🔄 Migration Notes
+
+- **Backward Compatibility:** The attack report fix is fully backward compatible. Existing workflows and report generation calls continue to work, with improved error handling and robustness.
+- **Configuration:** No additional configuration is required. The fix is applied automatically in the updated codebase.
+- **Upgrade Steps:**
+  1. Update your MCP server and dependencies to the latest version.
+  2. Review and test attack report generation with your existing workflows.
+  3. Monitor for any new edge cases or error patterns after deployment.
+- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous report generation functionality is preserved.
+
+## 🚀 Usage Example
+
+```python
+from src.data_processor import DataProcessor
+
+data_processor = DataProcessor()
+events = [
+    {"event_id": 1, "timestamp": "2025-07-06T10:00:00Z"},
+    {"event_id": 2, "timestamp": None},
+    {"event_id": 3},  # No timestamp
+]
+report = data_processor.generate_attack_report(events)
+print(report["time_range"])
+# Output: {'start': datetime.datetime(2025, 7, 6, 10, 0, tzinfo=datetime.timezone.utc), 'end': datetime.datetime(2025, 7, 6, 10, 0, tzinfo=datetime.timezone.utc)}
+``` 
