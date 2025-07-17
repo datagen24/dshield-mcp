@@ -6,6 +6,27 @@ This document provides a comprehensive reference for the DShield MCP API, includ
 
 The DShield MCP package provides a complete API for integrating with DShield's threat intelligence platform and Elasticsearch for SIEM operations. This documentation covers all public APIs and their usage patterns.
 
+## Dependencies
+
+- **Python Packages:**
+  - `elasticsearch` (for Elasticsearch queries and backend integration)
+  - `structlog` (for structured logging and error reporting)
+  - `aiohttp` (for async HTTP requests)
+  - `pydantic` (for data validation and typing)
+  - `pytest` (for running tests)
+  - `ruff` (for linting and docstring compliance)
+  - `pdoc` (for HTML API documentation generation)
+  - `pydoc-markdown` (for Markdown API documentation generation)
+- **Elasticsearch:**
+  - Requires a running Elasticsearch instance (version 7.x, 8.x, or 9.x; see compatibility notes in docs/README.md)
+- **Testing and Documentation Tools:**
+  - `pytest` for test automation
+  - `ruff` for linting and docstring checks
+  - `pdoc` for HTML API docs
+  - `pydoc-markdown` for Markdown API docs
+
+See `requirements.txt` and `requirements-dev.txt` for full dependency lists and version constraints.
+
 ## Quick Start
 
 ### Installation
