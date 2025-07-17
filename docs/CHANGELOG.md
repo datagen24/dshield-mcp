@@ -5,6 +5,41 @@ All notable changes to the DShield MCP project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Migration Notes
+
+- **Breaking Changes:**
+  - When upgrading to a new major version, review all breaking changes listed in this changelog.
+  - Update your configuration files and environment variables as described in the relevant release notes.
+  - Run all tests and validate workflows after upgrading.
+  - For output directory changes, migrate files as described in the Output Directory Configuration guide.
+  - For tool or API changes, update client integrations to match new signatures and behaviors.
+- **Upgrade Steps:**
+  1. Review the breaking changes and new features in this changelog.
+  2. Update your dependencies as listed below.
+  3. Update configuration files and environment variables as needed.
+  4. Run all tests and validate workflows.
+  5. Monitor for any new errors or issues after deployment.
+- **Deprecations:**
+  - Deprecated features are listed in the relevant release notes. Remove usage of deprecated features before upgrading to the next major version.
+
+## Dependencies
+
+- **Python Packages:**
+  - See `requirements.txt` and `requirements-dev.txt` for full dependency lists and version constraints.
+  - Major dependencies include: `elasticsearch`, `structlog`, `aiohttp`, `pydantic`, `pytest`, `ruff`, `pdoc`, `pydoc-markdown`.
+- **Node.js Packages:**
+  - For security scanning: `mcp-shield` (Node.js, installed via npm or npx, for development only)
+- **Operating System:**
+  - Compatible with Unix/Linux/macOS and Windows
+  - Requires permission to create and write to the configured output directory
+- **Testing and Documentation Tools:**
+  - `pytest` for test automation
+  - `ruff` for linting and docstring checks
+  - `pdoc` for HTML API docs
+  - `pydoc-markdown` for Markdown API docs
+
+See the documentation for each feature or breaking change for additional migration and dependency details.
+
 ## [Unreleased]
 
 ### Added
