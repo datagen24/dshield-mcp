@@ -60,3 +60,42 @@ This document describes the implementation of query performance metrics in the D
 ## Implementation Notes
 - Metrics are tracked in `src/elasticsearch_client.py` and attached to the response in `_generate_enhanced_pagination_info` and `execute_aggregation_query`.
 - The structure is extensible for future metrics (e.g., cache hits, network time). 
+
+## Dependencies
+
+- **Python Packages:**
+  - `elasticsearch` (for query execution and metrics collection)
+  - `structlog` (for structured logging and error reporting)
+- **Elasticsearch:**
+  - Requires a running Elasticsearch instance (version 7.x or 8.x recommended)
+- **Testing:**
+  - `pytest` for test scripts
+
+## 🔒 Security Implications
+
+- **Input Validation:** All query parameters are validated to prevent injection attacks and ensure only valid values are processed.
+- **Resource Controls:** Query optimizations (pagination, field selection, aggregation) are enforced to prevent excessive memory or resource usage and mitigate DoS risks.
+- **Error Handling:** Robust error handling and logging are implemented for all metric collection and reporting operations. Errors are logged to stderr with context, and no sensitive information is exposed to clients.
+- **Data Exposure:** Only authorized users and tools can access performance metrics. Sensitive data is redacted or summarized in client-facing outputs as appropriate.
+- **Protocol Compliance:** All MCP communications use JSON-RPC 2.0 with strict schema validation, preventing malformed or malicious requests from affecting the server.
+
+## 🧪 Testing Notes
+
+- **Test Coverage:**
+  - Comprehensive test scripts validate metric collection, reporting, and edge cases.
+  - Tests cover paginated queries, aggregation queries, and error scenarios.
+- **Validation:**
+  - Metrics are checked for accuracy, completeness, and correct attachment to API responses.
+  - Edge cases (e.g., empty results, large datasets, failed queries) are tested.
+- **Continuous Integration:**
+  - Tests are run automatically in CI/CD pipelines to ensure ongoing compliance and correctness.
+
+## 🔄 Migration Notes
+
+- **Backward Compatibility:** The performance metrics feature is fully backward compatible. Existing queries and API responses continue to work, with metrics added as additional fields.
+- **Configuration:** No additional configuration is required. Metrics are included automatically in relevant responses.
+- **Upgrade Steps:**
+  1. Update your MCP server and dependencies to the latest version.
+  2. Review and test performance metrics with your existing workflows.
+  3. Monitor performance and resource usage after deployment, and adjust query parameters as needed.
+- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved. 
