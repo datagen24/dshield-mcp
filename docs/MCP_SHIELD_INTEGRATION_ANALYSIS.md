@@ -455,3 +455,44 @@ The current codebase shows good security practices, but adding automated securit
 - [MCP Security Research](https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
 - [DShield MCP Project](https://github.com/your-org/dshield-mcp) 
+
+## Dependencies
+
+- **Node.js Packages:**
+  - `mcp-shield` (Node.js security scanner, installed via npm or npx)
+- **Python Packages:**
+  - `subprocess`, `json`, `os`, `pathlib` (standard library, for integration scripts)
+  - `pytest` (for test automation)
+- **CI/CD Tools:**
+  - GitHub Actions or other CI/CD platform for automated security scanning
+- **Integration Scripts:**
+  - `scripts/security_scan.py` (Python wrapper for MCP-Shield)
+  - `scripts/security_report.py` (for generating security reports)
+
+See `requirements.txt`, `requirements-dev.txt`, and Node.js documentation for full dependency lists and version constraints.
+
+## 🧪 Testing Notes
+
+- **Test Coverage:**
+  - Security scanning scripts are tested for correct invocation and result parsing
+  - Integration tests ensure MCP-Shield runs as part of the CI/CD pipeline
+  - Vulnerability detection and reporting are validated with known test cases
+- **Validation:**
+  - Scan results are reviewed for accuracy and completeness
+  - Safe list and exclusion logic are tested to avoid false positives
+- **Continuous Integration:**
+  - Security scans are run automatically in CI/CD pipelines before deployment
+  - Reports are generated and reviewed as part of the release process
+
+## 📊 Performance Notes
+
+- **Performance Impact:**
+  - MCP-Shield scans are run as part of the CI/CD pipeline and do not impact runtime performance of the MCP server
+  - Scans are optimized for speed and can be configured to run only on relevant files or directories
+- **Resource Usage:**
+  - Security scans require Node.js and sufficient system resources to run MCP-Shield
+  - Scan duration depends on the size and complexity of the codebase
+- **Optimization Strategies:**
+  - Use safe lists and exclusions to minimize unnecessary scanning
+  - Schedule scans during off-peak hours or as part of nightly builds
+  - Monitor scan times and optimize configuration as needed 
