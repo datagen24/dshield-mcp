@@ -147,3 +147,31 @@ No additional configuration required. Pagination parameters are optional and hav
 - `page`: 1 (first page)
 - `page_size`: 100 (reasonable default)
 - `include_summary`: true (provides useful context) 
+
+## Dependencies
+
+- **Python Packages:**
+  - `elasticsearch` (for Elasticsearch queries and pagination)
+  - `structlog` (for structured logging and error reporting)
+- **Elasticsearch:**
+  - Requires a running Elasticsearch instance (version 7.x or 8.x recommended)
+- **Testing:**
+  - `pytest` for test scripts
+
+## 🔒 Security Implications
+
+- **Input Validation:** All pagination parameters (`page`, `page_size`, filters) are validated to prevent injection attacks and ensure only valid values are processed.
+- **Resource Controls:** Limits are enforced on `page_size` (default: 100, max: 1000) to prevent excessive memory or resource usage and mitigate DoS risks.
+- **Error Handling:** Robust error handling and logging are implemented for all pagination and field mapping operations. Errors are logged to stderr with context, and no sensitive information is exposed to clients.
+- **Data Exposure:** Only authorized users and tools can access paginated results. Sensitive data is redacted or summarized in client-facing outputs as appropriate.
+- **Protocol Compliance:** All MCP communications use JSON-RPC 2.0 with strict schema validation, preventing malformed or malicious requests from affecting the server.
+
+## 🔄 Migration Notes
+
+- **Backward Compatibility:** The pagination feature is fully backward compatible. Existing queries without pagination parameters will continue to work as before, with default values applied.
+- **Configuration:** No additional configuration is required. Pagination parameters are optional and have sensible defaults (`page=1`, `page_size=100`).
+- **Upgrade Steps:**
+  1. Update your MCP server and dependencies to the latest version.
+  2. Review and test pagination features with your existing workflows.
+  3. Monitor performance and resource usage after deployment, and adjust page size as needed.
+- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved. 
