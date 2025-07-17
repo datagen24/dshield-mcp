@@ -529,6 +529,30 @@ When extending the campaign analysis:
 4. **Add tests** to `test_campaign_analysis.py`
 5. **Update documentation** in this file
 
+## 🔒 Security Implications
+
+The Campaign Analysis feature is designed with multiple security considerations in mind:
+
+- **Input Validation:** All user-supplied indicators and configuration values are validated to prevent injection attacks and ensure data integrity. The system sanitizes inputs before processing and querying.
+- **Privilege Separation:** The analysis engine operates with the least privilege required, and does not require direct access to sensitive system resources or credentials. All secrets and API keys are managed via the 1Password CLI and injected through environment variables, never hardcoded.
+- **Error Handling:** Robust error handling is implemented throughout the correlation pipeline and MCP tool handlers. Errors are logged with context to stderr, and no sensitive information or stack traces are exposed to clients.
+- **Resource Controls:** The system enforces limits on event volume, expansion depth, and query time to prevent resource exhaustion and denial-of-service scenarios.
+- **Data Exposure:** Only authorized users and tools can access campaign analysis results. Sensitive data (e.g., raw payloads, infrastructure details) is redacted or summarized in client-facing outputs as appropriate.
+- **Protocol Compliance:** All MCP communications use JSON-RPC 2.0 with strict schema validation, preventing malformed or malicious requests from affecting the server.
+
+## 🔄 Migration Notes
+
+When upgrading to or integrating the Campaign Analysis feature:
+
+- **Configuration Changes:** Review and update your `user_config.yaml` and environment variables to include new campaign analysis options (see Configuration section above). Default values are backward compatible, but custom settings may require adjustment.
+- **Backward Compatibility:** The feature is designed to be backward compatible with previous MCP server versions. Existing workflows and tools will continue to function, but new correlation methods and configuration options are available.
+- **Upgrade Steps:**
+  1. Update your MCP server and dependencies to the latest version.
+  2. Review and merge any new configuration options into your deployment.
+  3. Run the full test suite (`dev_tools/test_campaign_analysis.py`) to verify correct operation.
+  4. Monitor performance and resource usage after deployment, and adjust thresholds as needed.
+- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous campaign analysis functionality is preserved.
+
 ---
 
 *This implementation provides a robust, scalable foundation for campaign analysis in the DShield MCP project, enabling advanced threat hunting and investigation capabilities.* 

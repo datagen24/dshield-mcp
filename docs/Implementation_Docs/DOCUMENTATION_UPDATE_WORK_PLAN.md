@@ -247,7 +247,7 @@ Completing this audit ensures the documentation is fully ready for future develo
 
 | Document                                      | Gap/Recommendation Summary                                              | GitHub Issue | Status   |
 |-----------------------------------------------|------------------------------------------------------------------------|--------------|----------|
-| CAMPAIGN_ANALYSIS_IMPLEMENTATION.md           | Add security implications and migration notes                          | [#11](https://github.com/datagen24/dsheild-mcp/issues/11) | Open     |
+| CAMPAIGN_ANALYSIS_IMPLEMENTATION.md           | Add security implications and migration notes                          | [#11](https://github.com/datagen24/dsheild-mcp/issues/64) | Open     |
 | ENHANCED_THREAT_INTELLIGENCE_IMPLEMENTATION.md| Add dedicated security section, migration note, summary table           | [#6](https://github.com/datagen24/dsheild-mcp/issues/6)  | Open     |
 | PAGINATION_IMPLEMENTATION.md                  | Add security, migration, and explicit dependencies sections            | [#24](https://github.com/datagen24/dsheild-mcp/issues/24) | Open     |
 | STREAMING_IMPLEMENTATION.md                   | Add security, migration, and explicit dependencies/setup sections      | [#27](https://github.com/datagen24/dsheild-mcp/issues/27) | Open     |
