@@ -33,6 +33,3 @@ Integration of MCP-Shield security scanner to enhance the security posture of th
 - [ ] Continuous security improvement processes
 
 ---
-
-- [COMPLETED] Implement graceful degradation for optional dependencies (Issue #60)
-- [COMPLETED] Implement signal handling for graceful shutdown (Issue #61)
