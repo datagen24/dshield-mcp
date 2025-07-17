@@ -182,3 +182,34 @@ from .other_module import OtherClass
 - All documentation phases are complete.
 - API documentation (HTML and Markdown) generated and verified.
 - Project is ready for changelog update, commit, and pull request creation. 
+
+## Documentation Tool Requirements
+
+- **pdoc**: Used for generating HTML API documentation from Python modules and packages.
+  - Usage: `pdoc --html --output-dir docs/api src/`
+- **pydoc-markdown**: Used for generating high-quality Markdown API documentation for AI ingestion and reference.
+  - Usage: `pydoc-markdown -I src -m <module> -o docs/api_markdown/<module>.md`
+- **Ruff**: Used for linting and enforcing docstring and typing standards.
+  - Usage: `ruff check src/ tests/`
+- **pytest**: Used for running tests and validating docstring examples (doctests).
+  - Usage: `pytest`
+- **CI/CD Integration**: Documentation generation and linting are integrated into the CI/CD pipeline to ensure ongoing compliance.
+
+## 🔒 Security and Privacy Notes
+
+- **Sensitive Information**: No secrets, credentials, or sensitive internal details are included in docstrings or documentation. All examples and descriptions are sanitized.
+- **Privacy Compliance**: Documentation avoids exposing user data, internal infrastructure details, or any information that could aid an attacker.
+- **Docstring Scope**: Only public interfaces, expected parameters, and safe usage examples are documented. Internal logic and error messages are described generically.
+- **Access Control**: API documentation is published to internal or controlled-access locations as appropriate. Markdown docs for AI ingestion are reviewed for privacy compliance before release.
+- **Security Review**: Documentation changes are reviewed for privacy and security implications as part of the pull request process.
+
+## 🔄 Migration Notes
+
+- **Backward Compatibility**: The documentation enhancement is fully backward compatible. Existing code and documentation remain valid, with improved docstring coverage and quality.
+- **Configuration**: No additional configuration is required for existing users. New documentation tools (pdoc, pydoc-markdown) are added as development dependencies.
+- **Upgrade Steps:**
+  1. Install new documentation tools (`pdoc`, `pydoc-markdown`, `ruff`) as needed.
+  2. Run linting and doc generation commands to validate compliance.
+  3. Review generated documentation for completeness and privacy/security compliance.
+  4. Update CI/CD pipelines to include documentation checks if not already present.
+- **Deprecations**: No breaking changes or deprecated features are introduced. All previous documentation remains valid and is enhanced by the new standards. 
