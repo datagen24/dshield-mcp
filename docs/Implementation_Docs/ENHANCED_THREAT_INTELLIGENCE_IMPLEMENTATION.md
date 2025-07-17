@@ -940,91 +940,33 @@ class TestThreatIntelligencePerformance:
         assert duration < 30  # Should complete within 30 seconds
 ```
 
-## Security Implications
+## 🔒 Security Implications
 
-### 1. API Key Management
+The Enhanced Threat Intelligence feature implements comprehensive security measures:
 
-- All API keys stored securely in 1Password
-- No hardcoded credentials in code or configuration files
-- Environment variable resolution with fallback to 1Password CLI
-- Secure credential rotation capabilities
+- **API Key Management:** All external API keys are managed securely through 1Password CLI integration. Keys are never hardcoded and are injected via environment variables at runtime. The system supports key rotation and secure storage practices.
+- **Rate Limiting and Concurrency Control:** Per-source rate limiting prevents API abuse and ensures compliance with external service terms. Concurrency limits prevent resource exhaustion and maintain system stability.
+- **Data Privacy and Exposure Control:** Elasticsearch writeback is configurable (enabled/disabled) to control data exposure. When disabled, all enrichment data remains local. Sensitive data is redacted or summarized in client-facing outputs.
+- **Input Validation and Sanitization:** All user inputs (IPs, domains, indicators) are validated and sanitized before processing. The system prevents injection attacks and ensures data integrity across all threat intelligence sources.
+- **Error Handling and Logging:** Robust error handling prevents information leakage. Errors are logged to stderr with context, but no sensitive information or stack traces are exposed to clients.
+- **Cache Security:** SQLite cache is stored in a secure, user-configurable location. Cache data is isolated and includes proper cleanup mechanisms to prevent data persistence issues.
+- **Network Security:** All external API communications use HTTPS with proper certificate validation. Timeout controls prevent hanging connections and potential DoS scenarios.
 
-### 2. Rate Limiting
+## 🔄 Migration Notes
 
-- Respect API rate limits for all sources
-- Implement exponential backoff for failed requests
-- Queue management for high-volume scenarios
-- Graceful degradation when sources are unavailable
+When upgrading to or integrating the Enhanced Threat Intelligence feature:
 
-### 3. Data Privacy
-
-- No sensitive data logged in plain text
-- Structured logging with appropriate field masking
-- Cache encryption for sensitive threat intelligence data
-- Data retention policies for cached results
-
-### 4. Input Validation
-
-- Comprehensive IP address validation
-- Domain name validation and sanitization
-- Query parameter validation and sanitization
-- Protection against injection attacks
-
-## Performance Considerations
-
-### 1. Enhanced Caching Strategy
-
-- Multi-level caching (SQLite + Memory)
-- Configurable TTL per source
-- Cache invalidation on data updates
-- Cache warming for frequently queried IPs
-- SQLite database stored in user-defined output directory
-- Schema includes indicator, source, result_json, retrieved_at, expires_at
-- Supports expiry-aware lookups to avoid stale enrichment
-
-### 2. Enhanced Concurrent Processing
-
-- Async/await for all API calls with per-source concurrency limits
-- Connection pooling for HTTP clients
-- Parallel source queries with timeout management and rate limit compliance
-- Graceful handling of slow sources
-
-### 3. Resource Management
-
-- Memory usage monitoring and limits
-- Connection pool size configuration
-- Request timeout management
-- Background cleanup of expired cache entries
-
-### 4. Scalability
-
-- Horizontal scaling support
-- Load balancing across multiple instances
-- Database integration for persistent storage
-- Message queue integration for high-volume scenarios
-
-## Migration Steps
-
-### 1. Phase 1: Infrastructure Setup ✅ COMPLETED
-
-1. ✅ Update configuration files with new threat intelligence settings
-2. ✅ Add new dependencies to requirements.txt
-3. ✅ Create new data models and base classes
-4. ✅ Set up 1Password integration for new API keys
-
-### 2. Phase 2: Core Implementation ✅ COMPLETED
-
-1. ✅ Implement ThreatIntelligenceManager
-2. 🔄 Create VirusTotal and Shodan clients (placeholders exist)
-3. ✅ Add enhanced MCP tools
-4. ✅ Implement correlation and scoring logic
-
-### 3. Phase 3: Enhanced Features ✅ COMPLETED
-
-1. ✅ Implement SQLite caching with expiry-aware lookups
-2. ✅ Add Elasticsearch enrichment writeback
-3. ✅ Enhance rate limiting with per-source concurrency control
-4. ✅ Implement advanced correlation algorithms
+- **Configuration Updates:** Review and update your `user_config.yaml` to include new threat intelligence configuration options. The system provides sensible defaults, but custom API keys and source configurations require explicit setup.
+- **API Key Setup:** New external threat intelligence sources (VirusTotal, Shodan, etc.) require API keys to be added to your 1Password vault and referenced in configuration. See the Configuration Requirements section for details.
+- **Backward Compatibility:** The feature maintains backward compatibility with existing DShield-only implementations. Existing workflows continue to function, with enhanced capabilities available through new MCP tools.
+- **Elasticsearch Integration:** The new Elasticsearch writeback feature is disabled by default. Users must explicitly enable it in configuration if desired. This ensures no unexpected data exposure.
+- **Upgrade Steps:**
+  1te your MCP server and dependencies to the latest version.2. Add required API keys to 1Password and update configuration.
+  3. Review and adjust rate limiting and concurrency settings for your environment.
+  4. Test the enhanced enrichment capabilities with your existing workflows.
+  5. Optionally enable Elasticsearch writeback if desired.
+  6. Monitor performance and adjust cache settings as needed.
+- **Deprecations:** No breaking changes are introduced. All previous threat intelligence functionality is preserved and enhanced.
 
 ---
 
