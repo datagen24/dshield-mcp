@@ -11,6 +11,7 @@ import logging
 import os
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
+import sys
 
 import structlog
 from mcp.server import Server
@@ -30,6 +31,12 @@ from src.campaign_analyzer import CampaignAnalyzer
 from src.campaign_mcp_tools import CampaignMCPTools
 from src.latex_template_tools import LaTeXTemplateTools
 from src.threat_intelligence_manager import ThreatIntelligenceManager
+from src.health_check_manager import HealthCheckManager
+from src.feature_manager import FeatureManager
+from src.dynamic_tool_registry import DynamicToolRegistry
+from src.signal_handler import SignalHandler
+from src.resource_manager import ResourceManager
+from src.operation_tracker import OperationTracker
 
 # Configure structured logging
 structlog.configure(
@@ -93,6 +100,9 @@ class DShieldMCPServer:
         self.campaign_tools = None
         self.latex_tools = None
         self.threat_intelligence_manager = None
+        self.health_manager = HealthCheckManager()
+        self.feature_manager = FeatureManager(self.health_manager)
+        self.tool_registry = DynamicToolRegistry(self.feature_manager)
         
         # Load user configuration
         try:
@@ -103,6 +113,10 @@ class DShieldMCPServer:
         
         # Register tools
         self._register_tools()
+        
+        self.signal_handler = SignalHandler(self)
+        self.resource_manager = ResourceManager()
+        self.operation_tracker = OperationTracker()
         
     def _register_tools(self) -> None:
         """Register all available MCP tools.
@@ -926,6 +940,8 @@ class DShieldMCPServer:
         @self.server.call_tool()
         async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
             """Handle tool calls."""
+            if not self._is_tool_available(name):
+                return await self._tool_unavailable_response(name)
             try:
                 if name == "query_dshield_events":
                     return await self._query_dshield_events(arguments)
@@ -1062,17 +1078,24 @@ class DShieldMCPServer:
                 raise ValueError(f"Unknown resource: {uri}")
     
     async def initialize(self) -> None:
-        """Initialize the MCP server and clients.
+        """Initialize the MCP server and clients with graceful degradation."""
+        logger.info("Initializing DShield MCP Server with health checks and feature flags")
+        # Run health checks
+        await self.health_manager.run_all_checks()
+        # Initialize features
+        await self.feature_manager.initialize_features()
+        # Register available tools (placeholder: use tool names for now)
+        all_tools = [
+            'elasticsearch_queries',
+            'dshield_enrichment',
+            'latex_reports',
+            'threat_intelligence',
+            'campaign_analysis',
+            'data_dictionary',
+        ]
+        self.available_tools = self.tool_registry.register_tools(all_tools)
+        logger.info("Available tools after health checks", available_tools=self.available_tools)
         
-        This method performs the complete initialization of the MCP server,
-        including setting up all client connections, data processors,
-        and campaign analysis tools. It also logs the user configuration
-        summary for debugging purposes.
-        
-        Raises:
-            Exception: If initialization of any component fails
-
-        """
         logger.info("Initializing DShield MCP Server")
         
         # Initialize Elasticsearch client (but don't connect yet)
@@ -2344,6 +2367,14 @@ class DShieldMCPServer:
                 "text": f"Error getting threat intelligence summary: {str(e)}"
             }]
     
+    def _register_resources(self):
+        # Register main resources for cleanup
+        if self.elastic_client:
+            self.resource_manager.register_cleanup_handler(self.elastic_client.close)
+        if self.threat_intelligence_manager:
+            self.resource_manager.register_cleanup_handler(self.threat_intelligence_manager.cleanup)
+        # Add more as needed
+    
     async def cleanup(self) -> None:
         """Cleanup resources.
         
@@ -2355,31 +2386,104 @@ class DShieldMCPServer:
             await self.elastic_client.close()
         if self.threat_intelligence_manager:
             await self.threat_intelligence_manager.cleanup()
+        await self.resource_manager.cleanup_all()
         logger.info("DShield MCP Server cleanup completed")
+
+    def _is_tool_available(self, tool_name: str) -> bool:
+        """Check if a tool is available based on feature flags."""
+        feature_map = {
+            'query_dshield_events': 'elasticsearch_queries',
+            'query_dshield_aggregations': 'elasticsearch_queries',
+            'stream_dshield_events': 'elasticsearch_queries',
+            'stream_dshield_events_with_session_context': 'elasticsearch_queries',
+            'query_dshield_attacks': 'elasticsearch_queries',
+            'query_dshield_reputation': 'dshield_enrichment',
+            'query_dshield_top_attackers': 'elasticsearch_queries',
+            'query_dshield_geographic_data': 'elasticsearch_queries',
+            'query_dshield_port_data': 'elasticsearch_queries',
+            'get_dshield_statistics': 'elasticsearch_queries',
+            'enrich_ip_with_dshield': 'dshield_enrichment',
+            'generate_attack_report': 'elasticsearch_queries',
+            'query_events_by_ip': 'elasticsearch_queries',
+            'get_security_summary': 'elasticsearch_queries',
+            'test_elasticsearch_connection': 'elasticsearch_queries',
+            'get_data_dictionary': 'data_dictionary',
+            'analyze_campaign': 'campaign_analysis',
+            'expand_campaign_indicators': 'campaign_analysis',
+            'get_campaign_timeline': 'campaign_analysis',
+            'compare_campaigns': 'campaign_analysis',
+            'detect_ongoing_campaigns': 'campaign_analysis',
+            'search_campaigns': 'campaign_analysis',
+            'get_campaign_details': 'campaign_analysis',
+            'generate_latex_document': 'latex_reports',
+            'list_latex_templates': 'latex_reports',
+            'get_latex_template_schema': 'latex_reports',
+            'validate_latex_document_data': 'latex_reports',
+            'enrich_ip_comprehensive': 'threat_intelligence',
+            'enrich_domain_comprehensive': 'threat_intelligence',
+            'correlate_threat_indicators': 'threat_intelligence',
+            'get_threat_intelligence_summary': 'threat_intelligence',
+        }
+        feature = feature_map.get(tool_name)
+        if not feature:
+            return True  # Default: available if not mapped
+        return self.feature_manager.is_feature_available(feature)
+
+    async def _tool_unavailable_response(self, tool_name: str) -> list:
+        """Return a JSON-RPC error response for unavailable tool, and log to stderr."""
+        feature_map = {
+            'query_dshield_events': 'elasticsearch_queries',
+            'query_dshield_aggregations': 'elasticsearch_queries',
+            'stream_dshield_events': 'elasticsearch_queries',
+            'stream_dshield_events_with_session_context': 'elasticsearch_queries',
+            'query_dshield_attacks': 'elasticsearch_queries',
+            'query_dshield_reputation': 'dshield_enrichment',
+            'query_dshield_top_attackers': 'elasticsearch_queries',
+            'query_dshield_geographic_data': 'elasticsearch_queries',
+            'query_dshield_port_data': 'elasticsearch_queries',
+            'get_dshield_statistics': 'elasticsearch_queries',
+            'enrich_ip_with_dshield': 'dshield_enrichment',
+            'generate_attack_report': 'elasticsearch_queries',
+            'query_events_by_ip': 'elasticsearch_queries',
+            'get_security_summary': 'elasticsearch_queries',
+            'test_elasticsearch_connection': 'elasticsearch_queries',
+            'get_data_dictionary': 'data_dictionary',
+            'analyze_campaign': 'campaign_analysis',
+            'expand_campaign_indicators': 'campaign_analysis',
+            'get_campaign_timeline': 'campaign_analysis',
+            'compare_campaigns': 'campaign_analysis',
+            'detect_ongoing_campaigns': 'campaign_analysis',
+            'search_campaigns': 'campaign_analysis',
+            'get_campaign_details': 'campaign_analysis',
+            'generate_latex_document': 'latex_reports',
+            'list_latex_templates': 'latex_reports',
+            'get_latex_template_schema': 'latex_reports',
+            'validate_latex_document_data': 'latex_reports',
+            'enrich_ip_comprehensive': 'threat_intelligence',
+            'enrich_domain_comprehensive': 'threat_intelligence',
+            'correlate_threat_indicators': 'threat_intelligence',
+            'get_threat_intelligence_summary': 'threat_intelligence',
+        }
+        feature = feature_map.get(tool_name, 'unknown')
+        msg = f"Tool '{tool_name}' is currently unavailable due to missing or unhealthy dependency: '{feature}'. Please try again later."
+        # Log actionable user instructions to stderr
+        print(f"[MCP SERVER] Tool '{tool_name}' unavailable. Dependency '{feature}' is not healthy. Check service status, configuration, and logs for troubleshooting.", file=sys.stderr)
+        return [{
+            "type": "error",
+            "error": {
+                "code": -32000,  # Server-defined error
+                "message": msg
+            }
+        }]
 
 
 async def main() -> None:
-    """Start the DShield MCP server.
-    
-    This function creates and initializes the DShield MCP server,
-    then runs it using the stdio transport. It handles the complete
-    server lifecycle including initialization, execution, and cleanup.
-    
-    The server will:
-    1. Initialize all components and clients
-    2. Start listening for MCP protocol messages
-    3. Process tool calls and resource requests
-    4. Clean up resources on shutdown
-    
-    Raises:
-        Exception: If server startup or execution fails
-
-    """
+    """Start the DShield MCP server with graceful shutdown."""
     server = DShieldMCPServer()
-    
     try:
+        server.signal_handler.setup_handlers()
         await server.initialize()
-        
+        server._register_resources()
         # Run the server
         async with stdio_server() as (read_stream, write_stream):
             await server.server.run(
@@ -2399,7 +2503,8 @@ async def main() -> None:
                     )
                 )
             )
-    
+        # Wait for shutdown signal
+        await server.signal_handler.wait_for_shutdown()
     except Exception as e:
         logger.error("Server error", error=str(e))
         raise
