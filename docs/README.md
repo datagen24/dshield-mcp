@@ -55,6 +55,27 @@ docs/
 ├── CAMPAIGN_ANALYSIS_IMPLEMENTATION.md # Campaign analysis implementation guide
 ```
 
+## Dependencies
+
+- **Python Packages:**
+  - `elasticsearch` (for Elasticsearch queries and backend integration)
+  - `structlog` (for structured logging and error reporting)
+  - `aiohttp` (for async HTTP requests)
+  - `pydantic` (for data validation and typing)
+  - `pytest` (for running tests)
+  - `ruff` (for linting and docstring compliance)
+  - `pdoc` (for HTML API documentation generation)
+  - `pydoc-markdown` (for Markdown API documentation generation)
+- **Elasticsearch:**
+  - Requires a running Elasticsearch instance (version 7.x, 8.x, or 9.x; see compatibility notes below)
+- **Testing and Documentation Tools:**
+  - `pytest` for test automation
+  - `ruff` for linting and docstring checks
+  - `pdoc` for HTML API docs
+  - `pydoc-markdown` for Markdown API docs
+
+See `requirements.txt` and `requirements-dev.txt` for full dependency lists and version constraints.
+
 ## 🔗 Related Resources
 
 - **Main Project**: [README.md](../README.md)
