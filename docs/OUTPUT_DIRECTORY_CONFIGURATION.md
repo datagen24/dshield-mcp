@@ -12,6 +12,20 @@ DShield MCP generates various output files including:
 
 All generated files are written to a configurable output directory that is separate from the application installation directory for security and portability.
 
+## Dependencies
+
+- **Python Packages:**
+  - `os`, `pathlib` (standard library, for path handling and directory creation)
+  - `pyyaml` (for YAML configuration parsing)
+  - `structlog` (for logging and error reporting)
+- **Operating System:**
+  - Compatible with Unix/Linux/macOS and Windows
+  - Requires permission to create and write to the configured output directory
+- **Testing:**
+  - `pytest` for test automation
+
+See `requirements.txt` and `requirements-dev.txt` for full dependency lists and version constraints.
+
 ## Default Behavior
 
 By default, all output files are written to:
