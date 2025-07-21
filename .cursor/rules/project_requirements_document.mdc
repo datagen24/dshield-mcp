@@ -1,0 +1,187 @@
+---
+description: Apply these rules when making changes to the project
+globs:
+alwaysApply: true
+---
+
+Update this rule if user requested changes to the project requirement, etc.
+# Project Requirements Document (PRD)
+
+## 1. Project Overview
+
+**Paragraph 1**\
+The `dsheild-mcp` (DShield Model Context Protocol) is a Python-based backend service designed to automate and enhance threat hunting, incident response, and security monitoring within a DShield SIEM (Security Information and Event Management) environment. It addresses the core problem of manually sifting through millions of security events to identify coordinated attack campaigns by offering automated event correlation, IOC (Indicator of Compromise) expansion, timeline reconstruction, pattern detection, and rich reporting.
+
+**Paragraph 2**\
+The `dsheild-mcp` is being developed to save security analysts countless hours of manual work, deliver actionable threat intelligence faster, and standardize incident response workflows. Key objectives include:
+
+*   Automatically uncovering multi-stage attack campaigns
+*   Enriching raw event data with DShield threat intelligence
+*   Generating clear, structured attack reports (PDF via LaTeX)
+*   Providing a flexible, secure configuration and secret-management system\
+    Success is defined by analysts receiving end-to-end campaign insights within 60 seconds on typical datasets, with zero exposure of sensitive API keys and no confusing setup steps.
+
+## 2. In-Scope vs. Out-of-Scope
+
+### In-Scope (Version 1.0)
+
+*   **Event Correlation:** Multi-stage linkage of events by IP, domain, hash, time, geolocation, behavior.
+*   **IOC Expansion:** Discover related IOCs using seed indicators (IP/domain/hash) and multiple expansion strategies.
+*   **Timeline Analysis:** Build chronological attack timelines with adjustable granularity (hourly/daily/weekly).
+*   **Pattern Detection:** Identify TTPs (Tactics, Techniques & Procedures), MITRE ATT&CK mappings, user-agent and payload signatures.
+*   **Campaign Scoring:** Assign confidence scores based on volume, span, infrastructure complexity, geographic spread.
+*   **MCP Toolset:** Expose analysis functions via MCP protocol calls like `analyze_campaign`, `get_campaign_timeline`, `generate_report`.
+*   **Reporting:** Generate PDF attack reports using customizable LaTeX templates.
+*   **DShield API Integration:** Enrich events with reputation, top-attacker lists, attack summaries (with caching & rate limits).
+*   **Elasticsearch Integration:** Query DShield SIEM indices with smart pagination, aggregation, and session-aware streaming.
+*   **Data Normalization:** Validate and standardize raw event data with Pydantic models.
+*   **Configuration Management:** Layered settings (env vars, YAML files, defaults) with overrides and export/import.
+*   **Secret Management:** Securely fetch API keys via 1Password CLI (`op://` URLs).
+*   **Security Validation & Monitoring:** Check MCP tool schemas for hidden risks; monitor execution for anomalies.
+*   **Resource Management:** Graceful start/shutdown, cleanup, and health checks.
+
+### Out-of-Scope (Future Phases)
+
+*   **User Interface:** No graphical UI or web dashboard.
+*   **Threat Attribution:** Grouping campaigns by threat-actor profiles.
+*   **Custom External Intelligence Sources:** Beyond DShield API.
+*   **Advanced Machine Learning Pipelines:** Beyond basic scikit-learn clustering.
+*   **Mobile App or Browser Extension.**
+
+## 3. User Flow
+
+**Paragraph 1**\
+A security analyst installs and configures the MCP server (`mcp_server.py`), pointing it at their Elasticsearch cluster and providing a DShield API key. They then open a terminal (or issue requests via an AI client) and call `analyze_campaign(seed_iocs, time_range)`. Under the hood, the server loads config, initializes connections (Elasticsearch, DShield API, 1Password), streams matching events in smart chunks, runs correlation and expansion logic, and returns a structured JSON campaign object.
+
+**Paragraph 2**\
+Next, the analyst reviews the campaign ID and calls additional tools:
+
+*   `get_campaign_timeline(campaign_id, granularity="daily")` to view phase-by-phase events
+*   `expand_campaign_indicators(campaign_id)` to list new IOCs
+*   `generate_report(campaign_id, output_path)` to produce a PDF\
+    Each tool invocation fetches or reuses cached data, performs the analysis step, and delivers results in JSON or as a file, all without manual data wrangling.
+
+## 4. Core Features
+
+*   **Event Correlation**\
+    Link events across IPs, domains, file hashes, time windows, geolocations, and behavior to form campaign clusters.
+*   **IOC Expansion**\
+    Grow seed indicators (IPs, domains, hashes) into broader attack infrastructure using multiple strategies.
+*   **Timeline Analysis**\
+    Reconstruct attack phases with configurable time buckets and embed TTPs for context.
+*   **Pattern Detection**\
+    Spot common TTPs, MITRE ATT&CK techniques, payload signatures, and user-agent anomalies.
+*   **Campaign Scoring**\
+    Compute a confidence score from event count, duration, TTP complexity, infrastructure diversity, and spread.
+*   **MCP Toolset**\
+    Expose all functions as protocol methods: `analyze_campaign`, `search_campaigns`, `get_campaign_details`, etc.
+*   **Advanced Reporting**\
+    Generate professional PDF reports using LaTeX templates and a built-in data dictionary.
+*   **DShield API Integration**\
+    Enrich events with real-time threat intel (reputation, top attackers) with caching and rate-limit safeguards.
+*   **Elasticsearch Integration**\
+    Efficiently retrieve events with page/cursor pagination, smart query tuning, aggregations, and session streaming.
+*   **Data Normalization**\
+    Validate and transform raw JSON into strict Pydantic models for consistent downstream analysis.
+*   **Config Management**\
+    Hierarchical settings via environment variables, YAML files, and defaults—fully overridable and exportable.
+*   **Secret Management**\
+    Fetch encrypted secrets at runtime through the 1Password CLI.
+*   **Security Validator & Monitor**\
+    Automated checks for tool descriptions/schemas; runtime monitoring for misuse or suspicious calls.
+*   **Resource Management**\
+    Graceful startup/shutdown, signal handling, and cleanup routines.
+
+## 5. Tech Stack & Tools
+
+*   **Language & Runtime**\
+    Python 3.8+ (async/await syntax via `asyncio`)
+*   **HTTP & Server**\
+    aiohttp (asynchronous web framework)
+*   **Database Client**\
+    `elasticsearch` / `AsyncElasticsearch` (async ES queries)
+*   **Data Modeling**\
+    Pydantic (data validation & settings management)
+*   **Config & Secrets**\
+    PyYAML, python-dotenv (config files & .env), 1Password CLI (`op`)
+*   **Logging**\
+    structlog (structured, machine-friendly logs)
+*   **Data Processing**\
+    networkx (graph analysis), scikit-learn (clustering), ipaddress (IP validation)
+*   **Reporting**\
+    LaTeX (external TeX Live or MiKTeX), subprocess calls
+*   **Testing & Quality**\
+    pytest, pytest-asyncio, pytest-cov, pytest-mock, ruff (linter/formatter)
+*   **CI/CD**\
+    GitHub Actions (tests, linting, docs)
+*   **IDE & AI Assist**\
+    Cursor (AI-powered coding IDE), Claude Code (terminal AI assistant)
+*   **Documentation Generation**\
+    pdoc, pydoc-markdown
+
+## 6. Non-Functional Requirements
+
+*   **Performance**\
+    End-to-end campaign analysis ≤ 60 seconds on typical datasets; efficient memory and I/O usage.
+
+*   **Scalability**\
+    Handle millions of events via smart chunking, session streaming, and query optimizations.
+
+*   **Security**
+
+    *   Zero hardcoded secrets—use 1Password CLI.
+    *   Input validation to prevent injection.
+    *   Rate limiting on external API calls.
+    *   Access controls on MCP endpoints.
+
+*   **Reliability**\
+    Graceful degradation on API/ES failures; automatic retries with back-off.
+
+*   **Usability**\
+    Clear error messages, comprehensive CLI/JSON responses, and example snippets.
+
+*   **Maintainability**\
+    Modular codebase, high test coverage (> 90%), consistent style via ruff.
+
+*   **Compliance**\
+    Follow organizational guidelines for data retention, encryption in transit (HTTPS), and audit logging.
+
+## 7. Constraints & Assumptions
+
+*   **Environment**
+
+    *   Python 3.8+ installed.
+    *   Elasticsearch v7.x or v8.x cluster accessible.
+    *   DShield API key available and valid.
+    *   1Password CLI (`op`) installed and configured.
+    *   LaTeX distribution installed for report generation.
+
+*   **Dependencies**
+
+    *   Elastic cluster capacity must support heavy queries.
+    *   DShield API rate limits (default 60 req/min) apply—caching mitigates.
+
+*   **Assumptions**
+
+    *   Analysts are comfortable invoking command-line or AI-based clients.
+    *   Network connectivity to ES and DShield API is reliable.
+    *   Minimum hardware: 4 CPU cores, 8 GB RAM for moderate datasets.
+
+## 8. Known Issues & Potential Pitfalls
+
+*   **API Rate Limits**\
+    DShield throttling may delay enrichment. Mitigation: Implement a local cache with TTL and exponential backoff.
+*   **Elasticsearch Timeouts**\
+    Large queries can time out. Mitigation: smart field reduction, adjustable page sizes, fallback to aggregations or sampling.
+*   **Memory Spikes**\
+    Loading millions of events can exhaust RAM and context windows. Mitigation: streaming in chunks, session-aware grouping.
+*   **LaTeX Build Failures**\
+    Invalid templates or missing packages cause PDF errors. Mitigation: Validate templates at startup and ship a minimal working template by default.
+*   **Secret Resolution Errors**\
+    Missing or misconfigured `op` CLI leads to failed key retrieval. Mitigation: pre-flight check on startup, clear error messages.
+*   **False Positives in Correlation**\
+    Loose thresholds may group unrelated events. Mitigation: Expose correlation parameters in the config and encourage iterative tuning.
+*   **Version Mismatches**\
+    Python library upgrades (e.g., Elasticsearch client) can break APIs. Mitigation: Pin versions in `requirements.txt` and use CI to catch compatibility issues.
+
+This PRD contains all the information an AI model needs to generate detailed technical design documents—such as Tech Stack, Frontend/Backend guidelines, file structure, and API specs—without ambiguity.

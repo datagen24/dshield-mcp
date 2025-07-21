@@ -1,0 +1,201 @@
+---
+description: Apply these rules when making changes to the project
+globs:
+alwaysApply: true
+---
+
+Update this rule if user requested changes to the project requirement, etc.
+# Backend Structure Document for dsheild-mcp
+
+This document explains how the backend of the `dsheild-mcp` (DShield Monitoring and Control Platform) is organized, hosted, and maintained. It’s written in everyday language so anyone can understand the setup without needing a deep technical background.
+
+## 1. Backend Architecture
+
+Overview:
+
+*   The system is a Python-based service that runs as an MCP (Model Context Protocol) server.
+*   It utilizes an asynchronous design (Python’s `asyncio` and `aiohttp`), allowing it to handle multiple tasks—such as fetching data, correlating events, and interacting with external APIs—without slowing down.
+*   The code is divided into distinct modules, each with a specific responsibility (for example, one module handles Elasticsearch queries, another handles DShield API calls, and another builds reports in LaTeX, and so on).
+
+How it supports our goals:
+
+*   **Scalability:** The async model and stateless service design allow us to run multiple instances behind a load balancer or in containers.
+*   **Maintainability:** Clear module boundaries and Pydantic models for data validation make the codebase easy to understand and update.
+*   **Performance:** Non-blocking I/O (asynchronous HTTP calls, streaming from Elasticsearch) ensures requests don’t wait on slow network or disk operations.
+
+Key design patterns and frameworks:
+
+*   **Modular design:** Each major feature (campaign analysis, report generation, secret resolution) lives in its own module.
+*   **Dependency Injection (via config loader):** Modules get their settings (endpoints, timeouts, credentials) from a central configuration system.
+*   **Factory pattern:** Used for creating API clients (Elasticsearch client, DShield client) with shared settings.
+*   **Observer/Registry:** MCP tools (analysis functions) register themselves at startup so the server can call them by name.
+
+## 2. Database Management
+
+Technologies:
+
+*   Primary store: **Elasticsearch** (a document-oriented, NoSQL search engine)
+*   No traditional SQL database is used; all event data, campaign metadata, and threat intel are kept in Elasticsearch indices.
+
+Data handling:
+
+*   **Indices and mappings:** Data is organized into logical indices (for example: “events,” “campaigns,” “reports”).
+*   **Pydantic models:** Incoming raw JSON (from DShield API or user requests) is validated and transformed into well-defined Python objects before being stored or processed.
+*   **Efficient queries:** We use field filtering, adjustable page sizes, and cursor-based pagination to fetch only what we need—minimizing load on Elasticsearch.
+*   **Caching:** Recent DShield API lookups and frequent Elasticsearch queries may be cached in memory during a session to reduce repeated calls.
+
+Best practices:
+
+*   Keep mappings and pipeline configurations in version control.
+*   Limit large scrolls by using smart chunking and session-based streaming.
+*   Periodically roll over or archive old indices to keep the cluster performant.
+
+## 3. Database Schema (Elasticsearch Indices)
+
+Because we use Elasticsearch (a NoSQL store), data is organized by index and document mappings instead of tables. Here’s a human-readable overview:
+
+*   **events**\
+    • Fields: timestamp, source_ip, destination_ip, user_agent, event_type, raw_payload, normalized_payload, campaign_id (if linked)\
+    • Purpose: stores raw and normalized security events from DShield SIEM.
+*   **campaigns**\
+    • Fields: campaign_id, seed_iocs, start_time, end_time, confidence_score, ttp_list, geographic_spread, infrastructure_summary\
+    • Purpose: holds metadata for each detected campaign, including its timeline and scoring.
+*   **threat_intel**\
+    • Fields: ip_address, reputation_score, top_attacker_rank, summary_text, last_updated\
+    • Purpose: caches DShield API responses to speed up enrichment and reduce rate-limit issues.
+*   **reports**\
+    • Fields: report_id, campaign_id, generated_at, template_name, pdf_blob or file_path\
+    • Purpose: tracks LaTeX-generated PDF reports for auditing and re-access.
+
+Mappings (examples):
+
+*   IP fields use the built-in `ip` type for efficient lookups.
+*   Timestamps use `date` type with millisecond precision.
+*   Text fields (like `user_agent` or `summary_text`) use `keyword` and `text` multi-fields to allow both exact matches and full-text searches.
+
+## 4. API Design and Endpoints
+
+Communication style:
+
+*   The backend exposes a set of HTTP endpoints over `aiohttp`.
+*   Clients send JSON requests and receive JSON responses (or binary PDF blobs for report downloads).
+
+Key endpoints:
+
+*   **POST /analyze_campaign**\
+    • Input: seed_iocs (list of IPs/domains/hashes), time_range\
+    • Action: runs the full correlation, expansion, and timeline analysis pipeline.\
+    • Output: JSON object describing the campaign (ID, score, summary).
+*   **GET /campaigns/{id}/timeline**\
+    • Input: campaign ID, optional granularity parameter (hourly/daily/weekly)\
+    • Action: returns the list of events and phases for the campaign.\
+    • Output: JSON with time buckets and associated events.
+*   **POST /campaigns/{id}/expand**\
+    • Input: campaign ID\
+    • Action: performs IOC expansion strategies on the seed indicators.\
+    • Output: list of new IOCs with context.
+*   **GET /campaigns/{id}/report**\
+    • Input: campaign ID, optional template name\
+    • Action: generates (or retrieves) a PDF attack report.\
+    • Output: PDF file stream.
+*   **GET /search_campaigns**\
+    • Input: query parameters (confidence threshold, date range, IOC filter)\
+    • Action: returns matching campaigns.\
+    • Output: list of campaign metadata.
+*   **POST /validate_tool**\
+    • Input: tool description or schema\
+    • Action: runs security checks on MCP tool definitions.\
+    • Output: validation report.
+
+These endpoints follow RESTful conventions: clear resource paths, HTTP verbs that match actions, and JSON bodies for complex parameters.
+
+## 5. Hosting Solutions
+
+Current setup:
+
+*   The service runs on a Linux server or virtual machine with Python 3.8+, access to the Elasticsearch cluster, and a LaTeX distribution.
+*   Configuration (Elasticsearch URL, DShield API key, 1Password CLI path) is provided via environment variables or YAML files.
+
+Optional enhancements:
+
+*   **Containerization:** Package the service in a Docker image for consistent environments.
+*   **Cloud hosting:** Deploy on AWS EC2, Google Compute Engine, or Azure VMs.
+*   **Managed Elasticsearch:** Use AWS OpenSearch or Elastic Cloud to offload cluster management.
+
+Benefits of this approach:
+
+*   **Reliability:** Linux VMs are mature and stable.
+*   **Cost-effectiveness:** Pay-as-you-go cloud VMs or small on-prem servers match usage patterns.
+*   **Scalability:** Add more instances behind a load balancer when demand grows.
+
+## 6. Infrastructure Components
+
+Core pieces working together:
+
+*   **Load Balancer (e.g., Nginx or Cloud LB):** Distributes incoming HTTP requests across multiple backend instances.
+*   **Caching Layer:** In-memory caches for API lookups and query results (Python `lru_cache` or external Redis) reduce repeat calls.
+*   **CDN (optional):** If distributing PDF reports to many clients, a CDN can speed up downloads.
+*   **Health Checks:** Built-in health endpoints regularly report service status; orchestration tools can restart unhealthy instances.
+*   **Reverse Proxy / TLS Termination:** Nginx or a cloud front door handles HTTPS and forwards to the aiohttp server.
+
+How they enhance performance:
+
+*   The load balancer prevents any single server from getting overwhelmed.
+*   Caching cuts down on repeated lookups to Elasticsearch and the DShield API.
+*   Health checks and auto-restart ensure high uptime.
+
+## 7. Security Measures
+
+Authentication & Authorization:
+
+*   API endpoints can be protected via API keys or mutual TLS if network-accessible.
+*   Tool-level access may be governed by user roles if integrated with an identity provider.
+
+Secret management:
+
+*   No secrets in code or plain config files.
+*   The 1Password CLI (`op`) resolves `op://` URLs at runtime so sensitive credentials never land on disk unencrypted.
+
+Data protection:
+
+*   All HTTP traffic uses HTTPS/TLS.
+*   Input is validated with Pydantic to block injection and malformed data.
+*   Structured logging (via `structlog`) never records sensitive fields.
+
+Rate limiting & API safety:
+
+*   Outgoing calls to the DShield API and Elasticsearch can be rate-limited and retried with back-off.
+*   Caches minimize excessive external requests.
+
+Regulatory compliance:
+
+*   Audit logs track tool usage, authentication events, and report generation.
+*   Data retention policies can be enforced via index lifecycles in Elasticsearch.
+
+## 8. Monitoring and Maintenance
+
+Monitoring tools:
+
+*   **Logging:** All services emit JSON-formatted logs consumed by a centralized log system (e.g., ELK or Splunk).
+*   **Metrics:** Instrumentation (Prometheus exporters) track request counts, latencies, error rates, and resource usage.
+*   **Health endpoints:** `/health` and `/metrics` endpoints feed orchestration tools and dashboards.
+
+Maintenance practices:
+
+*   **Automated CI/CD:** GitHub Actions run tests, linting, security scans, and documentation builds on every commit.
+*   **Rolling updates:** Deploy new versions one instance at a time to avoid downtime.
+*   **Backup & recovery:** Elasticsearch snapshots and periodic backups of critical configs and templates.
+*   **Dependency updates:** Regularly update Python libraries and base OS patches via a scheduled pipeline.
+
+## 9. Conclusion and Overall Backend Summary
+
+The `dsheild-mcp` backend is a modular, asynchronous Python service designed to automate sophisticated security analysis in a DShield SIEM environment. It unites:
+
+*   **A clear architecture** with separated modules for correlation, enrichment, and reporting.
+*   **A NoSQL data store** (Elasticsearch) optimized for large-scale event queries and document searches.
+*   **RESTful APIs** built on `aiohttp` exposing analysis tools to clients in JSON or PDF form.
+*   **Flexible hosting** on Linux VMs or containers, easily scaled behind a load balancer.
+*   **Robust security** via encrypted traffic, secret management with 1Password, and input validation.
+*   **Comprehensive monitoring** and automated maintenance through CI/CD, logging, and health checks.
+
+Together, these components deliver a high-performance, maintainable, and secure backend that meets the project’s goals of fast threat-hunting automation, actionable reporting, and flexible integrations—all within a framework that can grow with future needs.

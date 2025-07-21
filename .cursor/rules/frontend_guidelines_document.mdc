@@ -1,0 +1,173 @@
+---
+description: Apply these rules when making changes to the project
+globs:
+alwaysApply: true
+---
+
+Update this rule if user requested changes to the project requirement, etc.
+# Frontend Guideline Document
+
+This document outlines clear, everyday-language guidance for building and maintaining a user-friendly front end for the DShield Model Context Protocol (dsheild-mcp). It covers architecture, design principles, styling, component organization, state management, routing, performance, testing, and a final summary.\
+\
+This is a future feature to enable monitoring of backend functions when working with an AI Agent and is not currently planned.
+
+## 1. Frontend Architecture
+
+### Overview
+
+We recommend a modern single-page application (SPA) built with React and TypeScript. This setup provides a solid foundation for growing features over time, keeping code easy to understand and fast for users.
+
+### Key Pieces
+
+*   **Framework**: React (with TypeScript for catching mistakes early)
+*   **Build Tool**: Vite (lightning-fast startup and rebuilds)
+*   **Package Management**: npm or Yarn
+
+### Why This Works
+
+*   **Scalability**: As the app grows, React’s component model keeps pieces isolated and reusable.
+*   **Maintainability**: TypeScript and clear folder structure help new developers quickly find their way.
+*   **Performance**: Vite’s native ES module support and React’s virtual DOM deliver snappy interactions.
+
+## 2. Design Principles
+
+1.  **Usability**
+
+    *   Keep screens uncluttered.
+    *   Use clear labels and simple workflows (for example, a “Run Analysis” button rather than a cryptic command).
+
+2.  **Accessibility**
+
+    *   Follow WCAG basics: sufficient contrast, keyboard navigation, and screen-reader friendly elements.
+    *   Use semantic HTML and ARIA attributes where needed.
+
+3.  **Responsiveness**
+
+    *   Ensure layouts adapt from desktop to tablet and phone.
+    *   Employ flexible grids and media queries for a seamless experience on any device.
+
+4.  **Consistency**
+
+    *   Stick to a single design language (colors, fonts, spacing) so users feel at home on every page.
+
+## 3. Styling and Theming
+
+### Styling Approach
+
+*   **Utility-First CSS**: Tailwind CSS makes it fast to apply consistent spacing, colors, and typography.
+*   **Component Styles**: Use Tailwind classes inside components—avoid spreading custom CSS files.
+
+### Theming
+
+*   Provide two themes: **Light** and **Dark**.
+*   Store theme choice in local storage or user settings context.
+*   Toggle at runtime without a page reload.
+
+### Visual Style
+
+*   **Style**: Modern flat design with subtle glassmorphism touches (semi-transparent panels with soft shadows).
+*   **Color Palette**: • Primary: #3B82F6 (blue)\
+    • Secondary: #10B981 (green)\
+    • Accent: #F59E0B (amber)\
+    • Neutral Light: #F3F4F6 (gray-100)\
+    • Neutral Dark: #1F2937 (gray-800)\
+    • Warning: #EF4444 (red)
+*   **Typography**: • Font Family: “Inter”, sans-serif\
+    • Headings: Medium weight (500)\
+    • Body Text: Regular weight (400)
+
+## 4. Component Structure
+
+### Folder Layout Example
+
+`src/ components/ // Reusable UI building blocks pages/ // Top-level views (Dashboard, Reports) layouts/ // Shared page shells (header, sidebar) hooks/ // Custom React hooks (e.g., useTheme) services/ // API calls and data utilities store/ // State management setup App.tsx // Entry point main.tsx // Bootstraps React`
+
+### Reuse and Isolation
+
+*   **Small, Focused Components**: A button stays just a button. A chart stays just a chart.
+*   **Props**: Pass only what’s needed.
+*   **Separation of Concerns**: UI logic in components; data logic in services and hooks.
+
+## 5. State Management
+
+### Approach
+
+*   **Redux Toolkit**: Central store for global data (e.g., user settings, current campaign details).
+*   **React Context**: For lighter, app-wide concerns (e.g., theme, localization).
+
+### Why This Helps
+
+*   **Predictability**: All data flows in one direction, making bugs easier to trace.
+*   **Shareable Data**: Multiple components can read from the store without prop-drilling.
+
+## 6. Routing and Navigation
+
+### Library
+
+*   **React Router v6**: Handles URL-based navigation in a declarative way.
+
+### Structure
+
+*   Top-level routes under `pages/`, for example: • `/` → Dashboard\
+    • `/campaigns` → Campaign list\
+    • `/campaigns/:id` → Campaign details\
+    • `/reports` → Generate or view reports
+
+### Navigation UI
+
+*   **Sidebar or Top Bar**: Clear links or icons for each major section.
+*   **Breadcrumbs**: Help users keep track of where they are.
+
+## 7. Performance Optimization
+
+1.  **Code Splitting & Lazy Loading**
+
+    *   Load each page or heavy component only when visited (React.lazy + Suspense).
+
+2.  **Asset Optimization**
+
+    *   Compress images (SVG for icons, optimized PNG/JPEG).
+    *   Serve modern formats (WebP) where possible.
+
+3.  **Bundle Analysis & Tree Shaking**
+
+    *   Use Vite’s built-in analyzer to keep bundles small.
+    *   Avoid unused libraries.
+
+4.  **Memoization**
+
+    *   Use `React.memo` for pure components.
+    *   Use `useMemo` / `useCallback` to prevent unnecessary re-renders.
+
+## 8. Testing and Quality Assurance
+
+### Unit Tests
+
+*   **Jest + React Testing Library**: Test components render and behave correctly.
+*   Aim for 80%+ coverage on critical UI pieces.
+
+### Integration Tests
+
+*   Combine components and services to ensure data flows work end to end.
+
+### End-to-End Tests
+
+*   **Cypress**: Simulate real user journeys (e.g., load dashboard, run analysis, view report).
+
+### Linting and Formatting
+
+*   **ESLint**: Enforce code style and catch common errors.
+*   **Prettier**: Automatic formatting for consistent code style.
+
+## 9. Conclusion and Overall Frontend Summary
+
+Building a clear, consistent front end for dsheild-mcp ensures security analysts—whether technical or not—can run threat-hunting workflows with confidence. By following this document’s guidelines:
+
+*   You create a **scalable** and **maintainable** architecture.
+*   You uphold key **design principles** (usability, accessibility, responsiveness).
+*   You deliver a polished **visual style** with easy theme support.
+*   You structure **components** and **state** for clarity.
+*   You enable smooth **navigation** and **fast** performance.
+*   You safeguard quality through robust **testing**.
+
+These practices align tightly with dsheild-mcp’s goals: empowering analysts with fast, reliable, and pleasant workflows. When every piece from architecture to testing is clear and consistent, building on or extending the UI becomes straightforward—future-proofing your project for new features or integrations.

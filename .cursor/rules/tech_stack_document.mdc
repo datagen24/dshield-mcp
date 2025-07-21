@@ -1,0 +1,143 @@
+---
+description: Apply these rules when making changes to the project
+globs:
+alwaysApply: true
+---
+
+Update this rule if user requested changes to the project requirement, etc.
+# Tech Stack Document for dsheild-mcp
+
+This document explains, in everyday language, the technology choices behind the `dsheild-mcp` (DShield Monitoring and Control Platform) project. It covers everything from how the system talks to users, to how it keeps data safe and fast.
+
+## 1. Frontend Technologies
+
+Although `dsheild-mcp` is a backend service without a traditional web or mobile user interface, it still exposes a simple “front door” for users and other tools:
+
+*   Command-line interaction (CLI)
+*   MCP protocol endpoints (JSON over HTTP via `aiohttp`)
+
+Key points:
+
+*   There is no graphical user interface—security analysts interact through terminal commands or via AI/automation clients.
+*   Results come back as structured JSON or generated PDF reports, ready to view or plug into other systems.
+
+## 2. Backend Technologies
+
+All of the core work—connecting to data stores, crunching numbers, and generating reports—is done with Python and a set of supportive libraries:
+
+**Programming Language**
+
+*   Python 3.8+ (main language for all logic and tools)
+
+**Web & HTTP Framework**
+
+*   aiohttp (handles incoming MCP requests and outgoing API calls in an asynchronous, efficient way)
+
+**Database & Search**
+
+*   Elasticsearch / AsyncElasticsearch (stores and retrieves massive volumes of security events)
+
+**Data Modeling & Validation**
+
+*   Pydantic (defines clear data models and checks incoming data for correctness)
+
+**Configuration & Secrets**
+
+*   PyYAML + python-dotenv (load configuration from files and `.env`)
+*   1Password CLI (`op`) (securely fetch API keys and credentials at runtime)
+
+**Logging & Monitoring**
+
+*   structlog (produces structured, machine-readable logs for troubleshooting and audit)
+
+**Async & Utility Libraries**
+
+*   asyncio (built-in Python support for async programming)
+*   pathlib, tempfile, subprocess (file handling and external process calls)
+*   datetime / python-dateutil (time handling and parsing)
+*   dataclasses, typing, enum, collections.Counter (code clarity and data operations)
+
+**Network & Analysis**
+
+*   ipaddress (validates and works with IP ranges)
+*   networkx (optional graph analysis for advanced correlation)
+*   scikit-learn (optional clustering and pattern detection)
+
+**Reporting Engine**
+
+*   LaTeX (external distribution like TeX Live or MiKTeX to compile PDFs)
+*   subprocess (runs the LaTeX compiler securely)
+
+**Testing & Quality**
+
+*   pytest + pytest-asyncio + pytest-cov + pytest-mock (unit and integration tests)
+*   ruff (code linting and formatting)
+
+**Documentation**
+
+*   pdoc, pydoc-markdown (generate API docs from code comments)
+
+## 3. Infrastructure and Deployment
+
+How the platform is hosted, updated, and versioned:
+
+*   Version Control: Git (hosted on GitHub)
+*   CI/CD: GitHub Actions (runs tests, linting, security scans, and builds docs automatically on each commit)
+*   Deployment: Runs on any Linux server or VM with Python 3.8+, Elasticsearch access, and a LaTeX distribution installed
+*   Containerization (optional): You can package the service in Docker for consistent environments, though it’s not required by the core system
+
+These choices ensure:
+
+*   **Reliability:** Automated tests and checks before deployment
+*   **Scalability:** Easy to add servers or scale up based on load
+*   **Reproducibility:** Consistent builds via GitHub Actions and container images (if used)
+
+## 4. Third-Party Integrations
+
+`dsheild-mcp` works with several external services to enrich data and produce high-quality outputs:
+
+*   **DShield API:** Fetches real-time threat intelligence (IP reputation, top attackers, attack summaries) with built-in caching and rate limiting
+*   **Elasticsearch Cluster:** Primary store for all incoming security events, supporting smart pagination and aggregations
+*   **1Password CLI:** Securely resolves `op://` URLs to pull secrets at runtime
+*   **LaTeX Distribution:** Compiles generated reports into PDF format via subprocess calls
+
+Each integration boosts the platform by automating data enrichment, handling large datasets, and ensuring secrets never appear in code or plain config files.
+
+## 5. Security and Performance Considerations
+
+We’ve put several layers in place to keep data safe and the system responsive:
+
+**Security Measures**
+
+*   No hard-coded secrets—everything comes from environment variables or the 1Password CLI
+*   Input validation via Pydantic models to prevent injection attacks
+*   Rate limiting and caching around DShield API calls to avoid external throttling
+*   Structured logging with no sensitive data in logs
+*   Access controls on MCP endpoints (can be extended with API keys or network rules). Current implementation uses STDIO; future implementation may use network sockets, in which we will need to implement an authentication layer
+*   Security validation tools (`SecurityValidator` and `SecurityMonitor`) check for hidden instructions or anomalous tool usage
+
+**Performance Optimizations**
+
+*   Asynchronous I/O (`asyncio` + `aiohttp`) to handle many requests without blocking
+*   Smart chunking and session-based streaming to process large Elasticsearch queries in manageable pieces
+*   Query optimization (field selection, adjustable page sizes, fallback to aggregations) to minimize load and timeouts
+*   In-memory caching for repeated threat intelligence lookups
+*   Lightweight dependencies and focused modules to reduce startup time and memory footprint
+
+Together, these measures aim for end-to-end campaign analysis in under 60 seconds on typical datasets while maintaining robust security.
+
+## 6. Conclusion and Overall Tech Stack Summary
+
+`dsheild-mcp` brings together a modern, Python-centric toolkit to automate sophisticated security analysis in a DShield SIEM environment. Key highlights:
+
+*   **Python 3.8+** with async support for responsive I/O
+*   **aiohttp** and **AsyncElasticsearch** for fast, non-blocking operations
+*   **Pydantic** for rock-solid data validation and configuration management
+*   **structlog** for clear, structured logging
+*   **1Password CLI** for zero-trust secret handling
+*   **Elasticsearch** as a scalable event store with smart query strategies
+*   **LaTeX** for professional PDF reporting
+*   **GitHub Actions** for automated testing, linting, and documentation
+*   **Optional graph and ML libraries** (networkx, scikit-learn) for future pattern detection enhancements
+
+This stack was chosen to balance **performance**, **security**, **extensibility**, and **ease of use**—giving security analysts a powerful backend service that integrates seamlessly with their existing workflows and infrastructure.

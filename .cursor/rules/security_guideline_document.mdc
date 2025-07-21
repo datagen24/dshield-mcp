@@ -1,0 +1,146 @@
+---
+description: Apply these rules when making changes to the project
+globs:
+alwaysApply: true
+---
+
+Update this rule if user requested changes to the project requirement, etc.
+# Security Guidelines for dsheild-mcp Project
+
+These guidelines define mandatory security controls and practices for the DShield Model Context Protocol Server (`dsheild-mcp`). They align with core security principles—security by design, least privilege, defense in depth, secure defaults—and address the project’s unique architecture and requirements.
+
+## 1. Authentication & Access Control
+
+*   **MCP Server Authentication**\
+    • Require strong credentials (API keys or JWTs) on all MCP endpoints.\
+    • Enforce minimum key length and complexity; rotate keys periodically.\
+    • Prevent session fixation and replay attacks by binding tokens to client IPs and enforcing short lifetimes.
+*   **Role-Based Access Control (RBAC)**\
+    • Define roles (e.g., Analyst, Admin, Read-Only) and assign least-privilege permissions.\
+    • Enforce authorization checks server-side for every tool invocation (e.g., `analyze_campaign`, `generate_report`).
+*   **Multi-Factor Authentication (MFA)**\
+    • Where feasible, integrate MFA (e.g., TOTP) for administrative actions like configuration changes or secret-store access.
+
+## 2. Input Validation & Safe Processing
+
+*   **Input Validation**\
+    • Treat all inputs (CLI args, JSON bodies, URL params) as untrusted.\
+    • Use Pydantic schemas for strict type checking and field constraints.\
+    • Disallow unexpected fields and enforce value ranges (e.g., time ranges, pagination sizes).
+*   **Elasticsearch Queries**\
+    • Build ES queries via parameterized bodies; never concatenate user input into query DSL strings.\
+    • Sanitize index patterns and whitelist allowed indices.
+*   **Command & Template Injection**\
+    • Validate and sanitize all parameters passed to the LaTeX subprocess to prevent command injection.\
+    • At startup, pre-validate LaTeX templates and disallow arbitrary template uploads.
+*   **File Uploads & Paths**\
+    • If supporting file templates or configs, restrict file extensions (`.yaml`, `.tex`) and disallow path traversal.\
+    • Store uploads outside the webroot and enforce `chmod 600`.
+
+## 3. Secret Management & Configuration
+
+*   **1Password CLI Integration**\
+    • Resolve `op://` URLs at runtime only in secure contexts.\
+    • Fail startup if required secrets can’t be retrieved; log no secret material in plaintext.
+*   **Environment & Config Files**\
+    • Load secrets from environment variables or `op://` only; never hardcode API keys, credentials, or salts.\
+    • Hierarchical config: Defaults < YAML < Env Vars < 1Password.\
+    • Encrypt on-disk config files (e.g., via file-system encryption) if they contain sensitive parameters.
+*   **Secure Defaults**\
+    • Default to strict rate limits, minimal logging verbosity, and session timeouts.\
+    • Disable debug modes and verbose stack traces in production.
+
+## 4. Data Protection & Privacy
+
+*   **Transport Encryption**\
+    • Enforce HTTPS/TLS 1.2+ for all HTTP endpoints (MCP server, Elasticsearch, DShield API).\
+    • Disallow weak ciphers and protocols (SSLv3, TLS 1.0/1.1).
+*   **At-Rest Encryption**\
+    • Encrypt sensitive PII or campaign data stored in caches or local state.\
+    • Use AES-256 or equivalent.
+*   **Logging & Information Leakage**\
+    • Use `structlog` to redact sensitive fields (API keys, tokens, user credentials) before logging.\
+    • Avoid exposing internal paths, stack traces, or PII in error responses.
+*   **Data Retention & Compliance**\
+    • Implement configurable data retention policies in line with GDPR/CCPA if storing PII.\
+    • Provide secure deletion methods for expired data.
+
+## 5. API & Service Security
+
+*   **Rate Limiting & Throttling**\
+    • Protect DShield API integration and MCP endpoints with rate limits (e.g., 100 req/min).\
+    • Back off and retry with jitter on HTTP 429 from external services.
+*   **CORS & CSRF**\
+    • Restrict CORS to known origins if a web UI is added later.\
+    • If any state-changing HTTP endpoints exist, implement CSRF tokens.
+*   **HTTP Method Enforcement**\
+    • Use GET for read operations, POST for creates, PUT/PATCH for updates, DELETE for removals.\
+    • Reject unsupported methods with 405 Method Not Allowed.
+*   **API Versioning**\
+    • Prefix MCP endpoints and clients with `/v1/` (or higher) to manage breaking changes securely.
+
+## 6. Web & Application Security Hygiene
+
+*   **Security Headers**\
+    • `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`\
+    • `X-Content-Type-Options: nosniff`\
+    • `X-Frame-Options: DENY`\
+    • `Referrer-Policy: no-referrer`\
+    • `Content-Security-Policy` restricting scripts, inline styles, and external resources.
+*   **Cookie Security**\
+    • Set `HttpOnly`, `Secure`, and `SameSite=Strict` on any session cookies.
+*   **Subresource Integrity (SRI)**\
+    • If loading any third-party scripts or assets, include integrity hashes.
+
+## 7. Infrastructure & Deployment
+
+*   **Server Hardening**\
+    • Disable unused OS services, close non-essential ports, and remove default accounts.\
+    • Apply the principle of least privilege to service accounts (ES client user should have read-only on SIEM indices).
+*   **TLS Configuration**\
+    • Use certificates from a trusted CA.\
+    • Enable Perfect Forward Secrecy (PFS).
+*   **Secrets & CI/CD**\
+    • Store CI secrets (e.g., GitHub Actions secrets) in encrypted vaults.\
+    • Validate 1Password CLI access in pipeline preflight steps.
+*   **Monitoring & Alerting**\
+    • Integrate `SecurityMonitor` metrics into your observability stack (Prometheus, ELK).\
+    • Alert on anomalous tool invocation patterns or repeated failures.
+
+## 8. Dependency & Supply-Chain Management
+
+*   **Secure Dependencies**\
+    • Vet all third-party libraries for active maintenance and known CVEs.\
+    • Pin versions in `requirements.txt` and use lockfiles for deterministic builds.
+*   **Vulnerability Scanning**\
+    • Integrate SCA tools (e.g., Dependabot, Snyk) into CI to detect transitive vulnerabilities.\
+    • Address critical/high findings within defined SLAs.
+*   **Minimal Footprint**\
+    • Only include dependencies essential for functionality (e.g., `networkx`, `scikit-learn` only if campaign analysis requires).
+
+## 9. Testing & Validation
+
+*   **Security Testing**\
+    • Write unit tests for input validation, edge cases, and error paths.\
+    • Perform integration tests against a mock Elasticsearch and DShield API, verifying rate-limit handling.
+*   **Fuzz & Penetration Testing**\
+    • Fuzz MCP endpoints with malformed JSON and boundary values.\
+    • Conduct periodic penetration tests focused on command injection, path traversal, and authentication bypass.
+*   **Static Analysis & Linting**\
+    • Run `ruff` and a security‐focused linter (e.g., Bandit) in CI.\
+    • Enforce 100% code coverage on critical security modules (e.g., `security_validator.py`).
+
+## 10. Incident Response & Fail-Secure
+
+*   **Graceful Degradation**\
+    • On downstream failures (Elasticsearch, DShield API), return partial results with clear error codes.\
+    • Do not expose stack traces; log internally with context.
+*   **Alerting**\
+    • The `SecurityMonitor` should trigger alerts for repeated unauthorized access attempts or schema anomalies.
+*   **Forensics & Audit Logging**\
+    • Retain audit logs (tool calls, user IDs, timestamps) in an append-only store.\
+    • Ensure logs are tamper-evident and rotated securely.
+*   **Emergency Shutdown**\
+    • Implement a “maintenance mode” that safely disables tool execution while preserving data integrity.
+
+Adherence to these guidelines is mandatory. All code, configurations, and operational procedures will be reviewed against this document to ensure a robust, secure, and compliant `dsheild-mcp` deployment.
