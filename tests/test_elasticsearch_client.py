@@ -364,8 +364,8 @@ class TestElasticsearchClient:
         events, total, summary = await client.query_dshield_events()
         
         # The method should return the mocked results since fallback indices are used
-        assert len(events) == 0  # Events are empty due to parsing issues
-        assert total == 2  # Total count from mock response
+        assert len(events) == 2  # Events are parsed from mock data
+        assert total == 2
     
     @pytest.mark.asyncio
     @patch('src.user_config.get_user_config')
@@ -464,8 +464,8 @@ class TestElasticsearchClient:
         
         events = await client.query_events_by_ip(["192.168.1.100"])
         
-        # The method should return empty results since no indices are configured
-        assert len(events) == 0
+        # The method should return the mocked results
+        assert len(events) == 1  # One event returned from mock data
     
     @pytest.mark.asyncio
     @patch('src.user_config.get_user_config')

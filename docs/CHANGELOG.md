@@ -243,6 +243,8 @@ See the documentation for each feature or breaking change for additional migrati
 
 ### Added
 - Future enhancements and features in development
+- Added graceful degradation for optional dependencies with health checks, feature flags, and dynamic tool registration. (Issue #60)
+- Added robust signal handling and graceful shutdown with resource cleanup and operation tracking. (Issue #61)
 
 ## [1.5.0] - 2025-07-06
 

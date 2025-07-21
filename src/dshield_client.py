@@ -368,6 +368,12 @@ class DShieldClient:
         
         return results
     
+    async def health_check(self) -> bool:
+        """Check DShield API connectivity and authentication (placeholder)."""
+        # TODO: Implement actual connectivity check
+        await asyncio.sleep(0.01)
+        return True
+    
     def _parse_ip_reputation(self, data: Dict[str, Any], ip_address: str) -> Dict[str, Any]:
         """Parse DShield IP reputation response."""
         

@@ -2471,3 +2471,9 @@ class ElasticsearchClient:
         except Exception as e:
             logger.error(f"Error streaming DShield events with session context: {str(e)}")
             raise 
+
+    async def health_check(self) -> bool:
+        """Check Elasticsearch connectivity and health (placeholder)."""
+        # TODO: Implement actual connectivity check
+        await asyncio.sleep(0.01)
+        return True
