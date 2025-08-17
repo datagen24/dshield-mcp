@@ -959,6 +959,41 @@ class DShieldMCPServer:
                             }
                         }
                     }
+                ),
+                Tool(
+                    name="detect_statistical_anomalies",
+                    description="Detect statistical anomalies in DShield data patterns using multiple detection methods",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "time_range_hours": {
+                                "type": "integer",
+                                "description": "Time range in hours to analyze (default: 24)"
+                            },
+                            "anomaly_methods": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Anomaly detection methods to use: zscore, iqr, isolation_forest, time_series (default: ['zscore', 'iqr'])"
+                            },
+                            "sensitivity": {
+                                "type": "number",
+                                "description": "Sensitivity threshold for anomaly detection (default: 2.5)"
+                            },
+                            "dimensions": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Dimensions to analyze for anomalies (default: ['source_ip', 'destination_port', 'bytes_transferred', 'event_rate'])"
+                            },
+                            "return_summary_only": {
+                                "type": "boolean",
+                                "description": "Whether to return only summary data (default: true)"
+                            },
+                            "max_anomalies": {
+                                "type": "integer",
+                                "description": "Maximum number of anomalies to return (default: 50)"
+                            }
+                        }
+                    }
                 )
             ]
         
@@ -1032,6 +1067,8 @@ class DShieldMCPServer:
                     return await self._correlate_threat_indicators(arguments)
                 elif name == "get_threat_intelligence_summary":
                     return await self._get_threat_intelligence_summary(arguments)
+                elif name == "detect_statistical_anomalies":
+                    return await self._detect_statistical_anomalies(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
             except Exception as e:
@@ -2420,6 +2457,57 @@ class DShieldMCPServer:
                 "text": f"Error getting threat intelligence summary: {str(e)}"
             }]
     
+    async def _detect_statistical_anomalies(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Detect statistical anomalies in DShield data patterns."""
+        time_range_hours = arguments.get("time_range_hours", 24)
+        anomaly_methods = arguments.get("anomaly_methods", ["zscore", "iqr"])
+        sensitivity = arguments.get("sensitivity", 2.5)
+        dimensions = arguments.get("dimensions", ["source_ip", "destination_port", "bytes_transferred", "event_rate"])
+        return_summary_only = arguments.get("return_summary_only", True)
+        max_anomalies = arguments.get("max_anomalies", 50)
+        
+        logger.info("Starting statistical anomaly detection",
+                   time_range_hours=time_range_hours,
+                   anomaly_methods=anomaly_methods,
+                   sensitivity=sensitivity,
+                   dimensions=dimensions)
+        
+        try:
+            # Import and initialize the statistical analysis tools
+            from .statistical_analysis_tools import StatisticalAnalysisTools
+            
+            # Create instance with existing Elasticsearch client
+            stats_tools = StatisticalAnalysisTools(self.elastic_client)
+            
+            # Perform anomaly detection
+            result = await stats_tools.detect_statistical_anomalies(
+                time_range_hours=time_range_hours,
+                anomaly_methods=anomaly_methods,
+                sensitivity=sensitivity,
+                dimensions=dimensions,
+                return_summary_only=return_summary_only,
+                max_anomalies=max_anomalies
+            )
+            
+            if result.get("success", False):
+                return [{
+                    "type": "text",
+                    "text": f"Statistical Anomaly Detection Results:\n\n" + 
+                           json.dumps(result, indent=2, default=str)
+                }]
+            else:
+                return [{
+                    "type": "text",
+                    "text": f"Anomaly detection failed: {result.get('error', 'Unknown error')}"
+                }]
+                
+        except Exception as e:
+            logger.error("Statistical anomaly detection failed", error=str(e))
+            return [{
+                "type": "text",
+                "text": f"Error during statistical anomaly detection: {str(e)}"
+            }]
+    
     def _register_resources(self):
         # Register main resources for cleanup
         if self.elastic_client:
@@ -2477,6 +2565,7 @@ class DShieldMCPServer:
             'enrich_domain_comprehensive': 'threat_intelligence',
             'correlate_threat_indicators': 'threat_intelligence',
             'get_threat_intelligence_summary': 'threat_intelligence',
+            'detect_statistical_anomalies': 'statistical_analysis',
         }
         feature = feature_map.get(tool_name)
         if not feature:
@@ -2518,6 +2607,7 @@ class DShieldMCPServer:
             'enrich_domain_comprehensive': 'threat_intelligence',
             'correlate_threat_indicators': 'threat_intelligence',
             'get_threat_intelligence_summary': 'threat_intelligence',
+            'detect_statistical_anomalies': 'statistical_analysis',
         }
         feature = feature_map.get(tool_name, 'unknown')
         msg = f"Tool '{tool_name}' is currently unavailable due to missing or unhealthy dependency: '{feature}'. Please try again later."
