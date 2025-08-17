@@ -67,6 +67,17 @@ The main MCP server implementation that registers and exposes all available tool
 - `register_tools()`: Registers all available MCP tools
 - `handle_request()`: Processes incoming MCP requests
 
+**Available Tools:**
+- `query_dshield_events`: Query DShield events with enhanced pagination
+- `get_dshield_statistics`: Get comprehensive DShield statistics and summary
+- `diagnose_data_availability`: Diagnose data availability issues and provide troubleshooting
+- `enrich_ip_with_dshield`: Enrich IP addresses with threat intelligence
+- `generate_attack_report`: Generate structured attack reports
+- `query_events_by_ip`: Query events for specific IP addresses
+- `get_security_summary`: Get security summary with enrichment
+- `test_elasticsearch_connection`: Test Elasticsearch connectivity
+- `get_data_dictionary`: Access comprehensive data dictionary
+
 #### Configuration (`config_loader.py`)
 Configuration management with YAML support and 1Password integration.
 
@@ -115,6 +126,42 @@ Security event data dictionary and schema management.
 - `get_field_definitions()`: Get field definitions
 - `validate_schema()`: Validate data against schemas
 - `get_data_types()`: Get supported data types
+
+### Diagnostic & Troubleshooting
+
+#### Data Availability Diagnostics (`diagnose_data_availability`)
+Comprehensive diagnostic tool for troubleshooting data availability issues.
+
+**Purpose**: Identify why queries return empty results and provide actionable solutions
+
+**Key Features:**
+- **Index Availability Check**: Verify DShield indices exist and are accessible
+- **Field Mapping Analysis**: Examine index mappings and field availability
+- **Data Freshness Validation**: Check data availability across different time ranges
+- **Query Pattern Testing**: Test various index patterns to find working configurations
+
+**Usage Example**:
+```python
+# Run comprehensive diagnostics
+diagnosis = await threat_manager.diagnose_data_availability(
+    check_indices=True,      # Check available indices
+    check_mappings=True,     # Check field mappings
+    check_recent_data=True,  # Check data freshness
+    sample_query=True        # Test query patterns
+)
+
+# Review results
+print(f"Status: {diagnosis['summary']['overall_status']}")
+print(f"Severity: {diagnosis['summary']['severity']}")
+for rec in diagnosis['recommendations']:
+    print(f"- {rec}")
+```
+
+**Diagnostic Output**:
+- **Summary**: Overall status and severity level
+- **Details**: Comprehensive diagnostic information
+- **Recommendations**: Actionable troubleshooting steps
+- **Configuration**: Current index patterns and fallback settings
 
 ### External Integrations
 
@@ -275,9 +322,9 @@ except ElasticsearchError as e:
     print(f"Elasticsearch error: {e}")
 ```
 
-## Configuration
+### Configuration
 
-### Environment Variables
+#### Environment Variables
 
 The following environment variables are supported:
 
@@ -286,19 +333,98 @@ The following environment variables are supported:
 - `ELASTICSEARCH_USERNAME`: Elasticsearch username
 - `ELASTICSEARCH_PASSWORD`: Elasticsearch password
 
-### Configuration File
+#### Configuration File
 
 Configuration can be loaded from YAML files with 1Password integration:
 
 ```yaml
-dshield:
-  api_key: op://vault/item/field
-  base_url: https://dshield.org/api
-
 elasticsearch:
-  url: op://vault/item/url
-  username: op://vault/item/username
-  password: op://vault/item/password
+  url: "https://your-elasticsearch:9200"
+  username: "op://vault/item/username"
+  password: "op://vault/item/password"
+  verify_ssl: true
+  index_patterns:
+    cowrie:
+      - "cowrie-*"
+      - "cowrie.dshield-*"
+      - "cowrie.vt_data-*"
+    zeek:
+      - "filebeat-zeek-*"
+      - "zeek.connection*"
+      - "zeek.dns*"
+    dshield:
+      - "dshield-*"
+      - "dshield.summary-*"
+      - "dshield.statistics-*"
+      - "dshield.attacks-*"
+      - "dshield.reputation-*"
+    fallback:
+      - "cowrie-*"
+      - "zeek-*"
+      - "dshield-*"
+
+secrets:
+  virustotal_api_key: "op://vault/item/api-key"
+  shodan_api_key: "op://vault/item/api-key"
+```
+
+**Index Pattern Configuration**:
+- **Cowrie**: Honeypot data patterns
+- **Zeek**: Network traffic analysis patterns  
+- **DShield**: Threat intelligence and attack data patterns
+- **Fallback**: Automatic fallback patterns when primary patterns fail
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+#### Empty Results from `get_dshield_statistics`
+
+**Symptoms**: The `get_dshield_statistics` tool returns empty results or no data.
+
+**Root Causes**:
+1. **Index Pattern Mismatch**: Configured patterns don't match actual Elasticsearch indices
+2. **Missing Indices**: DShield indices don't exist or are not accessible
+3. **Configuration Issues**: Missing or incorrect index pattern configuration
+
+**Solutions**:
+1. **Use Diagnostic Tool**: Run `diagnose_data_availability` to identify the issue:
+   ```python
+   diagnosis = await threat_manager.diagnose_data_availability()
+   print(diagnosis['recommendations'])
+   ```
+
+2. **Check Configuration**: Verify `mcp_config.yaml` has proper index patterns:
+   ```yaml
+   index_patterns:
+     dshield:
+       - "dshield-*"
+       - "dshield.summary-*"
+       - "dshield.statistics-*"
+   ```
+
+3. **Verify Indices**: Ensure Elasticsearch indices exist and are accessible
+
+#### Configuration Validation
+
+**Check Index Patterns**:
+```python
+# Get available indices
+indices = await es_client.get_available_indices()
+print(f"Available indices: {indices}")
+
+# Check configured patterns
+print(f"Configured patterns: {es_client.dshield_indices}")
+```
+
+**Validate Configuration**:
+```python
+# Test connection and configuration
+diagnosis = await threat_manager.diagnose_data_availability(
+    check_indices=True,
+    check_mappings=True,
+    check_recent_data=True
+)
 ```
 
 ## Testing

@@ -1203,5 +1203,174 @@ class TestThreatIntelligenceIntegrationMocked:
             await manager.cleanup()
 
 
+class TestDiagnoseDataAvailability:
+    """Test suite for the diagnose_data_availability method."""
+    
+    @pytest.mark.asyncio
+    async def test_diagnose_data_availability_success(self):
+        """Test successful data availability diagnosis."""
+        with patch('src.threat_intelligence_manager.get_config') as mock_get_config, \
+             patch('src.threat_intelligence_manager.get_user_config') as mock_get_user_config, \
+             patch('src.elasticsearch_client.ElasticsearchClient') as mock_es_class:
+            
+            # Mock config
+            mock_get_config.return_value = {
+                "threat_intelligence": {
+                    "sources": {"dshield": {"enabled": True}},
+                    "correlation": {"confidence_threshold": 0.7, "max_sources_per_query": 3},
+                    "cache_ttl_hours": 1
+                }
+            }
+            
+            # Mock user config with proper structure
+            mock_uc = MagicMock()
+            mock_uc.performance_settings.enable_sqlite_cache = False
+            mock_uc.performance_settings.sqlite_cache_ttl_hours = 24
+            mock_uc.performance_settings.sqlite_cache_db_name = "test_cache.sqlite3"
+            mock_uc.get_database_directory.return_value = "/tmp/test_db"
+            mock_uc.get_cache_database_path.return_value = "/tmp/test_db/test_cache.sqlite3"
+            mock_get_user_config.return_value = mock_uc
+            
+            # Mock Elasticsearch client
+            mock_es_client = AsyncMock()
+            mock_es_client.get_available_indices.return_value = ["dshield-2024.01.01", "cowrie-2024.01.01"]
+            mock_es_client.dshield_indices = ["dshield-*"]
+            mock_es_client.fallback_indices = ["cowrie-*"]
+            
+            # Mock index mapping
+            mock_mapping = {
+                "dshield-2024.01.01": {
+                    "mappings": {
+                        "properties": {
+                            "@timestamp": {"type": "date"},
+                            "source.ip": {"type": "ip"},
+                            "destination.ip": {"type": "ip"}
+                        }
+                    }
+                }
+            }
+            mock_es_client.client.indices.get_mapping.return_value = mock_mapping
+            
+            # Mock query results
+            mock_es_client.query_dshield_events.return_value = ([{"id": "1"}], 100, {})
+            
+            mock_es_class.return_value = mock_es_client
+            
+            manager = ThreatIntelligenceManager()
+            result = await manager.diagnose_data_availability()
+            
+            # Verify the diagnosis structure
+            assert isinstance(result, dict)
+            assert "timestamp" in result
+            assert "summary" in result
+            assert "details" in result
+            assert "recommendations" in result
+            
+            # Verify summary
+            assert result["summary"]["overall_status"] == "healthy"
+            assert result["summary"]["severity"] == "low"
+            
+            # Verify details
+            assert "available_indices" in result["details"]
+            assert "sample_mapping" in result["details"]
+            assert "data_availability" in result["details"]
+            assert "pattern_tests" in result["details"]
+            
+            # Verify recommendations
+            assert len(result["recommendations"]) > 0
+            
+            await manager.cleanup()
+    
+    @pytest.mark.asyncio
+    async def test_diagnose_data_availability_no_indices(self):
+        """Test data availability diagnosis when no indices are found."""
+        with patch('src.threat_intelligence_manager.get_config') as mock_get_config, \
+             patch('src.threat_intelligence_manager.get_user_config') as mock_get_user_config, \
+             patch('src.elasticsearch_client.ElasticsearchClient') as mock_es_class:
+            
+            # Mock config
+            mock_get_config.return_value = {
+                "threat_intelligence": {
+                    "sources": {"dshield": {"enabled": True}},
+                    "correlation": {"confidence_threshold": 0.7, "max_sources_per_query": 3},
+                    "cache_ttl_hours": 1
+                }
+            }
+            
+            # Mock user config with proper structure
+            mock_uc = MagicMock()
+            mock_uc.performance_settings.enable_sqlite_cache = False
+            mock_uc.performance_settings.sqlite_cache_ttl_hours = 24
+            mock_uc.performance_settings.sqlite_cache_db_name = "test_cache.sqlite3"
+            mock_uc.get_database_directory.return_value = "/tmp/test_db"
+            mock_uc.get_cache_database_path.return_value = "/tmp/test_db/test_cache.sqlite3"
+            mock_get_user_config.return_value = mock_uc
+            
+            # Mock Elasticsearch client with no indices
+            mock_es_client = AsyncMock()
+            mock_es_client.get_available_indices.return_value = []
+            mock_es_client.dshield_indices = ["dshield-*"]
+            mock_es_client.fallback_indices = ["cowrie-*"]
+            
+            mock_es_class.return_value = mock_es_client
+            
+            manager = ThreatIntelligenceManager()
+            result = await manager.diagnose_data_availability()
+            
+            # Verify the diagnosis structure
+            assert isinstance(result, dict)
+            assert "issues_detected" in result["summary"]["overall_status"]
+            assert result["summary"]["severity"] == "high"
+            
+            # Verify recommendations for no indices
+            recommendations = result["recommendations"]
+            assert any("index_patterns" in rec for rec in recommendations)
+            assert any("indices exist" in rec for rec in recommendations)
+            
+            await manager.cleanup()
+    
+    @pytest.mark.asyncio
+    async def test_diagnose_data_availability_connection_error(self):
+        """Test data availability diagnosis when Elasticsearch connection fails."""
+        with patch('src.threat_intelligence_manager.get_config') as mock_get_config, \
+             patch('src.threat_intelligence_manager.get_user_config') as mock_get_user_config, \
+             patch('src.elasticsearch_client.ElasticsearchClient') as mock_es_class:
+            
+            # Mock config
+            mock_get_config.return_value = {
+                "threat_intelligence": {
+                    "sources": {"dshield": {"enabled": True}},
+                    "correlation": {"confidence_threshold": 0.7, "max_sources_per_query": 3},
+                    "cache_ttl_hours": 1
+                }
+            }
+            
+            # Mock user config with proper structure
+            mock_uc = MagicMock()
+            mock_uc.performance_settings.enable_sqlite_cache = False
+            mock_uc.performance_settings.sqlite_cache_ttl_hours = 24
+            mock_uc.performance_settings.sqlite_cache_db_name = "test_cache.sqlite3"
+            mock_uc.get_database_directory.return_value = "/tmp/test_db"
+            mock_uc.get_cache_database_path.return_value = "/tmp/test_db/test_cache.sqlite3"
+            mock_get_user_config.return_value = mock_uc
+            
+            # Mock Elasticsearch client that raises an error on connect
+            mock_es_class.side_effect = Exception("Connection failed")
+            
+            manager = ThreatIntelligenceManager()
+            result = await manager.diagnose_data_availability()
+            
+            # Verify the diagnosis structure
+            assert isinstance(result, dict)
+            assert result["summary"]["overall_status"] == "diagnosis_failed"
+            assert result["summary"]["severity"] == "critical"
+            
+            # Verify error details
+            assert "diagnosis_error" in result["details"]
+            assert "Connection failed" in result["details"]["diagnosis_error"]
+            
+            await manager.cleanup()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"]) 

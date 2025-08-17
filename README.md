@@ -14,6 +14,7 @@ This MCP (Model Context Protocol) utility connects your DShield SIEM with ChatGP
 - **Model Optimization**: Initial prompts and data patterns to reduce trial and error for AI models
 - **Config Optimization**: Streamlined index patterns to minimize connection retries
 - **LaTeX Template Automation**: Generate professional security reports using customizable LaTeX templates with variable substitution and PDF compilation
+- **Data Availability Diagnostics**: Comprehensive troubleshooting tools for data availability issues with actionable recommendations
 
 ## DShield-Specific Capabilities
 
@@ -43,6 +44,33 @@ The following index patterns are supported and optimized for minimal retries:
 - **DShieldGeographicData**: Geographic attack distribution
 - **DShieldPortData**: Port-based attack analysis
 - **DShieldStatistics**: Comprehensive DShield statistics
+
+### Diagnostic & Troubleshooting
+The system includes comprehensive diagnostic capabilities to help troubleshoot data availability issues:
+
+- **Data Availability Diagnostics**: Identify why queries return empty results
+- **Index Pattern Validation**: Verify configured index patterns match available indices
+- **Field Mapping Analysis**: Examine index mappings and field availability
+- **Data Freshness Checks**: Validate data availability across different time ranges
+- **Query Pattern Testing**: Test various index patterns to find working configurations
+- **Actionable Recommendations**: Get specific steps to resolve common issues
+
+**Available as MCP Tool**: `diagnose_data_availability`
+
+**Usage Example**:
+```python
+# Run comprehensive diagnostics
+diagnosis = await threat_manager.diagnose_data_availability(
+    check_indices=True,      # Check available indices
+    check_mappings=True,     # Check field mappings
+    check_recent_data=True,  # Check data freshness
+    sample_query=True        # Test query patterns
+)
+
+# Review results and follow recommendations
+for rec in diagnosis['recommendations']:
+    print(f"- {rec}")
+```
 
 ### Data Dictionary & Model Optimization
 The system includes a comprehensive data dictionary that helps AI models understand DShield data structures:

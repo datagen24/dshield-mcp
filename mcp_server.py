@@ -494,6 +494,31 @@ class DShieldMCPServer:
                     }
                 ),
                 Tool(
+                    name="diagnose_data_availability",
+                    description="Diagnose why queries return empty results and troubleshoot data availability issues",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "check_indices": {
+                                "type": "boolean",
+                                "description": "Check available indices and patterns (default: true)"
+                            },
+                            "check_mappings": {
+                                "type": "boolean",
+                                "description": "Check index mappings and field availability (default: true)"
+                            },
+                            "check_recent_data": {
+                                "type": "boolean",
+                                "description": "Check data availability across different time ranges (default: true)"
+                            },
+                            "sample_query": {
+                                "type": "boolean",
+                                "description": "Test sample queries with different index patterns (default: true)"
+                            }
+                        }
+                    }
+                ),
+                Tool(
                     name="enrich_ip_with_dshield",
                     description="Enrich IP address with DShield threat intelligence",
                     inputSchema={
@@ -963,6 +988,8 @@ class DShieldMCPServer:
                     return await self._query_dshield_port_data(arguments)
                 elif name == "get_dshield_statistics":
                     return await self._get_dshield_statistics(arguments)
+                elif name == "diagnose_data_availability":
+                    return await self._diagnose_data_availability(arguments)
                 elif name == "enrich_ip_with_dshield":
                     return await self._enrich_ip_with_dshield(arguments)
                 elif name == "generate_attack_report":
@@ -1761,6 +1788,32 @@ class DShieldMCPServer:
                    json.dumps(stats, indent=2, default=str)
         }]
     
+    async def _diagnose_data_availability(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Diagnose why queries return empty results and troubleshoot data availability issues."""
+        check_indices = arguments.get("check_indices", True)
+        check_mappings = arguments.get("check_mappings", True)
+        check_recent_data = arguments.get("check_recent_data", True)
+        sample_query = arguments.get("sample_query", True)
+        
+        logger.info("Diagnosing data availability",
+                   check_indices=check_indices,
+                   check_mappings=check_mappings,
+                   check_recent_data=check_recent_data,
+                   sample_query=sample_query)
+        
+        result = await self.threat_intelligence_manager.diagnose_data_availability(
+            check_indices=check_indices,
+            check_mappings=check_mappings,
+            check_recent_data=check_recent_data,
+            sample_query=sample_query
+        )
+        
+        return [{
+            "type": "text",
+            "text": "Data Availability Diagnosis Results:\n\n" + 
+                   json.dumps(result, indent=2, default=str)
+        }]
+    
     async def _enrich_ip_with_dshield(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Enrich IP address with DShield threat intelligence."""
         ip_address = arguments["ip_address"]
@@ -2402,6 +2455,7 @@ class DShieldMCPServer:
             'query_dshield_geographic_data': 'elasticsearch_queries',
             'query_dshield_port_data': 'elasticsearch_queries',
             'get_dshield_statistics': 'elasticsearch_queries',
+            'diagnose_data_availability': 'elasticsearch_queries',
             'enrich_ip_with_dshield': 'dshield_enrichment',
             'generate_attack_report': 'elasticsearch_queries',
             'query_events_by_ip': 'elasticsearch_queries',
@@ -2442,6 +2496,7 @@ class DShieldMCPServer:
             'query_dshield_geographic_data': 'elasticsearch_queries',
             'query_dshield_port_data': 'elasticsearch_queries',
             'get_dshield_statistics': 'elasticsearch_queries',
+            'diagnose_data_availability': 'elasticsearch_queries',
             'enrich_ip_with_dshield': 'dshield_enrichment',
             'generate_attack_report': 'elasticsearch_queries',
             'query_events_by_ip': 'elasticsearch_queries',

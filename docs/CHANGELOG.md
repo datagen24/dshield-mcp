@@ -98,10 +98,35 @@ See the documentation for each feature or breaking change for additional migrati
     - 39+ tests covering all core logic, edge cases, and integration workflows
     - Real API integration tests (user environment, skipped by default)
     - Fully mocked end-to-end tests for CI/CD
-    - Security validation and Snyk scanning integrated
-  - **Documentation**:
-    - Complete implementation plan, configuration examples, and usage guides
-    - API documentation and user guides updated
+
+- **Data Availability Diagnostics and Statistics Fix**
+  - **Issue**: [#99](https://github.com/datagen24/dsheild-mcp/issues/99) - Fix get_dshield_statistics empty results issue
+  - **Scope**: Comprehensive fix for empty statistics results with diagnostic capabilities
+  - **Root Cause Analysis**: 
+    - Index pattern mismatch: Hardcoded `["dshield-summary-*", "dshield-statistics-*"]` patterns didn't exist
+    - Configuration gap: Missing `dshield` index patterns in configuration
+    - Poor error handling: Empty results without diagnostic information
+  - **Features**:
+    - **Dynamic Index Discovery**: `get_dshield_statistics` now uses `get_available_indices()` instead of hardcoded patterns
+    - **Enhanced Error Handling**: Returns diagnostic information instead of empty dictionaries
+    - **New Diagnostic Tool**: `diagnose_data_availability` for comprehensive troubleshooting
+    - **Configuration Validation**: Proper index pattern configuration with fallback support
+    - **Better Logging**: Comprehensive logging for troubleshooting and debugging
+  - **Configuration Updates**:
+    - Added proper DShield index patterns to `mcp_config.yaml`
+    - Added fallback index patterns for graceful degradation
+    - Updated example configuration files
+  - **Diagnostic Capabilities**:
+    - Index availability and pattern validation
+    - Field mapping analysis and data freshness checks
+    - Query pattern testing with multiple strategies
+    - Actionable recommendations for common issues
+  - **Test Coverage**:
+    - 3 comprehensive tests for diagnostic tool functionality
+    - Tests for success, no-indices, and connection error scenarios
+    - Existing functionality tests remain passing
+  - **Impact**: Users can now get actual statistics data and troubleshoot issues effectively
+  - **Files**: Updated `src/elasticsearch_client.py`, `src/threat_intelligence_manager.py`, `mcp_server.py`, configuration files, and comprehensive tests
 
 ### Security
 - **Dependency Vulnerability Fixes**: Address Snyk-reported security vulnerabilities
