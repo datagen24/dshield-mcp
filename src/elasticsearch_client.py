@@ -2527,11 +2527,56 @@ class ElasticsearchClient:
             logger.error(f"Error streaming DShield events with session context: {str(e)}")
             raise 
 
+    async def check_health(self) -> bool:
+        """Check Elasticsearch connectivity and health.
+        
+        Returns:
+            bool: True if Elasticsearch is healthy and accessible, False otherwise
+        """
+        try:
+            # Check if we have valid configuration
+            if not self.url:
+                logger.error("Elasticsearch URL not configured")
+                return False
+            
+            # Try to create a connection and check cluster health
+            if not self.client:
+                await self.connect()
+            
+            if self.client:
+                # Check cluster health
+                try:
+                    health_response = await self.client.cluster.health(timeout="5s")
+                    cluster_status = health_response.get("status", "unknown")
+                    
+                    # Consider cluster healthy if status is green, yellow, or red (but accessible)
+                    is_healthy = cluster_status in ["green", "yellow", "red"]
+                    
+                    if is_healthy:
+                        logger.debug("Elasticsearch cluster health check passed", 
+                                   status=cluster_status, 
+                                   cluster_name=health_response.get("cluster_name"),
+                                   number_of_nodes=health_response.get("number_of_nodes"))
+                    else:
+                        logger.warning("Elasticsearch cluster health check failed", 
+                                     status=cluster_status)
+                    
+                    return is_healthy
+                    
+                except Exception as e:
+                    logger.error("Elasticsearch cluster health check failed", error=str(e))
+                    return False
+            else:
+                logger.error("Failed to create Elasticsearch client connection")
+                return False
+                
+        except Exception as e:
+            logger.error("Elasticsearch health check failed", error=str(e))
+            return False
+
     async def health_check(self) -> bool:
-        """Check Elasticsearch connectivity and health (placeholder)."""
-        # TODO: Implement actual connectivity check
-        await asyncio.sleep(0.01)
-        return True
+        """Check Elasticsearch connectivity and health (deprecated, use check_health)."""
+        return await self.check_health()
 
     def _get_current_time(self) -> datetime:
         """Get current UTC time.

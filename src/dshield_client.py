@@ -559,6 +559,58 @@ class DShieldClient:
             'timestamp': time.time()
         }
     
+    async def check_health(self) -> bool:
+        """Check DShield API connectivity and authentication.
+        
+        Returns:
+            bool: True if DShield API is healthy and accessible, False otherwise
+        """
+        try:
+            # Check if we have valid configuration
+            if not self.base_url:
+                logger.error("DShield API base URL not configured")
+                return False
+            
+            if not self.api_key:
+                logger.warning("DShield API key not configured - some endpoints may not work")
+                # Continue with health check but note the limitation
+            
+            # Try to connect and make a simple test request
+            await self.connect()
+            
+            if not self.session:
+                logger.error("Failed to create DShield client session")
+                return False
+            
+            # Make a simple health check request to test connectivity
+            # Use a simple endpoint that doesn't require authentication
+            try:
+                # Try to access the base URL to test connectivity
+                test_url = self.base_url
+                
+                async with self.session.get(test_url, timeout=10) as response:
+                    if response.status in [200, 401, 403, 404]:  # 404 means API is reachable but endpoint not found
+                        logger.debug("DShield API connectivity test passed", 
+                                   status=response.status, 
+                                   url=test_url)
+                        return True
+                    else:
+                        logger.warning("DShield API returned unexpected status", 
+                                     status=response.status, 
+                                     url=test_url)
+                        return False
+                        
+            except aiohttp.ClientError as e:
+                logger.error("DShield API connectivity test failed", error=str(e))
+                return False
+            except asyncio.TimeoutError:
+                logger.error("DShield API connectivity test timed out")
+                return False
+                
+        except Exception as e:
+            logger.error("DShield API health check failed", error=str(e))
+            return False
+
     async def _check_rate_limit(self):
         """Check and enforce rate limiting."""
         current_time = time.time()

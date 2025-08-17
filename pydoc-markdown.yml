@@ -1,8 +1,10 @@
-pydoc_markdown:
-  loaders:
-    - python
-  renderer:
-    type: markdown
-    output: docs/api/markdown
-  modules:
-    - src
+loaders:
+  - type: python
+    search_path: [src]
+
+renderer:
+  type: markdown
+  output: docs/api/markdown
+
+modules:
+  - src
