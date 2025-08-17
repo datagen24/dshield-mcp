@@ -43,6 +43,23 @@ See the documentation for each feature or breaking change for additional migrati
 ## [Unreleased]
 
 ### Added
+- **Statistical Anomaly Detection Tool**: Advanced statistical analysis for DShield SIEM data
+  - **Issue**: [#100](https://github.com/datagen24/dsheild-mcp/issues/100) - Implement Statistical Anomaly Detection Tool
+  - **Scope**: Comprehensive statistical anomaly detection using multiple detection methods
+  - **Features**:
+    - Multiple detection algorithms: Z-score, IQR, Isolation Forest, and Time Series analysis
+    - Aggregation-based approach to avoid context flooding and improve performance
+    - Configurable sensitivity thresholds and analysis dimensions
+    - Risk assessment and actionable recommendations
+    - Pattern detection across multiple analysis methods
+    - Integration with existing Elasticsearch aggregation infrastructure
+  - **MCP Integration**: New `detect_statistical_anomalies` tool with comprehensive parameter support
+  - **Dependencies**: Added numpy, scipy, and scikit-learn for scientific computing (optimized for Apple M-series)
+  - **Test Coverage**: 18 comprehensive tests covering all functionality (100% pass rate)
+  - **Documentation**: Complete implementation guide, usage examples, and API documentation
+  - **Security**: Graceful degradation when scientific libraries are unavailable
+  - **Performance**: Server-side processing with minimal data transfer
+  - **Files**: `src/statistical_analysis_tools.py`, `tests/test_statistical_analysis_tools.py`, `examples/statistical_anomaly_detection_usage.py`
 - **Configurable Output Directory**: Secure, user-writable output directory for generated files
   - **Issue**: [#46](https://github.com/datagen24/dsheild-mcp/issues/46) - Server fails to start due to template directory path resolution
   - **Scope**: Cross-platform output directory configuration with security best practices
