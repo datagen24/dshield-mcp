@@ -6,8 +6,8 @@ Optimized for DShield SIEM integration patterns.
 import asyncio
 import json
 import os
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Union, Tuple, AsyncGenerator
 from urllib.parse import urlparse
 import inspect
 
@@ -742,7 +742,7 @@ class ElasticsearchClient:
                 for bucket in aggs["top_sources"]["buckets"]:
                     events.append({
                         "id": f"agg_source_{bucket['key']}",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "source_ip": bucket["key"],
                         "event_type": "aggregation",
                         "category": ["summary", "source_analysis"],
@@ -757,7 +757,7 @@ class ElasticsearchClient:
                 for bucket in aggs["top_destinations"]["buckets"]:
                     events.append({
                         "id": f"agg_dest_{bucket['key']}",
-                        "timestamp": datetime.now().isoformat(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "destination_port": bucket["key"],
                         "event_type": "aggregation",
                         "category": ["summary", "destination_analysis"],
@@ -1108,7 +1108,7 @@ class ElasticsearchClient:
             await self.connect()
         
         # Calculate time range
-        end_time = datetime.utcnow()
+        end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(hours=time_range_hours)
         
         # Build attack-specific query
@@ -1347,7 +1347,7 @@ class ElasticsearchClient:
                 indices = self.fallback_indices
         
         # Calculate time range
-        end_time = datetime.utcnow()
+        end_time = datetime.now(timezone.utc)
         start_time = end_time - timedelta(hours=time_range_hours)
         
         # Build IP-specific query
@@ -1422,7 +1422,7 @@ class ElasticsearchClient:
                     'top_attackers': [],
                     'geographic_distribution': {},
                     'time_range_hours': time_range_hours,
-                    'timestamp': datetime.utcnow().isoformat(),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
                     'indices_queried': [],
                     'diagnostic_info': {
                         'warning': 'No DShield indices found',
@@ -1455,7 +1455,7 @@ class ElasticsearchClient:
                 'top_attackers': top_attackers[:10] if top_attackers else [],
                 'geographic_distribution': self._compile_geo_stats(geo_data) if geo_data else {},
                 'time_range_hours': time_range_hours,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'indices_queried': available_indices,
                 'diagnostic_info': {
                     'status': 'success',
@@ -1482,7 +1482,7 @@ class ElasticsearchClient:
                 'top_attackers': [],
                 'geographic_distribution': {},
                 'time_range_hours': time_range_hours,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
                 'indices_queried': [],
                 'diagnostic_info': {
                     'error': str(e),
@@ -1655,9 +1655,9 @@ class ElasticsearchClient:
                     timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                 except Exception as e:
                     logger.warning("Failed to parse timestamp string", value=timestamp, error=str(e))
-                    timestamp = datetime.utcnow()
+                    timestamp = datetime.now(timezone.utc)
             elif not isinstance(timestamp, datetime):
-                timestamp = datetime.utcnow()
+                timestamp = datetime.now(timezone.utc)
             
             # Extract IP addresses using DShield field mappings
             source_ip = self._extract_field_mapped(source, 'source_ip')
@@ -2532,3 +2532,53 @@ class ElasticsearchClient:
         # TODO: Implement actual connectivity check
         await asyncio.sleep(0.01)
         return True
+
+    def _get_current_time(self) -> datetime:
+        """Get current UTC time.
+        
+        Returns:
+            Current UTC datetime
+        """
+        return datetime.now(timezone.utc)
+
+    def _get_timestamp_for_query(self) -> str:
+        """Get current timestamp in ISO format for queries.
+        
+        Returns:
+            Current timestamp in ISO format
+        """
+        return datetime.now(timezone.utc).isoformat()
+
+    def _get_timestamp_for_logging(self) -> str:
+        """Get current timestamp in ISO format for logging.
+        
+        Returns:
+            Current timestamp in ISO format
+        """
+        return datetime.now(timezone.utc).isoformat()
+
+    def _get_timestamp_for_metrics(self) -> str:
+        """Get current timestamp in ISO format for metrics.
+        
+        Returns:
+            Current timestamp in ISO format
+        """
+        return datetime.now(timezone.utc).isoformat()
+
+    def _get_timestamp_for_cache(self) -> datetime:
+        """Get current UTC time for cache operations.
+        
+        Returns:
+            Current UTC datetime
+        """
+        timestamp = datetime.now(timezone.utc)
+        return timestamp
+
+    def _get_timestamp_for_session(self) -> datetime:
+        """Get current UTC time for session operations.
+        
+        Returns:
+            Current UTC datetime
+        """
+        timestamp = datetime.now(timezone.utc)
+        return timestamp

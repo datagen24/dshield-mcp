@@ -63,7 +63,7 @@ class TestOnePasswordSecrets:
                 ["op", "read", "op://vault/item/field"],
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=5,
                 check=True
             )
     

@@ -25,7 +25,7 @@ import os
 import traceback
 import uuid
 from collections import Counter, defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Set
 
 import structlog
@@ -199,7 +199,7 @@ class DataProcessor:
                 # Create DShieldAttack object
                 dshield_attack = DShieldAttack(
                     id=attack.get('id', str(uuid.uuid4())),
-                    timestamp=attack.get('timestamp', datetime.utcnow()),
+                    timestamp=attack.get('timestamp', datetime.now(timezone.utc)),
                     source_ip=attack.get('source_ip', ''),
                     destination_ip=attack.get('destination_ip'),
                     source_port=attack.get('source_port'),
@@ -378,7 +378,7 @@ class DataProcessor:
             return self._create_empty_summary()
         
         summary = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'time_range_hours': 24,  # Default, should be configurable
             'total_events': len(events),
             'events_by_severity': {},
@@ -537,7 +537,7 @@ class DataProcessor:
         # Create attack report
         report = {
             'report_id': report_id,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'title': f"Security Incident Report - {report_id[:8]}",
             'summary': self._generate_executive_summary(events, threat_indicators),
             'total_events': len(events),
@@ -591,7 +591,7 @@ class DataProcessor:
         
         normalized = {
             'id': event.get('id', str(uuid.uuid4())),
-            'timestamp': event.get('timestamp', datetime.utcnow()),
+            'timestamp': event.get('timestamp', datetime.now(timezone.utc)),
             'source_ip': event.get('source_ip'),
             'destination_ip': event.get('destination_ip'),
             'source_port': event.get('source_port'),
@@ -1012,7 +1012,7 @@ class DataProcessor:
     def _create_empty_summary(self) -> Dict[str, Any]:
         """Create empty security summary."""
         return {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'time_range_hours': 24,
             'total_events': 0,
             'events_by_severity': {},
@@ -1041,7 +1041,7 @@ class DataProcessor:
         """Create empty attack report."""
         return {
             'report_id': str(uuid.uuid4()),
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'title': 'No Security Events Detected',
             'summary': 'No security events were found in the specified time range.',
             'total_events': 0,
@@ -1094,7 +1094,7 @@ class DataProcessor:
             }
         else:
             # Return current time as fallback
-            current_time = datetime.utcnow()
+            current_time = datetime.now(timezone.utc)
             return {
                 'start': current_time,
                 'end': current_time

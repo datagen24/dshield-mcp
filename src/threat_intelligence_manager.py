@@ -25,7 +25,7 @@ import sqlite3
 import json
 import os
 from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import structlog
 
 from .models import ThreatIntelligenceResult, DomainIntelligence, ThreatIntelligenceSource
@@ -394,7 +394,7 @@ class ThreatIntelligenceManager:
             "relationships": [],
             "confidence_score": 0.0,
             "sources_queried": [],
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         logger.info("Threat indicator correlation completed", 
@@ -724,7 +724,7 @@ class ThreatIntelligenceManager:
         """
         if cache_key in self.cache:
             cached = self.cache[cache_key]
-            if datetime.now() - cached.query_timestamp < self.cache_ttl:
+            if datetime.now(timezone.utc) - cached.query_timestamp < self.cache_ttl:
                 return cached
             else:
                 del self.cache[cache_key]
@@ -797,7 +797,7 @@ class ThreatIntelligenceManager:
                     retrieved_at = datetime.fromisoformat(retrieved_at_str)
                     expires_at = datetime.fromisoformat(expires_at_str)
                     
-                    if datetime.now() < expires_at:
+                    if datetime.now(timezone.utc) < expires_at:
                         result = ThreatIntelligenceResult.model_validate_json(result_json)
                         result.cache_hit = True
                         return result
@@ -1287,7 +1287,7 @@ class ThreatIntelligenceManager:
             Dictionary containing comprehensive diagnostic information
         """
         diagnosis = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "summary": {},
             "details": {},
             "recommendations": []

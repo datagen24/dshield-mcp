@@ -30,7 +30,7 @@ Example:
 
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field, field_validator
@@ -393,7 +393,7 @@ class ThreatIntelligenceResult(BaseModel):
     sources_queried: List[ThreatIntelligenceSource] = Field(
         default_factory=list, description="Sources that were queried"
     )
-    query_timestamp: datetime = Field(default_factory=datetime.now, description="Query timestamp")
+    query_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Query timestamp")
     cache_hit: bool = Field(False, description="Whether result was from cache")
     
     # Correlation metrics
@@ -455,7 +455,7 @@ class DomainIntelligence(BaseModel):
     sources_queried: List[ThreatIntelligenceSource] = Field(
         default_factory=list, description="Sources that were queried"
     )
-    query_timestamp: datetime = Field(default_factory=datetime.now, description="Query timestamp")
+    query_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Query timestamp")
     cache_hit: bool = Field(False, description="Whether result was from cache")
     
     @field_validator('domain')

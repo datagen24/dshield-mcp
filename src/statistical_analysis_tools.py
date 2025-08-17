@@ -5,8 +5,13 @@ MCP tools for statistical analysis, anomaly detection, and pattern recognition
 in DShield SIEM data.
 """
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+import os
+import json
+import logging
+import asyncio
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Any, Optional, Union, Tuple
+from collections import defaultdict
 import structlog
 
 from .elasticsearch_client import ElasticsearchClient
@@ -84,7 +89,7 @@ class StatisticalAnalysisTools:
                     "methods_used": anomaly_methods,
                     "sensitivity": sensitivity,
                     "dimensions_analyzed": dimensions,
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 }
             }
             

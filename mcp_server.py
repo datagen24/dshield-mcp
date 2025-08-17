@@ -37,6 +37,7 @@ from src.dynamic_tool_registry import DynamicToolRegistry
 from src.signal_handler import SignalHandler
 from src.resource_manager import ResourceManager
 from src.operation_tracker import OperationTracker
+from src.statistical_analysis_tools import StatisticalAnalysisTools
 
 # Configure structured logging
 structlog.configure(
@@ -298,6 +299,11 @@ class DShieldMCPServer:
                             "relative_time": {
                                 "type": "string",
                                 "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
+                            },
+                            "indices": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "DShield Elasticsearch indices to query"
                             },
                             "group_by": {
                                 "type": "array",
@@ -1374,6 +1380,7 @@ class DShieldMCPServer:
         time_range_hours = arguments.get("time_range_hours", 24)
         time_range = arguments.get("time_range")
         relative_time = arguments.get("relative_time")
+        indices = arguments.get("indices")
         group_by = arguments.get("group_by", [])
         metrics = arguments.get("metrics", ["count"])
         filters = arguments.get("filters", {})
@@ -1383,6 +1390,7 @@ class DShieldMCPServer:
 
         logger.info("Querying DShield aggregations",
                    time_range_hours=time_range_hours,
+                   indices=indices,
                    group_by=group_by,
                    metrics=metrics,
                    top_n=top_n,
@@ -2473,9 +2481,6 @@ class DShieldMCPServer:
                    dimensions=dimensions)
         
         try:
-            # Import and initialize the statistical analysis tools
-            from .statistical_analysis_tools import StatisticalAnalysisTools
-            
             # Create instance with existing Elasticsearch client
             stats_tools = StatisticalAnalysisTools(self.elastic_client)
             

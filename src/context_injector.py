@@ -22,8 +22,8 @@ Example:
 
 import json
 import os
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Union
 
 import structlog
 from dotenv import load_dotenv
@@ -86,7 +86,7 @@ class ContextInjector:
         """
         
         context = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'context_type': 'security_analysis',
             'data': {}
         }
@@ -129,7 +129,7 @@ class ContextInjector:
         """
         
         context = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'context_type': 'attack_report',
             'data': {
                 'report': self._format_attack_report(report),
@@ -164,7 +164,7 @@ class ContextInjector:
         """
         
         context = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'context_type': 'query_results',
             'data': {
                 'query_type': query_type,
@@ -172,7 +172,7 @@ class ContextInjector:
                 'results': self._format_query_results(results),
                 'result_count': len(results),
                 'metadata': {
-                    'query_timestamp': datetime.utcnow().isoformat(),
+                    'query_timestamp': datetime.now(timezone.utc).isoformat(),
                     'result_format': self.context_format
                 }
             }
