@@ -121,8 +121,19 @@ def generate_markdown_documentation(project_root: Path, output_dir: Path) -> boo
     # Create markdown directory
     markdown_dir.mkdir(parents=True, exist_ok=True)
     
-    # Build the pydoc-markdown command using config file
+    # Try using pydoc-markdown with the current Python executable
     config_file = project_root / "pydoc-markdown.yml"
+    cmd = [
+        sys.executable, "-m", "pydoc_markdown",
+        str(config_file)
+    ]
+    
+    result = run_command(cmd, cwd=project_root)
+    if result == 0:
+        return True
+    
+    # Fallback: try direct pydoc-markdown command
+    print("Fallback: trying direct pydoc-markdown command...")
     cmd = [
         "pydoc-markdown",
         str(config_file)
