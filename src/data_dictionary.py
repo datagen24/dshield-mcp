@@ -583,4 +583,89 @@ When analyzing DShield data, always consider the context, time patterns, and cor
             formatted.append(f"  - Actions: {', '.join(info['actions'])}")
             formatted.append("")
         
-        return "\n".join(formatted) 
+        return "\n".join(formatted)
+
+    @staticmethod
+    def has_offline_threat_intel() -> bool:
+        """Check if offline threat intelligence sources are available.
+        
+        Returns:
+            bool: True if offline threat intelligence is available, False otherwise
+        """
+        try:
+            # Check if we have any built-in threat intelligence data
+            # This could include:
+            # - Known malicious IP ranges
+            # - Common attack patterns
+            # - Threat actor profiles
+            # - Malware signatures
+            
+            # For now, we'll check if the class has the necessary methods
+            # and if they return meaningful data
+            
+            # Check if we can access threat intelligence data
+            threat_data = DataDictionary.get_threat_intelligence_data()
+            
+            # Check if we have any meaningful threat intelligence
+            if threat_data and isinstance(threat_data, dict):
+                # Check if we have any threat intelligence categories with data
+                for category, data in threat_data.items():
+                    if isinstance(data, dict) and data.get("enabled", False):
+                        if data.get("data") or data.get("patterns") or data.get("indicators"):
+                            return True
+            
+            return False
+            
+        except Exception:
+            # If anything goes wrong, assume no offline threat intelligence
+            return False
+
+    @staticmethod
+    def get_threat_intelligence_data() -> Dict[str, Any]:
+        """Get offline threat intelligence data.
+        
+        Returns:
+            Dict[str, Any]: Dictionary containing offline threat intelligence data
+        """
+        return {
+            "malicious_ips": {
+                "enabled": True,
+                "description": "Known malicious IP addresses and ranges",
+                "data": [
+                    "192.168.1.100",  # Example malicious IP
+                    "10.0.0.50",      # Example malicious IP
+                ],
+                "patterns": ["brute_force", "port_scan", "malware_c2"],
+                "indicators": ["high_attack_frequency", "multiple_targets", "suspicious_ports"]
+            },
+            "attack_patterns": {
+                "enabled": True,
+                "description": "Common attack patterns and signatures",
+                "data": {
+                    "brute_force": {
+                        "description": "Repeated authentication attempts",
+                        "indicators": ["multiple_failed_logins", "rapid_requests", "common_usernames"],
+                        "severity": "medium"
+                    },
+                    "port_scan": {
+                        "description": "Systematic port scanning",
+                        "indicators": ["sequential_ports", "multiple_targets", "rapid_requests"],
+                        "severity": "low"
+                    },
+                    "malware_c2": {
+                        "description": "Malware command and control traffic",
+                        "indicators": ["unusual_ports", "encrypted_traffic", "regular_intervals"],
+                        "severity": "high"
+                    }
+                },
+                "patterns": ["brute_force", "port_scan", "malware_c2"],
+                "indicators": ["authentication_failures", "port_scanning", "suspicious_traffic"]
+            },
+            "threat_actors": {
+                "enabled": False,  # Not implemented yet
+                "description": "Known threat actor profiles and TTPs",
+                "data": {},
+                "patterns": [],
+                "indicators": []
+            }
+        } 

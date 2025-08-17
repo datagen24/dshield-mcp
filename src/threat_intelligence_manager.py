@@ -1470,4 +1470,43 @@ class ThreatIntelligenceManager:
             diagnosis["recommendations"].append(f"Diagnosis failed: {e}")
             diagnosis["recommendations"].append("Check Elasticsearch connection and configuration")
         
-        return diagnosis 
+        return diagnosis
+
+    async def has_cached_data(self) -> bool:
+        """Check if there is any cached threat intelligence data available.
+        
+        Returns:
+            bool: True if cached data exists, False otherwise
+        """
+        try:
+            # Check in-memory cache
+            if self.cache and len(self.cache) > 0:
+                # Check if any cache entries are not expired
+                current_time = datetime.now()
+                for cache_key, cache_entry in self.cache.items():
+                    if isinstance(cache_entry, dict) and 'timestamp' in cache_entry:
+                        cache_time = cache_entry['timestamp']
+                        if isinstance(cache_time, datetime):
+                            if current_time - cache_time < self.cache_ttl:
+                                return True
+                        elif isinstance(cache_time, (int, float)):
+                            # Unix timestamp
+                            if current_time.timestamp() - cache_time < self.cache_ttl.total_seconds():
+                                return True
+            
+            # Check SQLite cache if enabled
+            if self.sqlite_cache_enabled and hasattr(self, '_sqlite_cache'):
+                try:
+                    # Simple check for any cached entries
+                    cursor = self._sqlite_cache.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM threat_intel_cache")
+                    count = cursor.fetchone()[0]
+                    return count > 0
+                except Exception:
+                    pass
+            
+            return False
+            
+        except Exception as e:
+            logger.error("Failed to check cached data availability", error=str(e))
+            return False 

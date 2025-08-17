@@ -33,7 +33,7 @@ from src.latex_template_tools import LaTeXTemplateTools
 from src.threat_intelligence_manager import ThreatIntelligenceManager
 from src.health_check_manager import HealthCheckManager
 from src.feature_manager import FeatureManager
-from src.dynamic_tool_registry import DynamicToolRegistry
+from src.dynamic_tool_registry import DynamicToolRegistry, TOOL_DESCRIPTIONS
 from src.signal_handler import SignalHandler
 from src.resource_manager import ResourceManager
 from src.operation_tracker import OperationTracker
@@ -138,870 +138,176 @@ class DShieldMCPServer:
         
         @self.server.list_tools()
         async def handle_list_tools() -> List[Tool]:
-            """List all available tools."""
-            return [
-                Tool(
-                    name="query_dshield_events",
-                    description="Query DShield events from Elasticsearch SIEM with enhanced pagination support",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to query (default: 24)"
-                            },
-                            "time_range": {
-                                "type": "object",
-                                "description": "Exact time range with start and end timestamps",
-                                "properties": {
-                                    "start": {"type": "string", "format": "date-time"},
-                                    "end": {"type": "string", "format": "date-time"}
-                                }
-                            },
-                            "relative_time": {
-                                "type": "string",
-                                "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
-                            },
-                            "time_window": {
-                                "type": "object",
-                                "description": "Time window around a specific timestamp",
-                                "properties": {
-                                    "around": {"type": "string", "format": "date-time"},
-                                    "window_minutes": {"type": "integer"}
-                                }
-                            },
-                            "indices": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "DShield Elasticsearch indices to query"
-                            },
-                            "filters": {
-                                "type": "object",
-                                "description": "Additional query filters"
-                            },
-                            "fields": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific fields to return (reduces payload size)"
-                            },
-                            "page": {
-                                "type": "integer",
-                                "description": "Page number for pagination (default: 1)"
-                            },
-                            "page_size": {
-                                "type": "integer",
-                                "description": "Number of results per page (default: 100, max: 1000)"
-                            },
-                            "sort_by": {
-                                "type": "string",
-                                "description": "Field to sort by (default: '@timestamp')"
-                            },
-                            "sort_order": {
-                                "type": "string",
-                                "enum": ["asc", "desc"],
-                                "description": "Sort order (default: 'desc')"
-                            },
-                            "cursor": {
-                                "type": "string",
-                                "description": "Cursor token for cursor-based pagination (better for large datasets)"
-                            },
-                            "optimization": {
-                                "type": "string",
-                                "enum": ["auto", "none"],
-                                "description": "Smart query optimization mode (default: 'auto')"
-                            },
-                            "fallback_strategy": {
-                                "type": "string",
-                                "enum": ["aggregate", "sample", "error"],
-                                "description": "Fallback strategy when optimization fails (default: 'aggregate')"
-                            },
-                            "max_result_size_mb": {
-                                "type": "number",
-                                "description": "Maximum result size in MB before optimization (default: 10.0)"
-                            },
-                            "query_timeout_seconds": {
-                                "type": "integer",
-                                "description": "Query timeout in seconds (default: 30)"
-                            },
-                            "include_summary": {
-                                "type": "boolean",
-                                "description": "Include summary statistics with results (default: true)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="stream_dshield_events_with_session_context",
-                    description="Stream DShield events with smart session-based chunking for event correlation",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to query (default: 24)"
-                            },
-                            "indices": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific indices to query (optional)"
-                            },
-                            "filters": {
-                                "type": "object",
-                                "description": "Filter criteria (supports user-friendly field names)"
-                            },
-                            "fields": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific fields to return (optional)"
-                            },
-                            "chunk_size": {
-                                "type": "integer",
-                                "description": "Target chunk size (default: 500)"
-                            },
-                            "session_fields": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Fields to use for session grouping (default: ['source.ip', 'destination.ip', 'user.name', 'session.id'])"
-                            },
-                            "max_session_gap_minutes": {
-                                "type": "integer",
-                                "description": "Maximum time gap within a session (default: 30)"
-                            },
-                            "include_session_summary": {
-                                "type": "boolean",
-                                "description": "Include session metadata in response (default: true)"
-                            },
-                            "stream_id": {
-                                "type": "string",
-                                "description": "Resume streaming from specific point"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="query_dshield_aggregations",
-                    description="Get aggregated summary data without full records",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to query (default: 24)"
-                            },
-                            "time_range": {
-                                "type": "object",
-                                "description": "Exact time range with start and end timestamps",
-                                "properties": {
-                                    "start": {"type": "string", "format": "date-time"},
-                                    "end": {"type": "string", "format": "date-time"}
-                                }
-                            },
-                            "relative_time": {
-                                "type": "string",
-                                "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
-                            },
-                            "indices": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "DShield Elasticsearch indices to query"
-                            },
-                            "group_by": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Fields to group by (e.g., ['source_ip', 'destination_port'])"
-                            },
-                            "metrics": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Metrics to calculate (e.g., ['count', 'unique_sessions', 'avg_duration'])"
-                            },
-                            "filters": {
-                                "type": "object",
-                                "description": "Additional query filters"
-                            },
-                            "top_n": {
-                                "type": "integer",
-                                "description": "Number of top results to return (default: 50)"
-                            },
-                            "sort_by": {
-                                "type": "string",
-                                "description": "Field to sort by (default: 'count')"
-                            },
-                            "sort_order": {
-                                "type": "string",
-                                "enum": ["asc", "desc"],
-                                "description": "Sort order (default: 'desc')"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="stream_dshield_events",
-                    description="Stream DShield events for very large datasets with chunked processing",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to query (default: 24)"
-                            },
-                            "time_range": {
-                                "type": "object",
-                                "description": "Exact time range with start and end timestamps",
-                                "properties": {
-                                    "start": {"type": "string", "format": "date-time"},
-                                    "end": {"type": "string", "format": "date-time"}
-                                }
-                            },
-                            "relative_time": {
-                                "type": "string",
-                                "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
-                            },
-                            "indices": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "DShield Elasticsearch indices to query"
-                            },
-                            "filters": {
-                                "type": "object",
-                                "description": "Additional query filters"
-                            },
-                            "fields": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific fields to return (reduces payload size)"
-                            },
-                            "chunk_size": {
-                                "type": "integer",
-                                "description": "Number of events per chunk (default: 500, max: 1000)"
-                            },
-                            "max_chunks": {
-                                "type": "integer",
-                                "description": "Maximum number of chunks to return (default: 20)"
-                            },
-                            "include_summary": {
-                                "type": "boolean",
-                                "description": "Include summary statistics with results (default: true)"
-                            },
-                            "stream_id": {
-                                "type": "string",
-                                "description": "Optional stream ID for resuming interrupted streams"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="query_dshield_attacks",
-                    description="Query DShield attack data specifically with pagination",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to query (default: 24)"
-                            },
-                            "page": {
-                                "type": "integer",
-                                "description": "Page number for pagination (default: 1)"
-                            },
-                            "page_size": {
-                                "type": "integer",
-                                "description": "Number of results per page (default: 100, max: 1000)"
-                            },
-                            "include_summary": {
-                                "type": "boolean",
-                                "description": "Include summary statistics with results (default: true)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="query_dshield_reputation",
-                    description="Query DShield reputation data for IP addresses",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "ip_addresses": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "IP addresses to query reputation for"
-                            },
-                            "size": {
-                                "type": "integer",
-                                "description": "Maximum number of results (default: 1000)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="query_dshield_top_attackers",
-                    description="Query DShield top attackers data",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "hours": {
-                                "type": "integer",
-                                "description": "Time range in hours (default: 24)"
-                            },
-                            "limit": {
-                                "type": "integer",
-                                "description": "Maximum number of attackers to return (default: 100)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="query_dshield_geographic_data",
-                    description="Query DShield geographic attack data",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "countries": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific countries to filter by"
-                            },
-                            "size": {
-                                "type": "integer",
-                                "description": "Maximum number of results (default: 1000)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="query_dshield_port_data",
-                    description="Query DShield port attack data",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "ports": {
-                                "type": "array",
-                                "items": {"type": "integer"},
-                                "description": "Specific ports to filter by"
-                            },
-                            "size": {
-                                "type": "integer",
-                                "description": "Maximum number of results (default: 1000)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="get_dshield_statistics",
-                    description="Get comprehensive DShield statistics and summary",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours (default: 24)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="diagnose_data_availability",
-                    description="Diagnose why queries return empty results and troubleshoot data availability issues",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "check_indices": {
-                                "type": "boolean",
-                                "description": "Check available indices and patterns (default: true)"
-                            },
-                            "check_mappings": {
-                                "type": "boolean",
-                                "description": "Check index mappings and field availability (default: true)"
-                            },
-                            "check_recent_data": {
-                                "type": "boolean",
-                                "description": "Check data availability across different time ranges (default: true)"
-                            },
-                            "sample_query": {
-                                "type": "boolean",
-                                "description": "Test sample queries with different index patterns (default: true)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="enrich_ip_with_dshield",
-                    description="Enrich IP address with DShield threat intelligence",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "ip_address": {
-                                "type": "string",
-                                "description": "IP address to enrich"
+            """List all available tools based on feature availability."""
+            # Only return tools that are actually available
+            available_tools = []
+            
+            # Define all possible tools with their schemas
+            all_tool_definitions = [
+                ("query_dshield_events", {
+                    "type": "object",
+                    "properties": {
+                        "time_range_hours": {
+                            "type": "integer",
+                            "description": "Time range in hours to query (default: 24)"
+                        },
+                        "time_range": {
+                            "type": "object",
+                            "description": "Exact time range with start and end timestamps",
+                            "properties": {
+                                "start": {"type": "string", "format": "date-time"},
+                                "end": {"type": "string", "format": "date-time"}
                             }
                         },
-                        "required": ["ip_address"]
-                    }
-                ),
-                Tool(
-                    name="generate_attack_report",
-                    description="Generate structured attack report with DShield data",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "events": {
-                                "type": "array",
-                                "description": "Security events to analyze"
-                            },
-                            "threat_intelligence": {
-                                "type": "object",
-                                "description": "Threat intelligence data"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="query_events_by_ip",
-                    description="Query DShield events for specific IP addresses",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "ip_addresses": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "IP addresses to query events for"
-                            },
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours (default: 24)"
+                        "relative_time": {
+                            "type": "string",
+                            "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')"
+                        },
+                        "time_window": {
+                            "type": "object",
+                            "description": "Time window around a specific timestamp",
+                            "properties": {
+                                "around": {"type": "string", "format": "date-time"},
+                                "window_minutes": {"type": "integer"}
                             }
                         },
-                        "required": ["ip_addresses"]
-                    }
-                ),
-                Tool(
-                    name="get_security_summary",
-                    description="Get security summary with DShield enrichment",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "include_threat_intelligence": {
-                                "type": "boolean",
-                                "description": "Include threat intelligence enrichment (default: true)"
-                            }
+                        "indices": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "DShield Elasticsearch indices to query"
+                        },
+                        "filters": {
+                            "type": "object",
+                            "description": "Additional query filters"
+                        },
+                        "fields": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Specific fields to return (reduces payload size)"
+                        },
+                        "page": {
+                            "type": "integer",
+                            "description": "Page number for pagination (default: 1)"
+                        },
+                        "page_size": {
+                            "type": "integer",
+                            "description": "Number of results per page (default: 100, max: 1000)"
+                        },
+                        "sort_by": {
+                            "type": "string",
+                            "description": "Field to sort by (default: '@timestamp')"
+                        },
+                        "sort_order": {
+                            "type": "string",
+                            "enum": ["asc", "desc"],
+                            "description": "Sort order (default: 'desc')"
+                        },
+                        "cursor": {
+                            "type": "string",
+                            "description": "Cursor token for cursor-based pagination (better for large datasets)"
+                        },
+                        "optimization": {
+                            "type": "string",
+                            "enum": ["auto", "none"],
+                            "description": "Smart query optimization mode (default: 'auto')"
+                        },
+                        "fallback_strategy": {
+                            "type": "string",
+                            "enum": ["aggregate", "sample", "error"],
+                            "description": "Fallback strategy when optimization fails (default: 'aggregate')"
+                        },
+                        "max_result_size_mb": {
+                            "type": "number",
+                            "description": "Maximum result size in MB before optimization (default: 10.0)"
+                        },
+                        "query_timeout_seconds": {
+                            "type": "integer",
+                            "description": "Query timeout in seconds (default: 30)"
+                        },
+                        "include_summary": {
+                            "type": "boolean",
+                            "description": "Include summary statistics with results (default: true)"
                         }
                     }
-                ),
-                Tool(
-                    name="test_elasticsearch_connection",
-                    description="Test connection to Elasticsearch and show available indices",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {}
-                    }
-                ),
-                Tool(
-                    name="get_data_dictionary",
-                    description="Get comprehensive data dictionary for DShield SIEM fields and analysis guidelines",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "format": {
-                                "type": "string",
-                                "description": "Output format: 'prompt' for model prompt, 'json' for structured data (default: 'prompt')"
-                            },
-                            "sections": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific sections to include: 'fields', 'examples', 'patterns', 'guidelines' (default: all)"
-                            }
+                }),
+                ("stream_dshield_events_with_session_context", {
+                    "type": "object",
+                    "properties": {
+                        "time_range_hours": {
+                            "type": "integer",
+                            "description": "Time range in hours to query (default: 24)"
+                        },
+                        "chunk_size": {
+                            "type": "integer",
+                            "description": "Number of events per chunk (default: 500, max: 1000)"
+                        },
+                        "session_fields": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Fields to use for session grouping (default: ['source.ip', 'destination.ip'])"
+                        },
+                        "max_session_gap_minutes": {
+                            "type": "integer",
+                            "description": "Maximum gap in minutes to consider events part of same session (default: 30)"
+                        },
+                        "filters": {
+                            "type": "object",
+                            "description": "Additional query filters"
+                        },
+                        "stream_id": {
+                            "type": "string",
+                            "description": "Stream ID for resuming previous stream"
                         }
                     }
-                ),
-                Tool(
-                    name="analyze_campaign",
-                    description="Analyze attack campaigns from seed indicators with multi-stage correlation",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "seed_indicators": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "List of seed indicators (IPs, domains, etc.)",
-                                "required": True
-                            },
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to analyze (default: 168 = 1 week)"
-                            },
-                            "correlation_methods": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Correlation methods: ip_correlation, infrastructure_correlation, behavioral_correlation, temporal_correlation, geospatial_correlation, signature_correlation"
-                            },
-                            "min_confidence": {
-                                "type": "number",
-                                "description": "Minimum confidence threshold (0.0-1.0, default: 0.7)"
-                            },
-                            "include_timeline": {
-                                "type": "boolean",
-                                "description": "Include detailed timeline (default: true)"
-                            },
-                            "include_relationships": {
-                                "type": "boolean",
-                                "description": "Include indicator relationships (default: true)"
-                            }
+                }),
+                ("get_data_dictionary", {
+                    "type": "object",
+                    "properties": {
+                        "category": {
+                            "type": "string",
+                            "description": "Data category to retrieve (e.g., 'core_fields', 'network_fields')"
+                        },
+                        "format": {
+                            "type": "string",
+                            "enum": ["json", "markdown", "summary"],
+                            "description": "Output format (default: 'json')"
                         }
                     }
-                ),
-                Tool(
-                    name="expand_campaign_indicators",
-                    description="Expand IOCs to find related indicators and infrastructure",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "campaign_id": {
-                                "type": "string",
-                                "description": "Campaign ID to expand",
-                                "required": True
-                            },
-                            "expansion_depth": {
-                                "type": "integer",
-                                "description": "Maximum expansion depth (default: 3)"
-                            },
-                            "expansion_strategy": {
-                                "type": "string",
-                                "enum": ["comprehensive", "infrastructure", "temporal"],
-                                "description": "Expansion strategy (default: comprehensive)"
-                            },
-                            "include_passive_dns": {
-                                "type": "boolean",
-                                "description": "Include passive DNS data (default: true)"
-                            },
-                            "include_threat_intel": {
-                                "type": "boolean",
-                                "description": "Include threat intelligence data (default: true)"
-                            }
+                }),
+                ("get_health_status", {
+                    "type": "object",
+                    "properties": {
+                        "detailed": {
+                            "type": "boolean",
+                            "description": "Include detailed health information (default: false)"
                         }
                     }
-                ),
-                Tool(
-                    name="get_campaign_timeline",
-                    description="Build detailed attack timelines with TTP analysis",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "campaign_id": {
-                                "type": "string",
-                                "description": "Campaign ID to analyze",
-                                "required": True
-                            },
-                            "timeline_granularity": {
-                                "type": "string",
-                                "enum": ["minute", "hourly", "daily"],
-                                "description": "Timeline granularity (default: hourly)"
-                            },
-                            "include_event_details": {
-                                "type": "boolean",
-                                "description": "Include detailed event information (default: true)"
-                            },
-                            "include_ttp_analysis": {
-                                "type": "boolean",
-                                "description": "Include TTP analysis (default: true)"
-                            }
+                }),
+                ("get_feature_status", {
+                    "type": "object",
+                    "properties": {
+                        "feature": {
+                            "type": "string",
+                            "description": "Specific feature to check (optional)"
                         }
                     }
-                ),
-                Tool(
-                    name="compare_campaigns",
-                    description="Compare multiple campaigns for similarities and patterns",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "campaign_ids": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "List of campaign IDs to compare",
-                                "required": True
-                            },
-                            "comparison_metrics": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Metrics to compare: ttps, infrastructure, timing, geography, sophistication"
-                            },
-                            "include_visualization_data": {
-                                "type": "boolean",
-                                "description": "Include visualization data (default: true)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="detect_ongoing_campaigns",
-                    description="Real-time detection of active campaigns",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "time_window_hours": {
-                                "type": "integer",
-                                "description": "Time window for detection (default: 24 hours)"
-                            },
-                            "min_event_threshold": {
-                                "type": "integer",
-                                "description": "Minimum events for campaign detection (default: 15)"
-                            },
-                            "correlation_threshold": {
-                                "type": "number",
-                                "description": "Minimum correlation threshold (0.0-1.0, default: 0.8)"
-                            },
-                            "include_alert_data": {
-                                "type": "boolean",
-                                "description": "Include alert data (default: true)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="search_campaigns",
-                    description="Search existing campaigns by criteria",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "search_criteria": {
-                                "type": "object",
-                                "description": "Search criteria (indicators, time_range, confidence, etc.)",
-                                "required": True
-                            },
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range for search (default: 168 = 1 week)"
-                            },
-                            "max_results": {
-                                "type": "integer",
-                                "description": "Maximum results to return (default: 50)"
-                            },
-                            "include_summaries": {
-                                "type": "boolean",
-                                "description": "Include campaign summaries (default: true)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="get_campaign_details",
-                    description="Get comprehensive campaign information with threat intelligence",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "campaign_id": {
-                                "type": "string",
-                                "description": "Campaign ID to retrieve",
-                                "required": True
-                            },
-                            "include_full_timeline": {
-                                "type": "boolean",
-                                "description": "Include full timeline (default: false)"
-                            },
-                            "include_relationships": {
-                                "type": "boolean",
-                                "description": "Include indicator relationships (default: true)"
-                            },
-                            "include_threat_intel": {
-                                "type": "boolean",
-                                "description": "Include threat intelligence (default: true)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="generate_latex_document",
-                    description="Generate complete and fully referenced documents using LaTeX templates",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "template_name": {
-                                "type": "string",
-                                "description": "Name of the template to use (e.g., 'Attack_Report')",
-                                "required": True
-                            },
-                            "document_data": {
-                                "type": "object",
-                                "description": "Data to populate the template with (variables, content, etc.)",
-                                "required": True
-                            },
-                            "output_format": {
-                                "type": "string",
-                                "enum": ["pdf", "tex"],
-                                "description": "Output format (default: pdf)"
-                            },
-                            "include_assets": {
-                                "type": "boolean",
-                                "description": "Whether to include template assets (default: true)"
-                            },
-                            "compile_options": {
-                                "type": "object",
-                                "description": "Additional LaTeX compilation options"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="list_latex_templates",
-                    description="List all available LaTeX templates with metadata and requirements",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {}
-                    }
-                ),
-                Tool(
-                    name="get_latex_template_schema",
-                    description="Get the schema and requirements for a specific LaTeX template",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "template_name": {
-                                "type": "string",
-                                "description": "Name of the template to get schema for",
-                                "required": True
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="validate_latex_document_data",
-                    description="Validate document data against template requirements",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "template_name": {
-                                "type": "string",
-                                "description": "Name of the template to validate against",
-                                "required": True
-                            },
-                            "document_data": {
-                                "type": "object",
-                                "description": "Document data to validate",
-                                "required": True
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="enrich_ip_comprehensive",
-                    description="Comprehensive IP enrichment from multiple threat intelligence sources",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "ip_address": {
-                                "type": "string",
-                                "description": "IP address to enrich",
-                                "required": True
-                            },
-                            "sources": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific sources to query (default: all available)",
-                                "default": ["all"]
-                            },
-                            "include_raw_data": {
-                                "type": "boolean",
-                                "description": "Include raw data from sources (default: false)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="enrich_domain_comprehensive",
-                    description="Comprehensive domain enrichment from multiple threat intelligence sources",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "domain": {
-                                "type": "string",
-                                "description": "Domain to enrich",
-                                "required": True
-                            },
-                            "sources": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific sources to query (default: all available)",
-                                "default": ["all"]
-                            },
-                            "include_raw_data": {
-                                "type": "boolean",
-                                "description": "Include raw data from sources (default: false)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="correlate_threat_indicators",
-                    description="Correlate multiple threat indicators across sources",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "indicators": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "List of threat indicators to correlate (IPs, domains, hashes, etc.)",
-                                "required": True
-                            },
-                            "correlation_method": {
-                                "type": "string",
-                                "enum": ["comprehensive", "network", "temporal", "behavioral"],
-                                "description": "Correlation method to use (default: comprehensive)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="get_threat_intelligence_summary",
-                    description="Get summary of threat intelligence capabilities and status",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "include_source_status": {
-                                "type": "boolean",
-                                "description": "Include detailed source status (default: true)"
-                            },
-                            "include_cache_stats": {
-                                "type": "boolean",
-                                "description": "Include cache statistics (default: true)"
-                            }
-                        }
-                    }
-                ),
-                Tool(
-                    name="detect_statistical_anomalies",
-                    description="Detect statistical anomalies in DShield data patterns using multiple detection methods",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to analyze (default: 24)"
-                            },
-                            "anomaly_methods": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Anomaly detection methods to use: zscore, iqr, isolation_forest, time_series (default: ['zscore', 'iqr'])"
-                            },
-                            "sensitivity": {
-                                "type": "number",
-                                "description": "Sensitivity threshold for anomaly detection (default: 2.5)"
-                            },
-                            "dimensions": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Dimensions to analyze for anomalies (default: ['source_ip', 'destination_port', 'bytes_transferred', 'event_rate'])"
-                            },
-                            "return_summary_only": {
-                                "type": "boolean",
-                                "description": "Whether to return only summary data (default: true)"
-                            },
-                            "max_anomalies": {
-                                "type": "integer",
-                                "description": "Maximum number of anomalies to return (default: 50)"
-                            }
-                        }
-                    }
-                )
+                })
             ]
+            
+            # Add tools based on availability
+            for tool_name, schema in all_tool_definitions:
+                if self.tool_registry.is_tool_available(tool_name):
+                    available_tools.append(Tool(
+                        name=tool_name,
+                        description=TOOL_DESCRIPTIONS.get(tool_name, f"Tool: {tool_name}"),
+                        inputSchema=schema
+                    ))
+            
+            logger.info("Listed available tools", 
+                       available_count=len(available_tools),
+                       total_defined=len(all_tool_definitions))
+            
+            return available_tools
         
         @self.server.call_tool()
         async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -1149,64 +455,199 @@ class DShieldMCPServer:
     
     async def initialize(self) -> None:
         """Initialize the MCP server and clients with graceful degradation."""
-        logger.info("Initializing DShield MCP Server with health checks and feature flags")
-        # Run health checks
-        await self.health_manager.run_all_checks()
-        # Initialize features
-        await self.feature_manager.initialize_features()
-        # Register available tools (placeholder: use tool names for now)
-        all_tools = [
-            'elasticsearch_queries',
-            'dshield_enrichment',
-            'latex_reports',
-            'threat_intelligence',
-            'campaign_analysis',
-            'data_dictionary',
-        ]
-        self.available_tools = self.tool_registry.register_tools(all_tools)
-        logger.info("Available tools after health checks", available_tools=self.available_tools)
+        logger.info("Initializing DShield MCP Server with comprehensive health checks and feature flags")
         
-        logger.info("Initializing DShield MCP Server")
-        
-        # Initialize Elasticsearch client (but don't connect yet)
-        self.elastic_client = ElasticsearchClient()
-        
-        # Initialize DShield client
-        self.dshield_client = DShieldClient()
-        
-        # Initialize data processor
-        self.data_processor = DataProcessor()
-        
-        # Initialize context injector
-        self.context_injector = ContextInjector()
-        
-        # Initialize campaign analyzer and tools
-        self.campaign_analyzer = CampaignAnalyzer(self.elastic_client)
-        self.campaign_tools = CampaignMCPTools(self.elastic_client)
-        
-        # Initialize LaTeX template tools
-        self.latex_tools = LaTeXTemplateTools()
-        
-        # Initialize threat intelligence manager
-        self.threat_intelligence_manager = ThreatIntelligenceManager()
-        
-        # Log user configuration summary
-        logger.info("DShield MCP Server initialized successfully", 
-                   user_config_summary={
-                       "query_settings": {
-                           "default_page_size": self.user_config.get_setting("query", "default_page_size"),
-                           "enable_smart_optimization": self.user_config.get_setting("query", "enable_smart_optimization"),
-                           "fallback_strategy": self.user_config.get_setting("query", "fallback_strategy")
-                       },
-                       "performance_settings": {
-                           "enable_caching": self.user_config.get_setting("performance", "enable_caching"),
-                           "enable_connection_pooling": self.user_config.get_setting("performance", "enable_connection_pooling")
-                       },
-                       "security_settings": {
-                           "rate_limit": self.user_config.get_setting("security", "rate_limit_requests_per_minute"),
-                           "max_query_results": self.user_config.get_setting("security", "max_query_results")
-                       }
-                   })
+        try:
+            # Run comprehensive health checks
+            health_results = await self.health_manager.run_all_checks()
+            logger.info("Health checks completed", 
+                       health_summary=health_results.get("summary", {}),
+                       healthy_services=health_results.get("summary", {}).get("healthy_services", []),
+                       unhealthy_services=health_results.get("summary", {}).get("unhealthy_services", []))
+            
+            # Initialize features based on health status
+            await self.feature_manager.initialize_features()
+            feature_summary = self.feature_manager.get_feature_summary()
+            logger.info("Feature initialization completed", 
+                       feature_summary=feature_summary)
+            
+            # Define all available tools
+            all_tools = [
+                'query_dshield_events',
+                'query_dshield_aggregations',
+                'stream_dshield_events',
+                'stream_dshield_events_with_session_context',
+                'query_dshield_attacks',
+                'query_dshield_reputation',
+                'query_dshield_top_attackers',
+                'query_dshield_geographic_data',
+                'query_dshield_port_data',
+                'get_dshield_statistics',
+                'diagnose_data_availability',
+                'enrich_ip_with_dshield',
+                'generate_attack_report',
+                'query_events_by_ip',
+                'get_security_summary',
+                'test_elasticsearch_connection',
+                'get_data_dictionary',
+                'analyze_campaign',
+                'expand_campaign_indicators',
+                'get_campaign_timeline',
+                'compare_campaigns',
+                'detect_ongoing_campaigns',
+                'search_campaigns',
+                'get_campaign_details',
+                'generate_latex_document',
+                'list_latex_templates',
+                'get_latex_template_schema',
+                'validate_latex_document_data',
+                'enrich_ip_comprehensive',
+                'enrich_domain_comprehensive',
+                'correlate_threat_indicators',
+                'get_threat_intelligence_summary',
+                'detect_statistical_anomalies',
+            ]
+            
+            # Register available tools based on feature availability
+            self.available_tools = self.tool_registry.register_tools(all_tools)
+            tool_summary = self.tool_registry.get_tool_summary()
+            logger.info("Tool registration completed", 
+                       tool_summary=tool_summary)
+            
+            # Initialize clients with graceful degradation
+            await self._initialize_clients_gracefully()
+            
+            # Log comprehensive initialization summary
+            logger.info("DShield MCP Server initialization completed successfully", 
+                       health_status=health_results.get("summary", {}).get("overall_health", 0),
+                       feature_status=feature_summary.get("status", "unknown"),
+                       tool_availability=tool_summary.get("availability_percentage", 0),
+                       available_tools_count=len(self.available_tools),
+                       total_tools_count=len(all_tools))
+            
+            # Log user configuration summary if available
+            if self.user_config:
+                logger.info("User configuration loaded", 
+                           user_config_summary={
+                               "query_settings": {
+                                   "default_page_size": self.user_config.get_setting("query", "default_page_size"),
+                                   "enable_smart_optimization": self.user_config.get_setting("query", "enable_smart_optimization"),
+                                   "fallback_strategy": self.user_config.get_setting("query", "fallback_strategy")
+                               },
+                               "performance_settings": {
+                                   "enable_caching": self.user_config.get_setting("performance", "enable_caching"),
+                                   "enable_connection_pooling": self.user_config.get_setting("performance", "enable_connection_pooling")
+                               },
+                               "security_settings": {
+                                   "rate_limit": self.user_config.get_setting("security", "rate_limit_requests_per_minute"),
+                                   "max_query_results": self.user_config.get_setting("security", "max_query_results")
+                               }
+                           })
+            
+        except Exception as e:
+            logger.error("Server initialization failed", error=str(e))
+            # Continue with minimal functionality - don't crash the server
+            logger.warning("Continuing with minimal functionality due to initialization failure")
+            
+            # Set all tools as unavailable
+            self.available_tools = []
+            
+            # Initialize minimal clients
+            await self._initialize_clients_gracefully()
+
+    async def _initialize_clients_gracefully(self) -> None:
+        """Initialize clients with graceful degradation for unavailable dependencies."""
+        try:
+            # Initialize Elasticsearch client only if the feature is available
+            if self.feature_manager.is_feature_available('elasticsearch_queries'):
+                try:
+                    self.elastic_client = ElasticsearchClient()
+                    logger.info("Elasticsearch client initialized successfully")
+                except Exception as e:
+                    logger.error("Failed to initialize Elasticsearch client", error=str(e))
+                    self.elastic_client = None
+            else:
+                logger.warning("Elasticsearch client not initialized - feature unavailable")
+                self.elastic_client = None
+            
+            # Initialize DShield client only if the feature is available
+            if self.feature_manager.is_feature_available('dshield_enrichment'):
+                try:
+                    self.dshield_client = DShieldClient()
+                    logger.info("DShield client initialized successfully")
+                except Exception as e:
+                    logger.error("Failed to initialize DShield client", error=str(e))
+                    self.dshield_client = None
+            else:
+                logger.warning("DShield client not initialized - feature unavailable")
+                self.dshield_client = None
+            
+            # Initialize data processor (no external dependencies)
+            try:
+                self.data_processor = DataProcessor()
+                logger.info("Data processor initialized successfully")
+            except Exception as e:
+                logger.error("Failed to initialize data processor", error=str(e))
+                self.data_processor = None
+            
+            # Initialize context injector (no external dependencies)
+            try:
+                self.context_injector = ContextInjector()
+                logger.info("Context injector initialized successfully")
+            except Exception as e:
+                logger.error("Failed to initialize context injector", error=str(e))
+                self.context_injector = None
+            
+            # Initialize campaign analyzer and tools only if Elasticsearch is available
+            if self.elastic_client and self.feature_manager.is_feature_available('campaign_analysis'):
+                try:
+                    self.campaign_analyzer = CampaignAnalyzer(self.elastic_client)
+                    self.campaign_tools = CampaignMCPTools(self.elastic_client)
+                    logger.info("Campaign analysis tools initialized successfully")
+                except Exception as e:
+                    logger.error("Failed to initialize campaign analysis tools", error=str(e))
+                    self.campaign_analyzer = None
+                    self.campaign_tools = None
+            else:
+                logger.warning("Campaign analysis tools not initialized - dependencies unavailable")
+                self.campaign_analyzer = None
+                self.campaign_tools = None
+            
+            # Initialize LaTeX template tools only if LaTeX is available
+            if self.feature_manager.is_feature_available('latex_reports'):
+                try:
+                    self.latex_tools = LaTeXTemplateTools()
+                    logger.info("LaTeX template tools initialized successfully")
+                except Exception as e:
+                    logger.error("Failed to initialize LaTeX template tools", error=str(e))
+                    self.latex_tools = None
+            else:
+                logger.warning("LaTeX template tools not initialized - feature unavailable")
+                self.latex_tools = None
+            
+            # Initialize threat intelligence manager only if the feature is available
+            if self.feature_manager.is_feature_available('threat_intelligence'):
+                try:
+                    self.threat_intelligence_manager = ThreatIntelligenceManager()
+                    logger.info("Threat intelligence manager initialized successfully")
+                except Exception as e:
+                    logger.error("Failed to initialize threat intelligence manager", error=str(e))
+                    self.threat_intelligence_manager = None
+            else:
+                logger.warning("Threat intelligence manager not initialized - feature unavailable")
+                self.threat_intelligence_manager = None
+                
+        except Exception as e:
+            logger.error("Client initialization failed", error=str(e))
+            # Set all clients to None to prevent errors
+            self.elastic_client = None
+            self.dshield_client = None
+            self.data_processor = None
+            self.context_injector = None
+            self.campaign_analyzer = None
+            self.campaign_tools = None
+            self.latex_tools = None
+            self.threat_intelligence_manager = None
     
     async def _query_dshield_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Query DShield events from Elasticsearch.
