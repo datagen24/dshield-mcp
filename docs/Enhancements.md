@@ -4,22 +4,26 @@
 
 ---
 
-## **Root Cause Analysis: Empty Statistics Issue**
+## **✅ RESOLVED: Empty Statistics Issue (Issue #99)**
 
-The `get_dshield_statistics` tool returns empty results because:
+**Status**: COMPLETED - Moved to CHANGELOG.md
 
-1. **Index Pattern Mismatch**: The tool queries indices like `["dshield-summary-*", "dshield-statistics-*"]` but the actual indices follow patterns like `["dshield-*", "cowrie-*", "zeek-*"]`
-2. **Configuration Gap**: The `index_patterns` configuration is empty by default, causing `self.dshield_indices` to be an empty list
-3. **Fallback Logic**: When no DShield indices are found, it falls back to empty fallback indices
+The `get_dshield_statistics` tool has been fixed with:
+- Dynamic index discovery instead of hardcoded patterns
+- New `diagnose_data_availability` diagnostic tool
+- Enhanced error handling and logging
+- Proper configuration with fallback support
+
+**See CHANGELOG.md for complete implementation details.**
 
 ---
 
 ## **Implementation Priority and Dependencies**
 
-1. **Phase 1 (Immediate - Week 1)**:
-   - Implement `diagnose_data_availability` tool
-   - Fix `get_dshield_statistics` index pattern issue
-   - Add proper error handling and logging
+1. **Phase 1 (Completed)**:
+   - ✅ Implement `diagnose_data_availability` tool
+   - ✅ Fix `get_dshield_statistics` index pattern issue
+   - ✅ Add proper error handling and logging
 
 2. **Phase 2 (Week 2-3)**:
    - Implement `detect_statistical_anomalies` tool
@@ -38,163 +42,25 @@ The `get_dshield_statistics` tool returns empty results because:
 
 ---
 
-## **1. Diagnostic Tool: `diagnose_data_availability`**
-
-**Purpose**: Identify why queries return empty results without flooding context
-**Priority**: HIGH (immediate fix for statistics issue)
-
-**Tool Definition**:
-```python
-Tool(
-    name="diagnose_data_availability",
-    description="Diagnose why queries return empty results",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "check_indices": {"type": "boolean", "default": true},
-            "check_mappings": {"type": "boolean", "default": true},
-            "check_recent_data": {"type": "boolean", "default": true},
-            "sample_query": {"type": "boolean", "default": true}
-        }
-    }
-)
-```
-
-**Implementation Plan**:
-```python
-async def _diagnose_data_availability(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Diagnose why queries return empty results."""
-    check_indices = arguments.get("check_indices", True)
-    check_mappings = arguments.get("check_mappings", True)
-    check_recent_data = arguments.get("check_recent_data", True)
-    sample_query = arguments.get("sample_query", True)
-    
-    diagnosis = {
-        "timestamp": datetime.utcnow().isoformat(),
-        "summary": {},
-        "details": {}
-    }
-    
-    try:
-        # 1. Check available indices
-        if check_indices:
-            available_indices = await self.elastic_client.get_available_indices()
-            diagnosis["details"]["available_indices"] = {
-                "count": len(available_indices),
-                "indices": available_indices,
-                "expected_patterns": self.elastic_client.dshield_indices,
-                "fallback_indices": self.elastic_client.fallback_indices
-            }
-        
-        # 2. Check index mappings
-        if check_mappings and available_indices:
-            sample_index = available_indices[0] if available_indices else None
-            if sample_index:
-                mapping = await self.elastic_client.client.indices.get_mapping(index=sample_index)
-                diagnosis["details"]["sample_mapping"] = {
-                    "index": sample_index,
-                    "field_count": len(mapping[sample_index]["mappings"]["properties"]),
-                    "key_fields": list(mapping[sample_index]["mappings"]["properties"].keys())[:10]
-                }
-        
-        # 3. Check recent data availability
-        if check_recent_data:
-            # Try different time ranges
-            for hours in [1, 6, 24, 168]:
-                events, count, _ = await self.elastic_client.query_dshield_events(
-                    time_range_hours=hours,
-                    page_size=1
-                )
-                diagnosis["details"][f"data_availability_{hours}h"] = {
-                    "events_found": len(events),
-                    "total_count": count
-                }
-        
-        # 4. Sample query test
-        if sample_query:
-            # Test with different index patterns
-            test_patterns = [
-                ["dshield-*"],
-                ["cowrie-*"], 
-                ["zeek-*"],
-                ["*"],
-                None  # Use auto-detection
-            ]
-            
-            for pattern in test_patterns:
-                try:
-                    events, count, _ = await self.elastic_client.query_dshield_events(
-                        time_range_hours=24,
-                        indices=pattern,
-                        page_size=1
-                    )
-                    diagnosis["details"][f"pattern_test_{pattern or 'auto'}"] = {
-                        "events_found": len(events),
-                        "total_count": count
-                    }
-                except Exception as e:
-                    diagnosis["details"][f"pattern_test_{pattern or 'auto'}"] = {
-                        "error": str(e)
-                    }
-        
-        # Generate summary and recommendations
-        diagnosis["summary"] = self._generate_diagnosis_summary(diagnosis["details"])
-        
-        return [{
-            "type": "text",
-            "text": json.dumps(diagnosis, indent=2, default=str)
-        }]
-        
-    except Exception as e:
-        logger.error("Diagnosis failed", error=str(e))
-        return [{
-            "type": "text",
-            "text": f"Diagnosis failed: {str(e)}"
-        }]
-```
-
----
-
 ## **2. Statistical Anomaly Detection Tool: `detect_statistical_anomalies`**
 
-**Purpose**: Detect statistical outliers and anomalies in DShield events without returning raw data
-**Priority**: HIGH (context preservation)
+**Purpose**: Detect statistical anomalies in DShield data patterns
+**Priority**: MEDIUM (enhances data quality assessment)
 
 **Tool Definition**:
 ```python
 Tool(
     name="detect_statistical_anomalies",
-    description="Detect statistical outliers and anomalies in DShield events without returning raw data",
+    description="Detect statistical anomalies in DShield data patterns",
     inputSchema={
         "type": "object",
         "properties": {
-            "time_range_hours": {"type": "integer", "default": 24},
-            "anomaly_methods": {
+            "time_range_hours": {"type": "integer", "default": 168},
+            "anomaly_threshold": {"type": "number", "default": 2.0},
+            "metrics": {
                 "type": "array",
                 "items": {"type": "string"},
-                "enum": ["zscore", "iqr", "isolation_forest", "lof", "time_series"],
-                "description": "Statistical methods: zscore, iqr, isolation_forest, lof, time_series"
-            },
-            "sensitivity": {
-                "type": "number",
-                "default": 2.5,
-                "description": "Anomaly sensitivity (1.0-5.0, lower = more sensitive)"
-            },
-            "dimensions": {
-                "type": "array",
-                "items": {"type": "string"},
-                "default": ["source_ip", "destination_port", "bytes_transferred", "event_rate"],
-                "description": "Dimensions to analyze for anomalies"
-            },
-            "return_summary_only": {
-                "type": "boolean",
-                "default": true,
-                "description": "Return only summary without event details"
-            },
-            "max_anomalies": {
-                "type": "integer",
-                "default": 50,
-                "description": "Maximum anomalies to return"
+                "default": ["event_count", "unique_ips", "geographic_spread"]
             }
         }
     }

@@ -1263,3 +1263,211 @@ class ThreatIntelligenceManager:
         
         # Store correlation metrics in result
         result.correlation_metrics = correlation_metrics 
+
+    async def diagnose_data_availability(
+        self,
+        check_indices: bool = True,
+        check_mappings: bool = True,
+        check_recent_data: bool = True,
+        sample_query: bool = True
+    ) -> Dict[str, Any]:
+        """Diagnose data availability issues and provide troubleshooting information.
+        
+        This method performs comprehensive diagnostics to identify why queries
+        might return empty results, including index availability, field mappings,
+        data freshness, and query pattern testing.
+        
+        Args:
+            check_indices: Whether to check available indices and patterns
+            check_mappings: Whether to check index mappings and field availability
+            check_recent_data: Whether to check data availability across time ranges
+            sample_query: Whether to test sample queries with different patterns
+        
+        Returns:
+            Dictionary containing comprehensive diagnostic information
+        """
+        diagnosis = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "summary": {},
+            "details": {},
+            "recommendations": []
+        }
+        
+        try:
+            # Get Elasticsearch client from config
+            from .elasticsearch_client import ElasticsearchClient
+            es_client = ElasticsearchClient()
+            await es_client.connect()
+            
+            # Initialize available_indices variable
+            available_indices = []
+            
+            # 1. Check available indices
+            if check_indices:
+                try:
+                    available_indices = await es_client.get_available_indices()
+                    diagnosis["details"]["available_indices"] = {
+                        "count": len(available_indices),
+                        "indices": available_indices,
+                        "configured_patterns": es_client.dshield_indices,
+                        "fallback_patterns": es_client.fallback_indices
+                    }
+                    
+                    if not available_indices:
+                        diagnosis["summary"]["indices_issue"] = "No DShield indices found"
+                        diagnosis["recommendations"].append(
+                            "Check index_patterns configuration in mcp_config.yaml"
+                        )
+                        diagnosis["recommendations"].append(
+                            "Verify that Elasticsearch indices exist and are accessible"
+                        )
+                    else:
+                        diagnosis["summary"]["indices_status"] = f"Found {len(available_indices)} indices"
+                        
+                except Exception as e:
+                    diagnosis["details"]["indices_error"] = str(e)
+                    diagnosis["summary"]["indices_issue"] = f"Failed to check indices: {e}"
+            
+            # 2. Check index mappings
+            if check_mappings and available_indices:
+                try:
+                    sample_index = available_indices[0] if available_indices else None
+                    if sample_index:
+                        mapping = await es_client.client.indices.get_mapping(index=sample_index)
+                        diagnosis["details"]["sample_mapping"] = {
+                            "index": sample_index,
+                            "field_count": len(mapping[sample_index]["mappings"]["properties"]),
+                            "key_fields": list(mapping[sample_index]["mappings"]["properties"].keys())[:10]
+                        }
+                        
+                        # Check for common timestamp fields
+                        properties = mapping[sample_index]["mappings"]["properties"]
+                        timestamp_fields = [field for field in properties.keys() if 'time' in field.lower() or 'date' in field.lower()]
+                        diagnosis["details"]["timestamp_fields"] = timestamp_fields
+                        
+                except Exception as e:
+                    diagnosis["details"]["mapping_error"] = str(e)
+                    diagnosis["summary"]["mapping_issue"] = f"Failed to check mappings: {e}"
+            
+            # 3. Check recent data availability
+            if check_recent_data:
+                try:
+                    data_availability = {}
+                    for hours in [1, 6, 24, 168]:
+                        try:
+                            events, count, _ = await es_client.query_dshield_events(
+                                time_range_hours=hours,
+                                page_size=1
+                            )
+                            data_availability[f"{hours}h"] = {
+                                "events_found": len(events),
+                                "total_count": count
+                            }
+                        except Exception as e:
+                            data_availability[f"{hours}h"] = {
+                                "error": str(e)
+                            }
+                    
+                    diagnosis["details"]["data_availability"] = data_availability
+                    
+                    # Analyze data availability
+                    recent_data = data_availability.get("24h", {})
+                    if isinstance(recent_data, dict) and recent_data.get("total_count", 0) == 0:
+                        diagnosis["summary"]["data_issue"] = "No recent data found in last 24 hours"
+                        diagnosis["recommendations"].append(
+                            "Check if data is being ingested into Elasticsearch"
+                        )
+                        diagnosis["recommendations"].append(
+                            "Verify timestamp field mappings and data format"
+                        )
+                        
+                except Exception as e:
+                    diagnosis["details"]["data_check_error"] = str(e)
+                    diagnosis["summary"]["data_check_issue"] = f"Failed to check data availability: {e}"
+            
+            # 4. Sample query testing
+            if sample_query:
+                try:
+                    test_patterns = [
+                        ["dshield-*"],
+                        ["cowrie-*"], 
+                        ["zeek-*"],
+                        ["*"],
+                        None  # Use auto-detection
+                    ]
+                    
+                    pattern_tests = {}
+                    for pattern in test_patterns:
+                        try:
+                            events, count, _ = await es_client.query_dshield_events(
+                                time_range_hours=24,
+                                indices=pattern,
+                                page_size=1
+                            )
+                            pattern_tests[f"pattern_{pattern or 'auto'}"] = {
+                                "events_found": len(events),
+                                "total_count": count,
+                                "success": True
+                            }
+                        except Exception as e:
+                            pattern_tests[f"pattern_{pattern or 'auto'}"] = {
+                                "error": str(e),
+                                "success": False
+                            }
+                    
+                    diagnosis["details"]["pattern_tests"] = pattern_tests
+                    
+                    # Find working patterns
+                    working_patterns = [
+                        name for name, result in pattern_tests.items() 
+                        if result.get("success") and result.get("total_count", 0) > 0
+                    ]
+                    
+                    if working_patterns:
+                        diagnosis["summary"]["working_patterns"] = f"Found {len(working_patterns)} working patterns"
+                        diagnosis["recommendations"].append(
+                            f"Use working patterns: {', '.join(working_patterns)}"
+                        )
+                    else:
+                        diagnosis["summary"]["pattern_issue"] = "No working query patterns found"
+                        diagnosis["recommendations"].append(
+                            "Check Elasticsearch connection and index permissions"
+                        )
+                        
+                except Exception as e:
+                    diagnosis["details"]["pattern_test_error"] = str(e)
+                    diagnosis["summary"]["pattern_test_issue"] = f"Failed to test patterns: {e}"
+            
+            # Generate overall summary
+            issues = []
+            if "indices_issue" in diagnosis["summary"]:
+                issues.append("indices")
+            if "mapping_issue" in diagnosis["summary"]:
+                issues.append("mappings")
+            if "data_issue" in diagnosis["summary"]:
+                issues.append("data")
+            if "pattern_issue" in diagnosis["summary"]:
+                issues.append("queries")
+            
+            if issues:
+                diagnosis["summary"]["overall_status"] = f"issues_detected: {', '.join(issues)}"
+                diagnosis["summary"]["severity"] = "high" if len(issues) > 2 else "medium"
+            else:
+                diagnosis["summary"]["overall_status"] = "healthy"
+                diagnosis["summary"]["severity"] = "low"
+            
+            # Add general recommendations
+            if not diagnosis["recommendations"]:
+                diagnosis["recommendations"].append("Data availability appears healthy")
+                diagnosis["recommendations"].append("If issues persist, check application logs for errors")
+            
+            await es_client.close()
+            
+        except Exception as e:
+            diagnosis["summary"]["overall_status"] = "diagnosis_failed"
+            diagnosis["summary"]["severity"] = "critical"
+            diagnosis["details"]["diagnosis_error"] = str(e)
+            diagnosis["recommendations"].append(f"Diagnosis failed: {e}")
+            diagnosis["recommendations"].append("Check Elasticsearch connection and configuration")
+        
+        return diagnosis 

@@ -1404,16 +1404,42 @@ class ElasticsearchClient:
                 - geographic_distribution: Attack distribution by country
                 - time_range_hours: Time range used for analysis
                 - timestamp: When the statistics were generated
+                - indices_queried: List of indices that were actually queried
+                - diagnostic_info: Additional diagnostic information if issues occur
         
         Raises:
             Exception: If statistics collection fails
 
         """
         try:
-            # Query summary data
-            summary_events, _, _ = await self.query_dshield_events(
+            # Get available indices first
+            available_indices = await self.get_available_indices()
+            
+            if not available_indices:
+                logger.warning("No DShield indices available for statistics query")
+                return {
+                    'total_events': 0,
+                    'top_attackers': [],
+                    'geographic_distribution': {},
+                    'time_range_hours': time_range_hours,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'indices_queried': [],
+                    'diagnostic_info': {
+                        'warning': 'No DShield indices found',
+                        'configured_patterns': self.dshield_indices,
+                        'fallback_patterns': self.fallback_indices,
+                        'suggestion': 'Check index_patterns configuration and ensure indices exist'
+                    }
+                }
+            
+            logger.info("Querying DShield statistics", 
+                       available_indices=available_indices, 
+                       time_range_hours=time_range_hours)
+            
+            # Query events using available indices
+            summary_events, total_count, _ = await self.query_dshield_events(
                 time_range_hours=time_range_hours,
-                indices=["dshield-summary-*", "dshield-statistics-*"],
+                indices=available_indices,
                 page_size=100
             )
             
@@ -1425,18 +1451,47 @@ class ElasticsearchClient:
             
             # Compile statistics
             stats = {
-                'total_events': len(summary_events),
-                'top_attackers': top_attackers[:10],
-                'geographic_distribution': self._compile_geo_stats(geo_data),
+                'total_events': total_count if total_count > 0 else len(summary_events),
+                'top_attackers': top_attackers[:10] if top_attackers else [],
+                'geographic_distribution': self._compile_geo_stats(geo_data) if geo_data else {},
                 'time_range_hours': time_range_hours,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': datetime.utcnow().isoformat(),
+                'indices_queried': available_indices,
+                'diagnostic_info': {
+                    'status': 'success',
+                    'indices_found': len(available_indices),
+                    'events_retrieved': len(summary_events),
+                    'total_count': total_count
+                }
             }
+            
+            logger.info("Successfully retrieved DShield statistics", 
+                       total_events=stats['total_events'],
+                       indices_queried=len(available_indices))
             
             return stats
             
         except Exception as e:
-            logger.error("Failed to get DShield statistics", error=str(e))
-            return {}
+            logger.error("Failed to get DShield statistics", 
+                        error=str(e), 
+                        time_range_hours=time_range_hours)
+            
+            # Return diagnostic information instead of empty dict
+            return {
+                'total_events': 0,
+                'top_attackers': [],
+                'geographic_distribution': {},
+                'time_range_hours': time_range_hours,
+                'timestamp': datetime.utcnow().isoformat(),
+                'indices_queried': [],
+                'diagnostic_info': {
+                    'error': str(e),
+                    'error_type': type(e).__name__,
+                    'configured_patterns': getattr(self, 'dshield_indices', []),
+                    'fallback_patterns': getattr(self, 'fallback_indices', []),
+                    'suggestion': 'Use diagnose_data_availability tool to troubleshoot'
+                }
+            }
     
     def _build_dshield_query(
         self,
