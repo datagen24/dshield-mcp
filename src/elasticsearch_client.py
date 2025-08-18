@@ -17,6 +17,7 @@ from elasticsearch.exceptions import RequestError, TransportError
 from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
 from .config_loader import get_config, ConfigError
 from .user_config import get_user_config
+from .mcp_error_handler import MCPErrorHandler
 from packaging import version
 import elasticsearch as es_module
 
@@ -26,17 +27,21 @@ logger = structlog.get_logger(__name__)
 class ElasticsearchClient:
     """Client for interacting with DShield SIEM Elasticsearch."""
     
-    def __init__(self):
+    def __init__(self, error_handler: Optional[MCPErrorHandler] = None):
         """Initialize the Elasticsearch client.
         
         Sets up the client connection, field mappings, and configuration
         for DShield SIEM integration.
+        
+        Args:
+            error_handler: Optional MCPErrorHandler instance for proper error handling
         
         New config option:
             - 'compatibility_mode' (bool, default: false):
                 If true, sets compatibility_mode=True on the Elasticsearch Python client (for ES 8.x servers).
         """
         self.client: Optional[AsyncElasticsearch] = None
+        self.error_handler = error_handler
         try:
             config = get_config()
             es_config = config["elasticsearch"]
@@ -263,7 +268,14 @@ class ElasticsearchClient:
             
         except Exception as e:
             logger.error("Failed to connect to Elasticsearch", error=str(e), error_type=type(e).__name__)
-            raise
+            if self.error_handler:
+                # Create appropriate error response based on exception type
+                if isinstance(e, TransportError):
+                    raise RuntimeError(f"Elasticsearch connection failed: {str(e)}")
+                else:
+                    raise RuntimeError(f"Elasticsearch setup failed: {str(e)}")
+            else:
+                raise
     
     async def close(self):
         """Close Elasticsearch connection."""
@@ -292,7 +304,13 @@ class ElasticsearchClient:
             
         except Exception as e:
             logger.error("Failed to get available indices", error=str(e))
-            return []
+            if self.error_handler:
+                # Log error but return empty list to allow fallback
+                logger.warning("Using fallback indices due to index discovery failure")
+                return []
+            else:
+                # Fallback to raising exception if no error handler
+                raise
     
     async def query_dshield_events(
         self,
@@ -493,7 +511,19 @@ class ElasticsearchClient:
             
         except Exception as e:
             logger.error(f"Error querying DShield events: {str(e)}")
-            raise
+            if self.error_handler:
+                # Create appropriate error response based on exception type
+                if isinstance(e, RequestError):
+                    return [], 0, {"error": self.error_handler.create_external_service_error("Elasticsearch", str(e))}
+                elif isinstance(e, TransportError):
+                    return [], 0, {"error": self.error_handler.create_external_service_error("Elasticsearch", f"Connection error: {str(e)}")}
+                elif isinstance(e, ValueError):
+                    return [], 0, {"error": self.error_handler.create_invalid_params_error(str(e))}
+                else:
+                    return [], 0, {"error": self.error_handler.create_internal_error(f"Query execution failed: {str(e)}")}
+            else:
+                # Fallback to raising exception if no error handler
+                raise
 
     async def _estimate_query_size(
         self, 
@@ -928,7 +958,17 @@ class ElasticsearchClient:
             
         except Exception as e:
             logger.error(f"Error executing aggregation query: {str(e)}")
-            raise
+            if self.error_handler:
+                # Create appropriate error response based on exception type
+                if isinstance(e, RequestError):
+                    return {"error": self.error_handler.create_external_service_error("Elasticsearch", str(e))}
+                elif isinstance(e, TransportError):
+                    return {"error": self.error_handler.create_external_service_error("Elasticsearch", f"Connection error: {str(e)}")}
+                else:
+                    return {"error": self.error_handler.create_internal_error(f"Aggregation query failed: {str(e)}")}
+            else:
+                # Fallback to raising exception if no error handler
+                raise
 
     async def stream_dshield_events(
         self,
@@ -1073,7 +1113,19 @@ class ElasticsearchClient:
             
         except Exception as e:
             logger.error(f"Error streaming DShield events: {str(e)}")
-            raise
+            if self.error_handler:
+                # Create appropriate error response based on exception type
+                if isinstance(e, RequestError):
+                    return [], 0, {"error": self.error_handler.create_external_service_error("Elasticsearch", str(e))}
+                elif isinstance(e, TransportError):
+                    return [], 0, {"error": self.error_handler.create_external_service_error("Elasticsearch", f"Connection error: {str(e)}")}
+                elif isinstance(e, ValueError):
+                    return [], 0, {"error": self.error_handler.create_invalid_params_error(str(e))}
+                else:
+                    return [], 0, {"error": self.error_handler.create_internal_error(f"Streaming failed: {str(e)}")}
+            else:
+                # Fallback to raising exception if no error handler
+                raise
     
     async def query_dshield_attacks(
         self,
@@ -1173,10 +1225,16 @@ class ElasticsearchClient:
             
         except RequestError as e:
             logger.error("Elasticsearch attack query error", error=str(e))
-            raise
+            if self.error_handler:
+                return [], 0
+            else:
+                raise
         except Exception as e:
             logger.error("Unexpected error during attack query", error=str(e))
-            raise
+            if self.error_handler:
+                return [], 0
+            else:
+                raise
     
     async def query_dshield_reputation(
         self,

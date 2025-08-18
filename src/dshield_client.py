@@ -36,6 +36,7 @@ from .models import ThreatIntelligence
 from .config_loader import get_config, ConfigError
 from .op_secrets import OnePasswordSecrets
 from .user_config import get_user_config
+from .mcp_error_handler import MCPErrorHandler
 
 # Load environment variables
 load_dotenv()
@@ -72,11 +73,14 @@ class DShieldClient:
         ...     print(rep)
     """
     
-    def __init__(self) -> None:
+    def __init__(self, error_handler: Optional[MCPErrorHandler] = None) -> None:
         """Initialize the DShield client.
         
         Loads configuration, resolves secrets, sets up rate limiting,
         caching, and prepares HTTP headers for API requests.
+        
+        Args:
+            error_handler: Optional MCPErrorHandler for structured error responses
         
         Raises:
             RuntimeError: If configuration or secret resolution fails
@@ -97,6 +101,9 @@ class DShieldClient:
         self.api_key = op.resolve_environment_variable(dshield_api_key) if dshield_api_key else None
         self.base_url = dshield_api_url
         self.session: Optional[aiohttp.ClientSession] = None
+        
+        # Error handling
+        self.error_handler = error_handler
         
         # Rate limiting
         self.rate_limit_requests = int(rate_limit)
@@ -227,11 +234,15 @@ class DShieldClient:
         except aiohttp.ClientError as e:
             logger.error("HTTP error during IP reputation lookup", 
                         ip_address=ip_address, error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_external_service_error("DShield API", f"HTTP error: {str(e)}")}
             return self._create_default_reputation(ip_address)
             
         except Exception as e:
             logger.error("Unexpected error during IP reputation lookup", 
                         ip_address=ip_address, error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"IP reputation lookup failed: {str(e)}")}
             return self._create_default_reputation(ip_address)
     
     async def get_ip_details(self, ip_address: str) -> Dict[str, Any]:
@@ -283,6 +294,8 @@ class DShieldClient:
         except Exception as e:
             logger.error("Error during IP details lookup", 
                         ip_address=ip_address, error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"IP details lookup failed: {str(e)}")}
             return self._create_default_details(ip_address)
     
     async def get_top_attackers(self, hours: int = 24) -> List[Dict[str, Any]]:
@@ -311,6 +324,8 @@ class DShieldClient:
                     
         except Exception as e:
             logger.error("Error during top attackers lookup", error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"Top attackers lookup failed: {str(e)}")}
             return []
     
     async def get_attack_summary(self, hours: int = 24) -> Dict[str, Any]:
@@ -339,6 +354,8 @@ class DShieldClient:
                     
         except Exception as e:
             logger.error("Error during attack summary lookup", error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"Attack summary lookup failed: {str(e)}")}
             return self._create_default_summary()
     
     async def enrich_ips_batch(self, ip_addresses: List[str]) -> Dict[str, Dict[str, Any]]:

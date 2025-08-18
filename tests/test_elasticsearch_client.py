@@ -5,6 +5,8 @@ import asyncio
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta
 from src.elasticsearch_client import ElasticsearchClient
+from src.mcp_error_handler import MCPErrorHandler
+from elasticsearch.exceptions import RequestError, TransportError
 
 # Minimal valid config for ElasticsearchClient
 TEST_CONFIG = {
@@ -565,4 +567,243 @@ class TestElasticsearchClientFieldMapping:
         
         # Test non-existent field
         non_existent = client._extract_field_mapped(source_data, "non_existent")
-        assert non_existent is None 
+        assert non_existent is None
+
+
+class TestElasticsearchClientErrorHandling:
+    """Test error handling functionality with MCPErrorHandler."""
+    
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.config_loader.get_config')
+    def test_init_with_error_handler(self, mock_get_config, mock_resolve_secrets, mock_user_config):
+        """Test ElasticsearchClient initialization with error handler."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("query", "default_page_size"): 100,
+            ("query", "max_page_size"): 1000,
+            ("query", "default_timeout_seconds"): 30,
+            ("query", "max_timeout_seconds"): 300,
+            ("query", "enable_smart_optimization"): True,
+            ("query", "fallback_strategy"): "aggregate",
+            ("query", "max_query_complexity"): 10,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        error_handler = MCPErrorHandler()
+        client = ElasticsearchClient(error_handler=error_handler)
+        
+        assert client.error_handler is not None
+        assert isinstance(client.error_handler, MCPErrorHandler)
+    
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.config_loader.get_config')
+    def test_init_without_error_handler(self, mock_get_config, mock_resolve_secrets, mock_user_config):
+        """Test ElasticsearchClient initialization without error handler."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("query", "default_page_size"): 100,
+            ("query", "max_page_size"): 1000,
+            ("query", "default_timeout_seconds"): 30,
+            ("query", "max_timeout_seconds"): 300,
+            ("query", "enable_smart_optimization"): True,
+            ("query", "fallback_strategy"): "aggregate",
+            ("query", "max_query_complexity"): 10,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        client = ElasticsearchClient()
+        
+        assert client.error_handler is None
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.config_loader.get_config')
+    async def test_query_events_with_error_handler_request_error(self, mock_get_config, mock_resolve_secrets, mock_user_config):
+        """Test query events with error handler when RequestError occurs."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("query", "default_page_size"): 100,
+            ("query", "max_page_size"): 1000,
+            ("query", "default_timeout_seconds"): 30,
+            ("query", "max_timeout_seconds"): 300,
+            ("query", "enable_smart_optimization"): True,
+            ("query", "fallback_strategy"): "aggregate",
+            ("query", "max_query_complexity"): 10,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        error_handler = MCPErrorHandler()
+        client = ElasticsearchClient(error_handler=error_handler)
+        
+        # Mock client that raises RequestError
+        mock_client = AsyncMock()
+        # Create a proper RequestError that can be raised and recognized
+        class TestRequestError(RequestError):
+            def __init__(self):
+                super().__init__("Test request error", meta=Mock(), body="test")
+        mock_client.search.side_effect = TestRequestError()
+        client.client = mock_client
+        
+        # Test query with error handler
+        events, total_count, pagination_info = await client.query_dshield_events(
+            time_range_hours=24,
+            page_size=100
+        )
+        
+        # Should return error response instead of raising exception
+        assert events == []
+        assert total_count == 0
+        assert "error" in pagination_info
+        assert pagination_info["error"]["error"]["code"] == error_handler.EXTERNAL_SERVICE_ERROR
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.config_loader.get_config')
+    async def test_query_events_with_error_handler_transport_error(self, mock_get_config, mock_resolve_secrets, mock_user_config):
+        """Test query events with error handler when TransportError occurs."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("query", "default_page_size"): 100,
+            ("query", "max_page_size"): 1000,
+            ("query", "default_timeout_seconds"): 30,
+            ("query", "max_timeout_seconds"): 300,
+            ("query", "enable_smart_optimization"): True,
+            ("query", "fallback_strategy"): "aggregate",
+            ("query", "max_query_complexity"): 10,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        error_handler = MCPErrorHandler()
+        client = ElasticsearchClient(error_handler=error_handler)
+        
+        # Mock client that raises TransportError
+        mock_client = AsyncMock()
+        mock_client.search.side_effect = TransportError("Test transport error", "test")
+        client.client = mock_client
+        
+        # Test query with error handler
+        events, total_count, pagination_info = await client.query_dshield_events(
+            time_range_hours=24,
+            page_size=100
+        )
+        
+        # Should return error response instead of raising exception
+        assert events == []
+        assert total_count == 0
+        assert "error" in pagination_info
+        assert pagination_info["error"]["error"]["code"] == error_handler.EXTERNAL_SERVICE_ERROR
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.config_loader.get_config')
+    async def test_query_events_without_error_handler_raises_exception(self, mock_get_config, mock_resolve_secrets, mock_user_config):
+        """Test query events without error handler raises exception."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("query", "default_page_size"): 100,
+            ("query", "max_page_size"): 1000,
+            ("query", "default_timeout_seconds"): 30,
+            ("query", "max_timeout_seconds"): 300,
+            ("query", "enable_smart_optimization"): True,
+            ("query", "fallback_strategy"): "aggregate",
+            ("query", "max_query_complexity"): 10,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        client = ElasticsearchClient()
+        
+        # Mock client that raises RequestError
+        mock_client = AsyncMock()
+        # Create a proper RequestError that can be raised and recognized
+        class TestRequestError(RequestError):
+            def __init__(self):
+                super().__init__("Test request error", meta=Mock(), body="test")
+        mock_client.search.side_effect = TestRequestError()
+        client.client = mock_client
+        
+        # Test query without error handler should raise exception
+        with pytest.raises(RequestError):
+            await client.query_dshield_events(
+                time_range_hours=24,
+                page_size=100
+            )
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.config_loader.get_config')
+    async def test_aggregation_query_with_error_handler(self, mock_get_config, mock_resolve_secrets, mock_user_config):
+        """Test aggregation query with error handler."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("query", "default_page_size"): 100,
+            ("query", "max_page_size"): 1000,
+            ("query", "default_timeout_seconds"): 30,
+            ("query", "max_timeout_seconds"): 300,
+            ("query", "enable_smart_optimization"): True,
+            ("query", "fallback_strategy"): "aggregate",
+            ("query", "max_query_complexity"): 10,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        error_handler = MCPErrorHandler()
+        client = ElasticsearchClient(error_handler=error_handler)
+        
+        # Mock client that raises RequestError
+        mock_client = AsyncMock()
+        # Create a proper RequestError that can be raised and recognized
+        class TestRequestError(RequestError):
+            def __init__(self):
+                super().__init__("Test aggregation error", meta=Mock(), body="test")
+        mock_client.search.side_effect = TestRequestError()
+        client.client = mock_client
+        
+        # Test aggregation query with error handler
+        result = await client.execute_aggregation_query(
+            query={"match_all": {}},
+            aggregation_query={"aggs": {"test": {"terms": {"field": "test"}}}},
+            index=["test-index"]
+        )
+        
+        # Should return error response instead of raising exception
+        assert "error" in result
+        assert result["error"]["error"]["code"] == error_handler.EXTERNAL_SERVICE_ERROR 

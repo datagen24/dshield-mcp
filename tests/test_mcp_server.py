@@ -54,7 +54,8 @@ class TestMCPServer:
     async def test_server_initialization_async(self):
         """Test async MCP server initialization with mocked dependencies."""
         with patch('src.user_config.get_user_config', Mock(return_value=MockUserConfig())), \
-             patch('src.elasticsearch_client.ElasticsearchClient', AsyncMock()):
+             patch('src.elasticsearch_client.ElasticsearchClient', AsyncMock()), \
+             patch('src.feature_manager.FeatureManager.is_feature_available', return_value=True):
             import mcp_server
             server = mcp_server.DShieldMCPServer()
             await server.initialize()

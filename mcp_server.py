@@ -316,7 +316,11 @@ class DShieldMCPServer:
                 return await self._tool_unavailable_response(name)
             try:
                 if name == "query_dshield_events":
-                    return await self._query_dshield_events(arguments)
+                    result = await asyncio.wait_for(
+                        self._query_dshield_events(arguments),
+                        timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0)
+                    )
+                    return result
                 elif name == "query_dshield_aggregations":
                     return await self._query_dshield_aggregations(arguments)
                 elif name == "stream_dshield_events":
@@ -340,7 +344,11 @@ class DShieldMCPServer:
                 elif name == "enrich_ip_with_dshield":
                     return await self._enrich_ip_with_dshield(arguments)
                 elif name == "generate_attack_report":
-                    return await self._generate_attack_report(arguments)
+                    result = await asyncio.wait_for(
+                        self._generate_attack_report(arguments),
+                        timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0)
+                    )
+                    return result
                 elif name == "query_events_by_ip":
                     return await self._query_events_by_ip(arguments)
                 elif name == "get_security_summary":
@@ -350,7 +358,11 @@ class DShieldMCPServer:
                 elif name == "get_data_dictionary":
                     return await self._get_data_dictionary(arguments)
                 elif name == "analyze_campaign":
-                    return await self._analyze_campaign(arguments)
+                    result = await asyncio.wait_for(
+                        self._analyze_campaign(arguments),
+                        timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0)
+                    )
+                    return result
                 elif name == "expand_campaign_indicators":
                     return await self._expand_campaign_indicators(arguments)
                 elif name == "get_campaign_timeline":
@@ -380,7 +392,11 @@ class DShieldMCPServer:
                 elif name == "get_threat_intelligence_summary":
                     return await self._get_threat_intelligence_summary(arguments)
                 elif name == "detect_statistical_anomalies":
-                    return await self._detect_statistical_anomalies(arguments)
+                    result = await asyncio.wait_for(
+                        self._detect_statistical_anomalies(arguments),
+                        timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0)
+                    )
+                    return result
                 else:
                     raise ValueError(f"Unknown tool: {name}")
             except Exception as e:

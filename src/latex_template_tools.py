@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 import structlog
 
 from .user_config import get_user_config
+from .mcp_error_handler import MCPErrorHandler
 
 logger = structlog.get_logger(__name__)
 
@@ -27,12 +28,13 @@ class LaTeXTemplateTools:
     Output files are always written to the user-configured output directory (default: ~/dshield-mcp-output).
     """
     
-    def __init__(self, template_base_path: Optional[str] = None, output_directory: Optional[str] = None):
+    def __init__(self, template_base_path: Optional[str] = None, output_directory: Optional[str] = None, error_handler: Optional[MCPErrorHandler] = None):
         """Initialize LaTeXTemplateTools.
 
         Args:
             template_base_path: Base path for LaTeX templates. Defaults to templates/Attack_Report.
             output_directory: Directory for generated outputs. If None, uses user config.
+            error_handler: Optional MCPErrorHandler for structured error responses
         """
         # Resolve template path relative to project root
         if template_base_path:
@@ -54,6 +56,9 @@ class LaTeXTemplateTools:
         # Ensure template directory exists
         if not self.template_base_path.exists():
             raise FileNotFoundError(f"Template directory not found: {self.template_base_path}")
+        
+        # Error handling
+        self.error_handler = error_handler
     
     def _find_project_root(self) -> Path:
         """Find the project root directory by looking for setup.py or pyproject.toml.
@@ -122,6 +127,8 @@ class LaTeXTemplateTools:
             # Validate template
             template_path = self._get_template_path(template_name)
             if not template_path.exists():
+                if self.error_handler:
+                    return {"error": self.error_handler.create_resource_error_not_found(f"Template not found: {template_name}")}
                 return {
                     "success": False,
                     "error": f"Template not found: {template_name}",
@@ -134,6 +141,8 @@ class LaTeXTemplateTools:
             # Validate required data
             validation_result = self._validate_document_data(document_data, template_config)
             if not validation_result["valid"]:
+                if self.error_handler:
+                    return {"error": self.error_handler.create_validation_error("document_data", f"Invalid document data: {validation_result['errors']}")}
                 return {
                     "success": False,
                     "error": f"Invalid document data: {validation_result['errors']}",
@@ -156,6 +165,8 @@ class LaTeXTemplateTools:
                 if output_format == "pdf":
                     compile_result = await self._compile_latex_document(temp_path, compile_options)
                     if not compile_result["success"]:
+                        if self.error_handler:
+                            return {"error": self.error_handler.create_internal_error(f"LaTeX compilation failed: {compile_result['error']}")}
                         return {
                             "success": False,
                             "error": f"LaTeX compilation failed: {compile_result['error']}",
@@ -200,6 +211,8 @@ class LaTeXTemplateTools:
                     
         except Exception as e:
             logger.error("Document generation failed", error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"Document generation failed: {str(e)}")}
             return {
                 "success": False,
                 "error": f"Document generation failed: {str(e)}",
@@ -268,6 +281,8 @@ class LaTeXTemplateTools:
             
         except Exception as e:
             logger.error("Failed to list templates", error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"Failed to list templates: {str(e)}")}
             return {
                 "success": False,
                 "error": f"Failed to list templates: {str(e)}",
@@ -289,6 +304,8 @@ class LaTeXTemplateTools:
         try:
             template_path = self._get_template_path(template_name)
             if not template_path.exists():
+                if self.error_handler:
+                    return {"error": self.error_handler.create_resource_error_not_found(f"Template not found: {template_name}")}
                 return {
                     "success": False,
                     "error": f"Template not found: {template_name}",
@@ -316,6 +333,8 @@ class LaTeXTemplateTools:
             
         except Exception as e:
             logger.error("Failed to get template schema", error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"Failed to get template schema: {str(e)}")}
             return {
                 "success": False,
                 "error": f"Failed to get template schema: {str(e)}",
@@ -342,6 +361,8 @@ class LaTeXTemplateTools:
         try:
             template_path = self._get_template_path(template_name)
             if not template_path.exists():
+                if self.error_handler:
+                    return {"error": self.error_handler.create_resource_error_not_found(f"Template not found: {template_name}")}
                 return {
                     "success": False,
                     "error": f"Template not found: {template_name}",
@@ -358,6 +379,8 @@ class LaTeXTemplateTools:
             
         except Exception as e:
             logger.error("Failed to validate document data", error=str(e))
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"Failed to validate document data: {str(e)}")}
             return {
                 "success": False,
                 "error": f"Failed to validate document data: {str(e)}",
@@ -628,6 +651,8 @@ class LaTeXTemplateTools:
                 "log": None
             }
         except Exception as e:
+            if self.error_handler:
+                return {"error": self.error_handler.create_internal_error(f"LaTeX compilation failed: {str(e)}")}
             return {
                 "success": False,
                 "error": f"LaTeX compilation failed: {str(e)}",

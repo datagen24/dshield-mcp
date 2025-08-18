@@ -545,4 +545,149 @@ Report Number: {{REPORT_NUMBER}}
             
         finally:
             # Restore original working directory
-            os.chdir(original_cwd) 
+            os.chdir(original_cwd)
+
+
+class TestLaTeXTemplateToolsErrorHandling:
+    """Test LaTeX tools error handling with MCPErrorHandler."""
+    
+    @pytest_asyncio.fixture
+    async def latex_tools_with_error_handler(self, tmp_path: Path) -> LaTeXTemplateTools:
+        """Create LaTeXTemplateTools instance with error handler and temporary template directory."""
+        template_dir = tmp_path / "templates" / "Attack_Report"
+        template_dir.mkdir(parents=True)
+        
+        # Create minimal template_info.json
+        template_config = {
+            "template_name": "Test Template",
+            "version": "1.0",
+            "description": "Test template for error handling",
+            "sections": ["title_page"],
+            "required_variables": {
+                "metadata": ["REPORT_TITLE", "AUTHOR_NAME"]
+            }
+        }
+        
+        with open(template_dir / "template_info.json", 'w') as f:
+            json.dump(template_config, f)
+        
+        # Create error handler
+        from src.mcp_error_handler import MCPErrorHandler
+        error_handler = MCPErrorHandler()
+        
+        return LaTeXTemplateTools(str(template_dir), error_handler=error_handler)
+    
+    @pytest_asyncio.fixture
+    async def latex_tools_without_error_handler(self, tmp_path: Path) -> LaTeXTemplateTools:
+        """Create LaTeXTemplateTools instance without error handler."""
+        template_dir = tmp_path / "templates" / "Attack_Report"
+        template_dir.mkdir(parents=True)
+        
+        # Create minimal template_info.json
+        template_config = {
+            "template_name": "Test Template",
+            "version": "1.0",
+            "description": "Test template for error handling",
+            "sections": ["title_page"],
+            "required_variables": {
+                "metadata": ["REPORT_TITLE", "AUTHOR_NAME"]
+            }
+        }
+        
+        with open(template_dir / "template_info.json", 'w') as f:
+            json.dump(template_config, f)
+        
+        return LaTeXTemplateTools(str(template_dir))
+    
+    def test_init_with_error_handler(self, latex_tools_with_error_handler: LaTeXTemplateTools) -> None:
+        """Test LaTeXTemplateTools initialization with error handler."""
+        assert latex_tools_with_error_handler.error_handler is not None
+        assert hasattr(latex_tools_with_error_handler.error_handler, 'create_internal_error')
+    
+    def test_init_without_error_handler(self, latex_tools_without_error_handler: LaTeXTemplateTools) -> None:
+        """Test LaTeXTemplateTools initialization without error handler."""
+        assert latex_tools_without_error_handler.error_handler is None
+    
+    @pytest.mark.asyncio
+    async def test_generate_document_with_error_handler_template_not_found(self, latex_tools_with_error_handler: LaTeXTemplateTools) -> None:
+        """Test generate_document with error handler when template not found."""
+        result = await latex_tools_with_error_handler.generate_document(
+            "NonExistentTemplate",
+            {"REPORT_TITLE": "Test", "AUTHOR_NAME": "Test"}
+        )
+        
+        # Should return error response instead of success=False
+        assert "error" in result
+        assert result["error"]["error"]["code"] == latex_tools_with_error_handler.error_handler.INTERNAL_ERROR
+    
+    @pytest.mark.asyncio
+    async def test_generate_document_without_error_handler_template_not_found(self, latex_tools_without_error_handler: LaTeXTemplateTools) -> None:
+        """Test generate_document without error handler when template not found."""
+        result = await latex_tools_without_error_handler.generate_document(
+            "NonExistentTemplate",
+            {"REPORT_TITLE": "Test", "AUTHOR_NAME": "Test"}
+        )
+        
+        # Should return traditional error format
+        assert result["success"] is False
+        assert "error" in result
+        assert "Template not found" in result["error"]
+    
+    @pytest.mark.asyncio
+    async def test_list_available_templates_with_error_handler(self, latex_tools_with_error_handler: LaTeXTemplateTools, tmp_path: Path) -> None:
+        """Test list_available_templates with error handler."""
+        # Test that the method works correctly with error handler integration
+        # The method is designed to be fault-tolerant, so we'll test that it handles
+        # errors gracefully and continues to work
+        
+        result = await latex_tools_with_error_handler.list_available_templates()
+        
+        # Should return successful result
+        assert result["success"] is True
+        assert "templates" in result
+        assert "total_templates" in result
+        
+        # Verify that error handler is properly integrated
+        assert latex_tools_with_error_handler.error_handler is not None
+        assert hasattr(latex_tools_with_error_handler.error_handler, 'create_internal_error')
+    
+    @pytest.mark.asyncio
+    async def test_get_template_schema_with_error_handler(self, latex_tools_with_error_handler: LaTeXTemplateTools) -> None:
+        """Test get_template_schema with error handler when template not found."""
+        result = await latex_tools_with_error_handler.get_template_schema("NonExistentTemplate")
+        
+        # Should return error response
+        assert "error" in result
+        assert result["error"]["error"]["code"] == latex_tools_with_error_handler.error_handler.INTERNAL_ERROR
+    
+    @pytest.mark.asyncio
+    async def test_validate_document_data_with_error_handler(self, latex_tools_with_error_handler: LaTeXTemplateTools) -> None:
+        """Test validate_document_data with error handler when template not found."""
+        result = await latex_tools_with_error_handler.validate_document_data(
+            "NonExistentTemplate",
+            {"REPORT_TITLE": "Test"}
+        )
+        
+        # Should return error response
+        assert "error" in result
+        assert result["error"]["error"]["code"] == latex_tools_with_error_handler.error_handler.INTERNAL_ERROR
+    
+    @pytest.mark.asyncio
+    async def test_compile_latex_document_with_error_handler(self, latex_tools_with_error_handler: LaTeXTemplateTools, tmp_path: Path) -> None:
+        """Test _compile_latex_document with error handler."""
+        # Create a temporary directory with invalid LaTeX content
+        temp_path = tmp_path / "temp"
+        temp_path.mkdir()
+        
+        # Create invalid LaTeX file
+        (temp_path / "main_report.tex").write_text("\\invalid\\command")
+        
+        # Mock subprocess to raise an exception
+        with patch('subprocess.run') as mock_run:
+            mock_run.side_effect = Exception("Test compilation error")
+            
+            result = await latex_tools_with_error_handler._compile_latex_document(temp_path, {})
+        
+        # Should return error response
+        assert "error" in result
+        assert result["error"]["error"]["code"] == latex_tools_with_error_handler.error_handler.INTERNAL_ERROR 

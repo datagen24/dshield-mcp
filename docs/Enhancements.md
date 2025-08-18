@@ -40,13 +40,50 @@ The graceful degradation system has been successfully implemented with:
 
 ---
 
+## **🔄 IN PROGRESS: JSON-RPC Error Handling Implementation (Issue #58)**
+
+**Status**: IN PROGRESS - Implementation planning phase
+
+**Priority**: Critical - Must be resolved before production deployment
+
+**Description**: Implement proper JSON-RPC error handling with correct error codes and structured error responses to ensure full MCP protocol compliance.
+
+**Implementation Plan**: See `docs/Implementation_Docs/ISSUE_58_JSON_RPC_ERROR_HANDLING_IMPLEMENTATION.md`
+
+**Current Phase**: Phase 3 - Tool Call Handler Updates 🔄 IN PROGRESS
+**Next Steps**: 
+1. ✅ Create MCPErrorHandler class
+2. ✅ Update user configuration with error handling settings
+3. ✅ Update configuration loader
+4. ✅ Implement basic error handling in tool call handler
+5. ✅ Update Elasticsearch client error handling - COMPLETED
+6. ✅ Update DShield client error handling - COMPLETED
+7. ✅ Update LaTeX tools error handling - COMPLETED
+8. ✅ Fix all failing tests - COMPLETED
+9. 🔄 Add timeout handling to all tool calls - PARTIALLY COMPLETED
+
+**Testing Approach**: 
+- ✅ All Phase 2 components have comprehensive error handling tests
+- ✅ All tests are now passing (22/22 error handling tests)
+- 🔄 Phase 3: Adding timeout handling to tool calls
+- 📋 Testing guidelines documented in implementation plan
+
+**Dependencies**: None - can proceed immediately
+
+---
+
 ## **Implementation Priority and Dependencies**
 
-1. **Phase 1 (Completed)**:
-   - ✅ Implement `diagnose_data_availability` tool
-   - ✅ Fix `get_dshield_statistics` index pattern issue
-   - ✅ Add proper error handling and logging
-   - ✅ Implement graceful degradation system
+1. **Phase 1 (Week 1) - CRITICAL** ✅:
+   - ✅ Implement proper JSON-RPC error handling (Issue #58)
+   - ✅ Create MCPErrorHandler class
+   - ✅ Update tool call handler with error handling
+   - ✅ Add timeout and retry logic
+
+2. **Phase 2 (Week 2) - CRITICAL**:
+   - ✅ Update Elasticsearch client error handling - COMPLETED
+   - ✅ Update DShield client error handling - COMPLETED
+   - 🔄 Update LaTeX tools error handling - IN PROGRESS
 
 2. **Phase 2 (Week 2-3)**:
    - Implement `detect_statistical_anomalies` tool

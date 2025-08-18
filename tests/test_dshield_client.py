@@ -2,6 +2,7 @@
 
 import pytest
 import asyncio
+import aiohttp
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta
 from src.dshield_client import DShieldClient
@@ -31,7 +32,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -67,7 +68,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "resolved_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: "resolved_api_key" if x.startswith("op://") else x
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -98,7 +99,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = None
+        mock_op.resolve_environment_variable.side_effect = lambda x: None
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -129,7 +130,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -164,7 +165,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -198,7 +199,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -254,7 +255,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -304,7 +305,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -347,7 +348,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -396,7 +397,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -447,7 +448,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -498,7 +499,7 @@ class TestDShieldClient:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -543,7 +544,7 @@ class TestDShieldClientRateLimiting:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -603,7 +604,7 @@ class TestDShieldClientCaching:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -641,7 +642,7 @@ class TestDShieldClientCaching:
         
         # Mock 1Password resolution
         mock_op = Mock()
-        mock_op.resolve_environment_variable.return_value = "test_api_key"
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
         mock_op_secrets_class.return_value = mock_op
         
         # Mock user config
@@ -671,4 +672,318 @@ class TestDShieldClientCaching:
         
         # Should return None for expired data
         cached_data = client._get_cached_data("test_key")
-        assert cached_data is None 
+        assert cached_data is None
+
+
+class TestDShieldClientErrorHandling:
+    """Test DShield client error handling with MCPErrorHandler."""
+    
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.dshield_client.OnePasswordSecrets')
+    @patch('src.config_loader.get_config')
+    def test_init_with_error_handler(self, mock_get_config, mock_op_secrets_class, mock_resolve_secrets, mock_user_config):
+        """Test DShieldClient initialization with error handler."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock 1Password resolution
+        mock_op = Mock()
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
+        mock_op_secrets_class.return_value = mock_op
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("performance", "enable_caching"): True,
+            ("performance", "max_cache_size"): 1000,
+            ("performance", "request_timeout_seconds"): 30,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        from src.mcp_error_handler import MCPErrorHandler
+        error_handler = MCPErrorHandler()
+        client = DShieldClient(error_handler=error_handler)
+        
+        assert client.error_handler == error_handler
+        assert client.api_key == "test_api_key"
+    
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.dshield_client.OnePasswordSecrets')
+    @patch('src.config_loader.get_config')
+    def test_init_without_error_handler(self, mock_get_config, mock_op_secrets_class, mock_resolve_secrets, mock_user_config):
+        """Test DShieldClient initialization without error handler."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock 1Password resolution
+        mock_op = Mock()
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
+        mock_op_secrets_class.return_value = mock_op
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("performance", "enable_caching"): True,
+            ("performance", "max_cache_size"): 1000,
+            ("performance", "request_timeout_seconds"): 30,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        client = DShieldClient()
+        
+        assert client.error_handler is None
+        assert client.api_key == "test_api_key"
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.dshield_client.OnePasswordSecrets')
+    @patch('src.config_loader.get_config')
+    async def test_get_ip_reputation_with_error_handler_http_error(self, mock_get_config, mock_op_secrets_class, mock_resolve_secrets, mock_user_config):
+        """Test get_ip_reputation with error handler when HTTP error occurs."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock 1Password resolution
+        mock_op = Mock()
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
+        mock_op_secrets_class.return_value = mock_op
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("performance", "enable_caching"): True,
+            ("performance", "max_cache_size"): 1000,
+            ("performance", "request_timeout_seconds"): 30,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        from src.mcp_error_handler import MCPErrorHandler
+        error_handler = MCPErrorHandler()
+        client = DShieldClient(error_handler=error_handler)
+        
+        # Mock session that raises an exception during the async context manager
+        mock_session = AsyncMock()
+        mock_session.get.side_effect = Exception("Test HTTP error")
+        client.session = mock_session
+        
+        # Test IP reputation with error handler
+        result = await client.get_ip_reputation("192.168.1.100")
+        
+        # Should return error response instead of default reputation
+        assert "error" in result
+        assert result["error"]["error"]["code"] == error_handler.INTERNAL_ERROR
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.dshield_client.OnePasswordSecrets')
+    @patch('src.config_loader.get_config')
+    async def test_get_ip_reputation_with_error_handler_general_error(self, mock_get_config, mock_op_secrets_class, mock_resolve_secrets, mock_user_config):
+        """Test get_ip_reputation with error handler when general error occurs."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock 1Password resolution
+        mock_op = Mock()
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
+        mock_op_secrets_class.return_value = mock_op
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("performance", "enable_caching"): True,
+            ("performance", "max_cache_size"): 1000,
+            ("performance", "request_timeout_seconds"): 30,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        from src.mcp_error_handler import MCPErrorHandler
+        error_handler = MCPErrorHandler()
+        client = DShieldClient(error_handler=error_handler)
+        
+        # Mock session that raises general exception
+        mock_session = AsyncMock()
+        mock_session.get.side_effect = Exception("Test general error")
+        client.session = mock_session
+        
+        # Test IP reputation with error handler
+        result = await client.get_ip_reputation("192.168.1.100")
+        
+        # Should return error response instead of default reputation
+        assert "error" in result
+        assert result["error"]["error"]["code"] == error_handler.INTERNAL_ERROR
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.dshield_client.OnePasswordSecrets')
+    @patch('src.config_loader.get_config')
+    async def test_get_ip_reputation_without_error_handler_raises_exception(self, mock_get_config, mock_op_secrets_class, mock_resolve_secrets, mock_user_config):
+        """Test get_ip_reputation without error handler raises exception."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock 1Password resolution
+        mock_op = Mock()
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
+        mock_op_secrets_class.return_value = mock_op
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("performance", "enable_caching"): True,
+            ("performance", "max_cache_size"): 1000,
+            ("performance", "request_timeout_seconds"): 30,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        client = DShieldClient()
+        
+        # Mock session that raises exception
+        mock_session = AsyncMock()
+        mock_session.get.side_effect = Exception("Test error")
+        client.session = mock_session
+        
+        # Test IP reputation without error handler should return default reputation
+        result = await client.get_ip_reputation("192.168.1.100")
+        
+        # Should return default reputation (not raise exception)
+        assert "ip_address" in result
+        assert result["ip_address"] == "192.168.1.100"
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.dshield_client.OnePasswordSecrets')
+    @patch('src.config_loader.get_config')
+    async def test_get_ip_details_with_error_handler(self, mock_get_config, mock_op_secrets_class, mock_resolve_secrets, mock_user_config):
+        """Test get_ip_details with error handler."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock 1Password resolution
+        mock_op = Mock()
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
+        mock_op_secrets_class.return_value = mock_op
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("performance", "enable_caching"): True,
+            ("performance", "max_cache_size"): 1000,
+            ("performance", "request_timeout_seconds"): 30,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        from src.mcp_error_handler import MCPErrorHandler
+        error_handler = MCPErrorHandler()
+        client = DShieldClient(error_handler=error_handler)
+        
+        # Mock session that raises exception
+        mock_session = AsyncMock()
+        mock_session.get.side_effect = Exception("Test error")
+        client.session = mock_session
+        
+        # Test IP details with error handler
+        result = await client.get_ip_details("192.168.1.100")
+        
+        # Should return error response instead of default details
+        assert "error" in result
+        assert result["error"]["error"]["code"] == error_handler.INTERNAL_ERROR
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.dshield_client.OnePasswordSecrets')
+    @patch('src.config_loader.get_config')
+    async def test_get_top_attackers_with_error_handler(self, mock_get_config, mock_op_secrets_class, mock_resolve_secrets, mock_user_config):
+        """Test get_top_attackers with error handler."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock 1Password resolution
+        mock_op = Mock()
+        mock_op.resolve_environment_variable = Mock()
+        mock_op_secrets_class.return_value = mock_op
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("performance", "enable_caching"): True,
+            ("performance", "max_cache_size"): 1000,
+            ("performance", "request_timeout_seconds"): 30,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        from src.mcp_error_handler import MCPErrorHandler
+        error_handler = MCPErrorHandler()
+        client = DShieldClient(error_handler=error_handler)
+        
+        # Mock session that raises exception
+        mock_session = AsyncMock()
+        mock_session.get.side_effect = Exception("Test error")
+        client.session = mock_session
+        
+        # Test top attackers with error handler
+        result = await client.get_top_attackers(24)
+        
+        # Should return error response instead of empty list
+        assert "error" in result
+        assert result["error"]["error"]["code"] == error_handler.INTERNAL_ERROR
+    
+    @pytest.mark.asyncio
+    @patch('src.user_config.get_user_config')
+    @patch('src.config_loader._resolve_secrets')
+    @patch('src.dshield_client.OnePasswordSecrets')
+    @patch('src.config_loader.get_config')
+    async def test_get_attack_summary_with_error_handler(self, mock_get_config, mock_op_secrets_class, mock_resolve_secrets, mock_user_config):
+        """Test get_attack_summary with error handler."""
+        mock_get_config.return_value = TEST_CONFIG
+        mock_resolve_secrets.return_value = TEST_CONFIG
+        
+        # Mock 1Password resolution
+        mock_op = Mock()
+        mock_op.resolve_environment_variable.side_effect = lambda x: x  # Return the input value
+        mock_op_secrets_class.return_value = mock_op
+        
+        # Mock user config
+        mock_user_config_instance = Mock()
+        mock_user_config_instance.get_setting.side_effect = lambda section, key: {
+            ("performance", "enable_caching"): True,
+            ("performance", "max_cache_size"): 1000,
+            ("performance", "request_timeout_seconds"): 30,
+            ("logging", "enable_performance_logging"): False
+        }.get((section, key), None)
+        mock_user_config.return_value = mock_user_config_instance
+        
+        # Create error handler
+        from src.mcp_error_handler import MCPErrorHandler
+        error_handler = MCPErrorHandler()
+        client = DShieldClient(error_handler=error_handler)
+        
+        # Mock session that raises exception
+        mock_session = AsyncMock()
+        mock_session.get.side_effect = Exception("Test error")
+        client.session = mock_session
+        
+        # Test attack summary with error handler
+        result = await client.get_attack_summary(24)
+        
+        # Should return error response instead of default summary
+        assert "error" in result
+        assert result["error"]["error"]["code"] == error_handler.INTERNAL_ERROR 
