@@ -93,7 +93,7 @@ class DShieldMCPServer:
         Sets up the server instance, initializes client references,
         loads user configuration, and registers available MCP tools.
         """
-        self.server = Server("dshield-elastic-mcp")
+        self.server = Server("dshield-mcp")
         self.elastic_client = None
         self.dshield_client = None
         self.data_processor = None
