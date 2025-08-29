@@ -17,7 +17,7 @@ from elasticsearch.exceptions import RequestError, TransportError
 from .models import SecurityEvent, ElasticsearchQuery, QueryFilter
 from .config_loader import get_config, ConfigError
 from .user_config import get_user_config
-from .mcp_error_handler import MCPErrorHandler
+from .mcp_error_handler import MCPErrorHandler, CircuitBreaker
 from packaging import version
 import elasticsearch as es_module
 
@@ -42,6 +42,12 @@ class ElasticsearchClient:
         """
         self.client: Optional[AsyncElasticsearch] = None
         self.error_handler = error_handler
+        
+        # Initialize circuit breaker for Elasticsearch operations
+        if error_handler:
+            self.circuit_breaker = CircuitBreaker("elasticsearch", error_handler.config.circuit_breaker)
+        else:
+            self.circuit_breaker = None
         try:
             config = get_config()
             es_config = config["elasticsearch"]
@@ -159,6 +165,47 @@ class ElasticsearchClient:
             'http_status': ['http.response.status_code', 'http_status', 'status_code', 'response_status'],
             'http_version': ['http.version', 'http_version', 'version'],
         }
+    
+    def _check_circuit_breaker(self, operation: str) -> bool:
+        """Check if circuit breaker allows the operation.
+        
+        Args:
+            operation: Name of the operation being performed
+        
+        Returns:
+            True if operation is allowed, False if circuit breaker is open
+        
+        Raises:
+            Exception: If circuit breaker is open with detailed error message
+        """
+        if self.circuit_breaker and not self.circuit_breaker.can_execute():
+            if self.error_handler:
+                # Return structured error response
+                return self.error_handler.create_circuit_breaker_open_error("elasticsearch")
+            else:
+                # Fallback to exception if no error handler
+                raise Exception("Elasticsearch circuit breaker is open - service temporarily unavailable")
+        return True
+    
+    def _record_circuit_breaker_success(self) -> None:
+        """Record successful operation with circuit breaker."""
+        if self.circuit_breaker:
+            self.circuit_breaker.on_success()
+    
+    def _record_circuit_breaker_failure(self, exception: Exception) -> None:
+        """Record failed operation with circuit breaker."""
+        if self.circuit_breaker:
+            self.circuit_breaker.on_failure(exception)
+    
+    def get_circuit_breaker_status(self) -> Optional[Dict[str, Any]]:
+        """Get the current status of the Elasticsearch circuit breaker.
+        
+        Returns:
+            Circuit breaker status dictionary or None if not enabled
+        """
+        if self.circuit_breaker:
+            return self.circuit_breaker.get_status()
+        return None
         
     async def connect(self):
         """Connect to Elasticsearch cluster."""
@@ -334,6 +381,11 @@ class ElasticsearchClient:
         Supports both traditional page-based pagination and cursor-based pagination
         for better performance with massive datasets.
         """
+        # Check circuit breaker before proceeding
+        circuit_breaker_result = self._check_circuit_breaker("query_dshield_events")
+        if isinstance(circuit_breaker_result, dict):  # Error response
+            return circuit_breaker_result
+        
         if not self.client:
             await self.connect()
         
@@ -507,10 +559,17 @@ class ElasticsearchClient:
                        total_count=total_count, page=page, page_size=page_size,
                        pagination_method="cursor" if cursor else "page")
             
+            # Record successful operation with circuit breaker
+            self._record_circuit_breaker_success()
+            
             return events, total_count, pagination_info
             
         except Exception as e:
             logger.error(f"Error querying DShield events: {str(e)}")
+            
+            # Record failed operation with circuit breaker
+            self._record_circuit_breaker_failure(e)
+            
             if self.error_handler:
                 # Create appropriate error response based on exception type
                 if isinstance(e, RequestError):
@@ -1005,6 +1064,11 @@ class ElasticsearchClient:
             ValueError: If parameters are invalid
 
         """
+        # Check circuit breaker before proceeding
+        circuit_breaker_result = self._check_circuit_breaker("stream_dshield_events")
+        if isinstance(circuit_breaker_result, dict):  # Error response
+            return [], 0, None
+        
         if not self.client:
             await self.connect()
         
@@ -1109,10 +1173,17 @@ class ElasticsearchClient:
             logger.info(f"Streamed {len(events)} events from {len(indices)} indices", 
                        total_count=total_count, chunk_size=chunk_size, stream_id=stream_id)
             
+            # Record successful operation with circuit breaker
+            self._record_circuit_breaker_success()
+            
             return events, total_count, last_event_id
             
         except Exception as e:
             logger.error(f"Error streaming DShield events: {str(e)}")
+            
+            # Record failed operation with circuit breaker
+            self._record_circuit_breaker_failure(e)
+            
             if self.error_handler:
                 # Create appropriate error response based on exception type
                 if isinstance(e, RequestError):

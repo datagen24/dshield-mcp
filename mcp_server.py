@@ -308,6 +308,36 @@ class DShieldMCPServer:
                             "description": "Specific feature to check (optional)"
                         }
                     }
+                }),
+                ("get_error_analytics", {
+                    "type": "object",
+                    "properties": {
+                        "window_seconds": {
+                            "type": "integer",
+                            "description": "Time window in seconds for error analysis (default: 300)"
+                        }
+                    }
+                }),
+                ("get_error_handling_status", {
+                    "type": "object",
+                    "properties": {
+                        "include_analytics": {
+                            "type": "boolean",
+                            "description": "Include error analytics in response (default: true)"
+                        }
+                    }
+                }),
+                ("get_elasticsearch_circuit_breaker_status", {
+                    "type": "object",
+                    "properties": {}
+                }),
+                ("get_dshield_circuit_breaker_status", {
+                    "type": "object",
+                    "properties": {}
+                }),
+                ("get_latex_circuit_breaker_status", {
+                    "type": "object",
+                    "properties": {}
                 })
             ]
             
@@ -414,6 +444,16 @@ class DShieldMCPServer:
                         timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0)
                     )
                     return result
+                elif name == "get_error_analytics":
+                    return await self._get_error_analytics(arguments)
+                elif name == "get_error_handling_status":
+                    return await self._get_error_handling_status(arguments)
+                elif name == "get_elasticsearch_circuit_breaker_status":
+                    return await self._get_elasticsearch_circuit_breaker_status(arguments)
+                elif name == "get_dshield_circuit_breaker_status":
+                    return await self._get_dshield_circuit_breaker_status(arguments)
+                elif name == "get_latex_circuit_breaker_status":
+                    return await self._get_latex_circuit_breaker_status(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
             except asyncio.TimeoutError:
@@ -2056,11 +2096,163 @@ class DShieldMCPServer:
             'correlate_threat_indicators': 'threat_intelligence',
             'get_threat_intelligence_summary': 'threat_intelligence',
             'detect_statistical_anomalies': 'statistical_analysis',
+            'get_error_analytics': 'error_handling',
+            'get_error_handling_status': 'error_handling',
+            'get_elasticsearch_circuit_breaker_status': 'error_handling',
+            'get_dshield_circuit_breaker_status': 'error_handling',
+            'get_latex_circuit_breaker_status': 'error_handling',
         }
         feature = feature_map.get(tool_name)
         if not feature:
             return True  # Default: available if not mapped
         return self.feature_manager.is_feature_available(feature)
+
+    async def _get_error_analytics(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get error analytics and patterns from the error handler.
+        
+        Args:
+            arguments: Tool arguments containing window_seconds (optional)
+        
+        Returns:
+            List containing error analytics data.
+        """
+        try:
+            window_seconds = arguments.get("window_seconds", 300)
+            analytics = self.error_handler.get_error_analytics(window_seconds)
+            
+            return [{
+                "type": "error_analytics",
+                "data": analytics,
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }]
+        except Exception as e:
+            logger.error("Failed to get error analytics", error=str(e))
+            return self.error_handler.create_internal_error("get_error_analytics", e)
+    
+    async def _get_error_handling_status(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get comprehensive error handling status and configuration.
+        
+        Args:
+            arguments: Tool arguments containing include_analytics (optional)
+        
+        Returns:
+            List containing error handling status and configuration.
+        """
+        try:
+            include_analytics = arguments.get("include_analytics", True)
+            
+            status = {
+                "error_handler_status": "active",
+                "configuration": self.error_handler.get_enhanced_error_summary(),
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
+            
+            if include_analytics:
+                status["analytics"] = self.error_handler.get_error_analytics()
+            
+            return [{
+                "type": "error_handling_status",
+                "data": status
+            }]
+        except Exception as e:
+            logger.error("Failed to get error handling status", error=str(e))
+            return self.error_handler.create_internal_error("get_error_handling_status", e)
+    
+    async def _get_elasticsearch_circuit_breaker_status(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get Elasticsearch circuit breaker status.
+        
+        Args:
+            arguments: Tool arguments (unused)
+        
+        Returns:
+            List containing Elasticsearch circuit breaker status.
+        """
+        try:
+            if not hasattr(self, 'elasticsearch_client') or not self.elasticsearch_client:
+                return [{
+                    "type": "error",
+                    "error": {
+                        "code": -32000,
+                        "message": "Elasticsearch client not initialized"
+                    }
+                }]
+            
+            status = self.elasticsearch_client.get_circuit_breaker_status()
+            
+            return [{
+                "type": "elasticsearch_circuit_breaker_status",
+                "data": {
+                    "status": status,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            }]
+        except Exception as e:
+            logger.error("Failed to get Elasticsearch circuit breaker status", error=str(e))
+            return self.error_handler.create_internal_error("get_elasticsearch_circuit_breaker_status", e)
+
+    async def _get_dshield_circuit_breaker_status(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get DShield API circuit breaker status.
+        
+        Args:
+            arguments: Tool arguments (unused)
+        
+        Returns:
+            List containing DShield API circuit breaker status.
+        """
+        try:
+            if not hasattr(self, 'dshield_client') or not self.dshield_client:
+                return [{
+                    "type": "error",
+                    "error": {
+                        "code": -32000,
+                        "message": "DShield client not initialized"
+                    }
+                }]
+            
+            status = self.dshield_client.get_circuit_breaker_status()
+            
+            return [{
+                "type": "dshield_circuit_breaker_status",
+                "data": {
+                    "status": status,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            }]
+        except Exception as e:
+            logger.error("Failed to get DShield circuit breaker status", error=str(e))
+            return self.error_handler.create_internal_error("get_dshield_circuit_breaker_status", e)
+
+    async def _get_latex_circuit_breaker_status(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Get LaTeX compilation circuit breaker status.
+        
+        Args:
+            arguments: Tool arguments (unused)
+        
+        Returns:
+            List containing LaTeX compilation circuit breaker status.
+        """
+        try:
+            if not hasattr(self, 'latex_tools') or not self.latex_tools:
+                return [{
+                    "type": "error",
+                    "error": {
+                        "code": -32000,
+                        "message": "LaTeX tools not initialized"
+                    }
+                }]
+            
+            status = self.latex_tools.get_circuit_breaker_status()
+            
+            return [{
+                "type": "latex_circuit_breaker_status",
+                "data": {
+                    "status": status,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+            }]
+        except Exception as e:
+            logger.error("Failed to get LaTeX circuit breaker status", error=str(e))
+            return self.error_handler.create_internal_error("get_latex_circuit_breaker_status", e)
 
     async def _tool_unavailable_response(self, tool_name: str) -> list:
         """Return a JSON-RPC error response for unavailable tool, and log to stderr."""
@@ -2069,6 +2261,7 @@ class DShieldMCPServer:
             'query_dshield_aggregations': 'elasticsearch_queries',
             'stream_dshield_events': 'elasticsearch_queries',
             'stream_dshield_events_with_session_context': 'elasticsearch_queries',
+            'query_dshield_events': 'elasticsearch_queries',
             'query_dshield_attacks': 'elasticsearch_queries',
             'query_dshield_reputation': 'dshield_enrichment',
             'query_dshield_top_attackers': 'elasticsearch_queries',
@@ -2098,6 +2291,11 @@ class DShieldMCPServer:
             'correlate_threat_indicators': 'threat_intelligence',
             'get_threat_intelligence_summary': 'threat_intelligence',
             'detect_statistical_anomalies': 'statistical_analysis',
+            'get_error_analytics': 'error_handling',
+            'get_error_handling_status': 'error_handling',
+            'get_elasticsearch_circuit_breaker_status': 'error_handling',
+            'get_dshield_circuit_breaker_status': 'error_handling',
+            'get_latex_circuit_breaker_status': 'error_handling',
         }
         feature = feature_map.get(tool_name, 'unknown')
         msg = f"Tool '{tool_name}' is currently unavailable due to missing or unhealthy dependency: '{feature}'. Please try again later."

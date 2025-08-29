@@ -36,7 +36,7 @@ from .models import ThreatIntelligence
 from .config_loader import get_config, ConfigError
 from .op_secrets import OnePasswordSecrets
 from .user_config import get_user_config
-from .mcp_error_handler import MCPErrorHandler
+from .mcp_error_handler import MCPErrorHandler, CircuitBreaker
 
 # Load environment variables
 load_dotenv()
@@ -105,6 +105,12 @@ class DShieldClient:
         # Error handling
         self.error_handler = error_handler
         
+        # Circuit breaker for external service protection
+        if error_handler:
+            self.circuit_breaker = CircuitBreaker("dshield_api", error_handler.config.circuit_breaker)
+        else:
+            self.circuit_breaker = None
+        
         # Rate limiting
         self.rate_limit_requests = int(rate_limit)
         self.rate_limit_window = 60  # seconds
@@ -132,6 +138,50 @@ class DShieldClient:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
         
         self.batch_size = int(batch_size)
+    
+    def _check_circuit_breaker(self, operation: str) -> bool:
+        """Check if circuit breaker allows execution.
+        
+        Args:
+            operation: Name of the operation being performed
+        
+        Returns:
+            True if execution is allowed, False if circuit breaker is open
+        """
+        if not self.circuit_breaker:
+            return True
+        
+        if not self.circuit_breaker.can_execute():
+            logger.warning("Circuit breaker is open, blocking operation", 
+                          operation=operation, service="dshield_api")
+            return False
+        
+        return True
+    
+    def _record_circuit_breaker_success(self) -> None:
+        """Record successful operation with circuit breaker."""
+        if self.circuit_breaker:
+            self.circuit_breaker.on_success()
+    
+    def _record_circuit_breaker_failure(self, exception: Exception) -> None:
+        """Record failed operation with circuit breaker.
+        
+        Args:
+            exception: The exception that occurred
+        """
+        if self.circuit_breaker:
+            self.circuit_breaker.on_failure(exception)
+    
+    def get_circuit_breaker_status(self) -> Optional[Dict[str, Any]]:
+        """Get the current status of the DShield API circuit breaker.
+        
+        Returns:
+            Circuit breaker status dictionary or None if not enabled
+        """
+        if not self.circuit_breaker:
+            return None
+        
+        return self.circuit_breaker.get_status()
     
     async def __aenter__(self) -> "DShieldClient":
         """Async context manager entry.
@@ -194,6 +244,12 @@ class DShieldClient:
             logger.debug("Returning cached IP reputation", ip_address=ip_address)
             return cached_data
         
+        # Circuit breaker check
+        if not self._check_circuit_breaker("get_ip_reputation"):
+            if self.error_handler:
+                return self.error_handler.create_circuit_breaker_open_error("DShield API")
+            return self._create_default_reputation(ip_address)
+        
         # Rate limiting
         await self._check_rate_limit()
         
@@ -217,6 +273,9 @@ class DShieldClient:
                                ip_address=ip_address,
                                reputation_score=reputation_data.get('reputation_score'))
                     
+                    # Record success with circuit breaker
+                    self._record_circuit_breaker_success()
+                    
                     return reputation_data
                     
                 elif response.status == 404:
@@ -234,6 +293,8 @@ class DShieldClient:
         except aiohttp.ClientError as e:
             logger.error("HTTP error during IP reputation lookup", 
                         ip_address=ip_address, error=str(e))
+            # Record failure with circuit breaker
+            self._record_circuit_breaker_failure(e)
             if self.error_handler:
                 return {"error": self.error_handler.create_external_service_error("DShield API", f"HTTP error: {str(e)}")}
             return self._create_default_reputation(ip_address)
@@ -241,6 +302,8 @@ class DShieldClient:
         except Exception as e:
             logger.error("Unexpected error during IP reputation lookup", 
                         ip_address=ip_address, error=str(e))
+            # Record failure with circuit breaker
+            self._record_circuit_breaker_failure(e)
             if self.error_handler:
                 return {"error": self.error_handler.create_internal_error(f"IP reputation lookup failed: {str(e)}")}
             return self._create_default_reputation(ip_address)
@@ -264,6 +327,12 @@ class DShieldClient:
         if cached_data:
             return cached_data
         
+        # Circuit breaker check
+        if not self._check_circuit_breaker("get_ip_details"):
+            if self.error_handler:
+                return self.error_handler.create_circuit_breaker_open_error("DShield API")
+            return self._create_default_details(ip_address)
+        
         # Rate limiting
         await self._check_rate_limit()
         
@@ -283,6 +352,9 @@ class DShieldClient:
                     # Cache the result
                     self._cache_data(cache_key, details_data)
                     
+                    # Record success with circuit breaker
+                    self._record_circuit_breaker_success()
+                    
                     return details_data
                     
                 else:
@@ -294,12 +366,20 @@ class DShieldClient:
         except Exception as e:
             logger.error("Error during IP details lookup", 
                         ip_address=ip_address, error=str(e))
+            # Record failure with circuit breaker
+            self._record_circuit_breaker_failure(e)
             if self.error_handler:
                 return {"error": self.error_handler.create_internal_error(f"IP details lookup failed: {str(e)}")}
             return self._create_default_details(ip_address)
     
     async def get_top_attackers(self, hours: int = 24) -> List[Dict[str, Any]]:
         """Get top attackers from DShield."""
+        
+        # Circuit breaker check
+        if not self._check_circuit_breaker("get_top_attackers"):
+            if self.error_handler:
+                return self.error_handler.create_circuit_breaker_open_error("DShield API")
+            return []
         
         # Rate limiting
         await self._check_rate_limit()
@@ -315,6 +395,8 @@ class DShieldClient:
             async with self.session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()
+                    # Record success with circuit breaker
+                    self._record_circuit_breaker_success()
                     return self._parse_top_attackers(data)
                     
                 else:
@@ -324,12 +406,20 @@ class DShieldClient:
                     
         except Exception as e:
             logger.error("Error during top attackers lookup", error=str(e))
+            # Record failure with circuit breaker
+            self._record_circuit_breaker_failure(e)
             if self.error_handler:
                 return {"error": self.error_handler.create_internal_error(f"Top attackers lookup failed: {str(e)}")}
             return []
     
     async def get_attack_summary(self, hours: int = 24) -> Dict[str, Any]:
         """Get attack summary from DShield."""
+        
+        # Circuit breaker check
+        if not self._check_circuit_breaker("get_attack_summary"):
+            if self.error_handler:
+                return self.error_handler.create_circuit_breaker_open_error("DShield API")
+            return self._create_default_summary()
         
         # Rate limiting
         await self._check_rate_limit()
@@ -345,6 +435,8 @@ class DShieldClient:
             async with self.session.get(url) as response:
                 if response.status == 200:
                     data = await response.json()
+                    # Record success with circuit breaker
+                    self._record_circuit_breaker_success()
                     return self._parse_attack_summary(data)
                     
                 else:
@@ -354,6 +446,8 @@ class DShieldClient:
                     
         except Exception as e:
             logger.error("Error during attack summary lookup", error=str(e))
+            # Record failure with circuit breaker
+            self._record_circuit_breaker_failure(e)
             if self.error_handler:
                 return {"error": self.error_handler.create_internal_error(f"Attack summary lookup failed: {str(e)}")}
             return self._create_default_summary()

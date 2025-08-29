@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Union
 import structlog
 
 from .user_config import get_user_config
-from .mcp_error_handler import MCPErrorHandler
+from .mcp_error_handler import MCPErrorHandler, CircuitBreaker
 
 logger = structlog.get_logger(__name__)
 
@@ -59,6 +59,12 @@ class LaTeXTemplateTools:
         
         # Error handling
         self.error_handler = error_handler
+        
+        # Circuit breaker for LaTeX compilation failures
+        if error_handler:
+            self.circuit_breaker = CircuitBreaker("latex_compilation", error_handler.config.circuit_breaker)
+        else:
+            self.circuit_breaker = None
     
     def _find_project_root(self) -> Path:
         """Find the project root directory by looking for setup.py or pyproject.toml.
@@ -96,6 +102,50 @@ class LaTeXTemplateTools:
         
         raise FileNotFoundError("Could not find project root directory. Please ensure setup.py or pyproject.toml exists in the project root.")
     
+    def _check_circuit_breaker(self, operation: str) -> bool:
+        """Check if circuit breaker allows execution.
+        
+        Args:
+            operation: Name of the operation being performed
+        
+        Returns:
+            True if execution is allowed, False if circuit breaker is open
+        """
+        if not self.circuit_breaker:
+            return True
+        
+        if not self.circuit_breaker.can_execute():
+            logger.warning("Circuit breaker is open, blocking operation", 
+                          operation=operation, service="latex_compilation")
+            return False
+        
+        return True
+    
+    def _record_circuit_breaker_success(self) -> None:
+        """Record successful operation with circuit breaker."""
+        if self.circuit_breaker:
+            self.circuit_breaker.on_success()
+    
+    def _record_circuit_breaker_failure(self, exception: Exception) -> None:
+        """Record failed operation with circuit breaker.
+        
+        Args:
+            exception: The exception that occurred
+        """
+        if self.circuit_breaker:
+            self.circuit_breaker.on_failure(exception)
+    
+    def get_circuit_breaker_status(self) -> Optional[Dict[str, Any]]:
+        """Get the current status of the LaTeX compilation circuit breaker.
+        
+        Returns:
+            Circuit breaker status dictionary or None if not enabled
+        """
+        if not self.circuit_breaker:
+            return None
+        
+        return self.circuit_breaker.get_status()
+    
     async def generate_document(
         self,
         template_name: str,
@@ -122,6 +172,16 @@ class LaTeXTemplateTools:
                    template_name=template_name,
                    output_format=output_format,
                    include_assets=include_assets)
+        
+        # Circuit breaker check
+        if not self._check_circuit_breaker("generate_document"):
+            if self.error_handler:
+                return self.error_handler.create_circuit_breaker_open_error("LaTeX Compilation")
+            return {
+                "success": False,
+                "error": "LaTeX compilation service is temporarily unavailable due to repeated failures",
+                "document": None
+            }
         
         try:
             # Validate template
@@ -176,6 +236,9 @@ class LaTeXTemplateTools:
                     # Copy output files
                     output_files = self._copy_output_files(temp_path, template_name)
                     
+                    # Record success with circuit breaker
+                    self._record_circuit_breaker_success()
+                    
                     return {
                         "success": True,
                         "document": {
@@ -194,6 +257,10 @@ class LaTeXTemplateTools:
                     }
                 else:
                     # For non-PDF formats, return generated files
+                    
+                    # Record success with circuit breaker
+                    self._record_circuit_breaker_success()
+                    
                     return {
                         "success": True,
                         "document": {
@@ -211,6 +278,8 @@ class LaTeXTemplateTools:
                     
         except Exception as e:
             logger.error("Document generation failed", error=str(e))
+            # Record failure with circuit breaker
+            self._record_circuit_breaker_failure(e)
             if self.error_handler:
                 return {"error": self.error_handler.create_internal_error(f"Document generation failed: {str(e)}")}
             return {
@@ -597,6 +666,16 @@ class LaTeXTemplateTools:
             Compilation results
 
         """
+        # Circuit breaker check
+        if not self._check_circuit_breaker("_compile_latex_document"):
+            if self.error_handler:
+                return {"error": self.error_handler.create_circuit_breaker_open_error("LaTeX Compilation")}
+            return {
+                "success": False,
+                "error": "LaTeX compilation service is temporarily unavailable due to repeated failures",
+                "log": None
+            }
+        
         try:
             # Check if pdflatex is available
             result = subprocess.run(
@@ -606,6 +685,8 @@ class LaTeXTemplateTools:
             )
             
             if result.returncode != 0:
+                # Record failure with circuit breaker
+                self._record_circuit_breaker_failure(Exception("pdflatex not found"))
                 return {
                     "success": False,
                     "error": "pdflatex not found. Please install LaTeX distribution.",
@@ -632,12 +713,17 @@ class LaTeXTemplateTools:
             # Check if PDF was generated
             pdf_path = temp_path / "main_report.pdf"
             if pdf_path.exists():
+                # Record success with circuit breaker
+                self._record_circuit_breaker_success()
+                
                 return {
                     "success": True,
                     "log": result.stdout + result.stderr,
                     "pdf_path": str(pdf_path)
                 }
             else:
+                # Record failure with circuit breaker
+                self._record_circuit_breaker_failure(Exception("PDF generation failed"))
                 return {
                     "success": False,
                     "error": "PDF generation failed",
@@ -645,12 +731,16 @@ class LaTeXTemplateTools:
                 }
                 
         except subprocess.TimeoutExpired:
+            # Record failure with circuit breaker
+            self._record_circuit_breaker_failure(Exception("LaTeX compilation timed out"))
             return {
                 "success": False,
                 "error": "LaTeX compilation timed out",
                 "log": None
             }
         except Exception as e:
+            # Record failure with circuit breaker
+            self._record_circuit_breaker_failure(e)
             if self.error_handler:
                 return {"error": self.error_handler.create_internal_error(f"LaTeX compilation failed: {str(e)}")}
             return {
