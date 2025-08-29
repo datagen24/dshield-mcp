@@ -38,6 +38,7 @@ from src.signal_handler import SignalHandler
 from src.resource_manager import ResourceManager
 from src.operation_tracker import OperationTracker
 from src.statistical_analysis_tools import StatisticalAnalysisTools
+from src.mcp_error_handler import MCPErrorHandler, ErrorHandlingConfig
 
 # Configure structured logging
 structlog.configure(
@@ -111,6 +112,22 @@ class DShieldMCPServer:
         except Exception as e:
             logger.error("Failed to load user config", error=str(e))
             self.user_config = None
+        
+        # Initialize error handler with configuration
+        try:
+            error_config = ErrorHandlingConfig()
+            if self.user_config:
+                # Load error handling settings from user config if available
+                error_config.timeouts.update({
+                    "elasticsearch_operations": self.user_config.get_setting("error_handling", "elasticsearch_operations", 30.0),
+                    "dshield_api_calls": self.user_config.get_setting("error_handling", "dshield_api_calls", 10.0),
+                    "latex_compilation": self.user_config.get_setting("error_handling", "latex_compilation", 60.0),
+                    "tool_execution": self.user_config.get_setting("error_handling", "tool_execution", 120.0)
+                })
+            self.error_handler = MCPErrorHandler(error_config)
+        except Exception as e:
+            logger.warning("Failed to initialize error handler, using defaults", error=str(e))
+            self.error_handler = MCPErrorHandler()
         
         # Register tools
         self._register_tools()
@@ -399,9 +416,15 @@ class DShieldMCPServer:
                     return result
                 else:
                     raise ValueError(f"Unknown tool: {name}")
+            except asyncio.TimeoutError:
+                logger.error("Tool call timed out", tool=name)
+                return self.error_handler.create_timeout_error(name)
+            except ValueError as e:
+                logger.error("Tool call validation error", tool=name, error=str(e))
+                return self.error_handler.create_validation_error(name, e)
             except Exception as e:
                 logger.error("Tool call failed", tool=name, error=str(e))
-                raise
+                return self.error_handler.create_internal_error(name, e)
         
         @self.server.list_resources()
         async def handle_list_resources() -> List[Dict[str, Any]]:
@@ -448,26 +471,31 @@ class DShieldMCPServer:
         @self.server.read_resource()
         async def handle_read_resource(uri: str) -> str:
             """Read resource content."""
-            if uri == "dshield://events":
-                events = await self._get_recent_dshield_events()
-                return json.dumps(events, default=str)
-            elif uri == "dshield://attacks":
-                attacks = await self._get_recent_dshield_attacks()
-                return json.dumps(attacks, default=str)
-            elif uri == "dshield://top-attackers":
-                attackers = await self._get_dshield_top_attackers()
-                return json.dumps(attackers, default=str)
-            elif uri == "dshield://statistics":
-                stats = await self._get_dshield_stats()
-                return json.dumps(stats, default=str)
-            elif uri == "dshield://threat-intelligence":
-                # Return cached threat intelligence
-                return json.dumps({"message": "Use enrich_ip_with_dshield tool for specific IPs"})
-            elif uri == "dshield://data-dictionary":
-                # Return the data dictionary
-                return DataDictionary.get_initial_prompt()
-            else:
-                raise ValueError(f"Unknown resource: {uri}")
+            try:
+                if uri == "dshield://events":
+                    events = await self._get_recent_dshield_events()
+                    return json.dumps(events, default=str)
+                elif uri == "dshield://attacks":
+                    attacks = await self._get_recent_dshield_attacks()
+                    return json.dumps(attacks, default=str)
+                elif uri == "dshield://top-attackers":
+                    attackers = await self._get_dshield_top_attackers()
+                    return json.dumps(attackers, default=str)
+                elif uri == "dshield://statistics":
+                    stats = await self._get_dshield_stats()
+                    return json.dumps(stats, default=str)
+                elif uri == "dshield://threat-intelligence":
+                    # Return cached threat intelligence
+                    return json.dumps({"message": "Use enrich_ip_with_dshield tool for specific IPs"})
+                elif uri == "dshield://data-dictionary":
+                    # Return the data dictionary
+                    return DataDictionary.get_initial_prompt()
+                else:
+                    logger.error("Unknown resource requested", uri=uri)
+                    return self.error_handler.create_resource_error(uri, "not_found", f"Resource '{uri}' not found")
+            except Exception as e:
+                logger.error("Resource reading failed", uri=uri, error=str(e))
+                return self.error_handler.create_resource_error(uri, "unavailable", f"Failed to read resource '{uri}': {str(e)}")
     
     async def initialize(self) -> None:
         """Initialize the MCP server and clients with graceful degradation."""
