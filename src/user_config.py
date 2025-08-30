@@ -22,7 +22,7 @@ Example:
 
 import os
 import yaml
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
 import structlog
@@ -195,6 +195,76 @@ class CampaignSettings:
     expansion_timeout_seconds: int = 300
 
 
+@dataclass
+class TCPTransportSettings:
+    """User-configurable TCP transport settings.
+    
+    Attributes:
+        enabled: Whether TCP transport is enabled (default: False for STDIO mode)
+        port: TCP port to bind to (default: 3000)
+        bind_address: IP address to bind to (default: 127.0.0.1 for localhost)
+        max_connections: Maximum number of concurrent connections
+        connection_timeout_seconds: Connection timeout in seconds
+        api_key_management: API key management configuration
+        permissions: Default permissions for new API keys
+    """
+    enabled: bool = False  # Default to STDIO mode
+    port: int = 3000
+    bind_address: str = "127.0.0.1"
+    max_connections: int = 10
+    connection_timeout_seconds: int = 300
+    api_key_management: Dict[str, Any] = field(default_factory=lambda: {
+        "vault": "op://vault/item/field",  # User-configurable 1Password vault
+        "rate_limit_per_key": 60,  # Requests per minute per API key
+        "untested_agent_limit": 10,  # Lower limit for untested agents
+        "key_length": 32,  # API key length in characters
+        "key_expiry_days": 90,  # API key expiry in days
+    })
+    permissions: Dict[str, Any] = field(default_factory=lambda: {
+        "elastic_write_back": False,  # Default permission for new keys
+        "max_query_results": 1000,
+        "timeout_seconds": 30,
+        "allowed_tools": [],  # Empty list means all tools allowed
+        "blocked_tools": [],  # Tools to block for this key
+    })
+
+
+@dataclass
+class TUISettings:
+    """User-configurable TUI settings.
+    
+    Attributes:
+        enabled: Whether TUI is enabled (default: False for headless mode)
+        refresh_interval_ms: UI refresh interval in milliseconds
+        log_history_size: Number of log entries to keep in history
+        server_management: Server management configuration
+        panels: Panel configuration
+    """
+    enabled: bool = False  # Default to headless mode
+    refresh_interval_ms: int = 1000
+    log_history_size: int = 1000
+    server_management: Dict[str, Any] = field(default_factory=lambda: {
+        "restart_on_update": True,
+        "graceful_shutdown_timeout": 30,
+        "auto_start_server": True,
+    })
+    panels: Dict[str, Any] = field(default_factory=lambda: {
+        "connections": {
+            "enabled": True,
+            "show_details": True,
+            "show_rate_limits": True,
+        },
+        "tools": {
+            "enabled": True,
+            "show_metrics": True,
+        },
+        "logs": {
+            "enabled": True,
+            "log_levels": ["INFO", "WARN", "ERROR"],
+        },
+    })
+
+
 class UserConfigManager:
     """Manages user-configurable settings with validation and environment variable support.
     
@@ -216,6 +286,8 @@ class UserConfigManager:
         security_settings: Security-related settings
         logging_settings: Logging-related settings
         campaign_settings: Campaign analysis settings
+        tcp_transport_settings: TCP transport settings
+        tui_settings: TUI settings
         output_directory: Directory for generated outputs (default: ~/dshield-mcp-output, configurable)
     
     Example:
@@ -248,6 +320,8 @@ class UserConfigManager:
         self.security_settings = SecuritySettings()
         self.logging_settings = LoggingSettings()
         self.campaign_settings = CampaignSettings()
+        self.tcp_transport_settings = TCPTransportSettings()
+        self.tui_settings = TUISettings()
         
         # Output directory (default, can be overridden)
         self.output_directory = None  # type: Optional[str]
@@ -473,6 +547,42 @@ class UserConfigManager:
             self.campaign_settings.enable_ip_correlation = campaign_config.get("enable_ip_correlation", self.campaign_settings.enable_ip_correlation)
             self.campaign_settings.max_expansion_depth = campaign_config.get("max_expansion_depth", self.campaign_settings.max_expansion_depth)
             self.campaign_settings.expansion_timeout_seconds = campaign_config.get("expansion_timeout_seconds", self.campaign_settings.expansion_timeout_seconds)
+        
+        # TCP Transport Settings
+        if "tcp_transport" in user_config:
+            tcp_config = user_config["tcp_transport"]
+            self.tcp_transport_settings.enabled = tcp_config.get("enabled", self.tcp_transport_settings.enabled)
+            self.tcp_transport_settings.port = tcp_config.get("port", self.tcp_transport_settings.port)
+            self.tcp_transport_settings.bind_address = tcp_config.get("bind_address", self.tcp_transport_settings.bind_address)
+            self.tcp_transport_settings.max_connections = tcp_config.get("max_connections", self.tcp_transport_settings.max_connections)
+            self.tcp_transport_settings.connection_timeout_seconds = tcp_config.get("connection_timeout_seconds", self.tcp_transport_settings.connection_timeout_seconds)
+            
+            # API Key Management
+            if "api_key_management" in tcp_config:
+                api_key_config = tcp_config["api_key_management"]
+                self.tcp_transport_settings.api_key_management.update(api_key_config)
+            
+            # Permissions
+            if "permissions" in tcp_config:
+                permissions_config = tcp_config["permissions"]
+                self.tcp_transport_settings.permissions.update(permissions_config)
+        
+        # TUI Settings
+        if "tui" in user_config:
+            tui_config = user_config["tui"]
+            self.tui_settings.enabled = tui_config.get("enabled", self.tui_settings.enabled)
+            self.tui_settings.refresh_interval_ms = tui_config.get("refresh_interval_ms", self.tui_settings.refresh_interval_ms)
+            self.tui_settings.log_history_size = tui_config.get("log_history_size", self.tui_settings.log_history_size)
+            
+            # Server Management
+            if "server_management" in tui_config:
+                server_mgmt_config = tui_config["server_management"]
+                self.tui_settings.server_management.update(server_mgmt_config)
+            
+            # Panels
+            if "panels" in tui_config:
+                panels_config = tui_config["panels"]
+                self.tui_settings.panels.update(panels_config)
     
     def _validate_settings(self) -> None:
         """Validate all settings for consistency and correctness.
@@ -541,6 +651,36 @@ class UserConfigManager:
         if self.campaign_settings.expansion_timeout_seconds <= 0:
             errors.append("expansion_timeout_seconds must be positive")
         
+        # TCP Transport Settings Validation
+        if self.tcp_transport_settings.port <= 0 or self.tcp_transport_settings.port > 65535:
+            errors.append("tcp_transport port must be between 1 and 65535")
+        if self.tcp_transport_settings.max_connections <= 0:
+            errors.append("tcp_transport max_connections must be positive")
+        if self.tcp_transport_settings.connection_timeout_seconds <= 0:
+            errors.append("tcp_transport connection_timeout_seconds must be positive")
+        
+        # API Key Management Validation
+        api_key_mgmt = self.tcp_transport_settings.api_key_management
+        if api_key_mgmt.get("rate_limit_per_key", 0) <= 0:
+            errors.append("tcp_transport api_key_management rate_limit_per_key must be positive")
+        if api_key_mgmt.get("untested_agent_limit", 0) <= 0:
+            errors.append("tcp_transport api_key_management untested_agent_limit must be positive")
+        if api_key_mgmt.get("key_length", 0) < 16:
+            errors.append("tcp_transport api_key_management key_length must be at least 16")
+        if api_key_mgmt.get("key_expiry_days", 0) <= 0:
+            errors.append("tcp_transport api_key_management key_expiry_days must be positive")
+        
+        # TUI Settings Validation
+        if self.tui_settings.refresh_interval_ms <= 0:
+            errors.append("tui refresh_interval_ms must be positive")
+        if self.tui_settings.log_history_size <= 0:
+            errors.append("tui log_history_size must be positive")
+        
+        # Server Management Validation
+        server_mgmt = self.tui_settings.server_management
+        if server_mgmt.get("graceful_shutdown_timeout", 0) <= 0:
+            errors.append("tui server_management graceful_shutdown_timeout must be positive")
+        
         # Log errors and warnings
         if errors:
             raise ValueError(f"Configuration validation errors: {'; '.join(errors)}")
@@ -569,7 +709,9 @@ class UserConfigManager:
             "performance": self.performance_settings,
             "security": self.security_settings,
             "logging": self.logging_settings,
-            "campaign": self.campaign_settings
+            "campaign": self.campaign_settings,
+            "tcp_transport": self.tcp_transport_settings,
+            "tui": self.tui_settings
         }
         
         if category not in settings_map:
@@ -600,7 +742,9 @@ class UserConfigManager:
             "performance": self.performance_settings,
             "security": self.security_settings,
             "logging": self.logging_settings,
-            "campaign": self.campaign_settings
+            "campaign": self.campaign_settings,
+            "tcp_transport": self.tcp_transport_settings,
+            "tui": self.tui_settings
         }
         
         if category not in settings_map:
