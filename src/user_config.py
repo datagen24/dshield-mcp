@@ -363,7 +363,8 @@ class UserConfigManager:
     def _load_user_config_file(self) -> Dict[str, Any]:
         """Load user configuration from file.
         
-        Searches for user configuration files in multiple locations:
+        If a specific config path was provided, use that. Otherwise, searches for 
+        user configuration files in multiple locations:
         - Current directory: user_config.yaml
         - Config directory: config/user_config.yaml
         - Home directory: ~/.dshield-mcp/user_config.yaml
@@ -371,6 +372,21 @@ class UserConfigManager:
         Returns:
             Dictionary containing user configuration or empty dict if not found
         """
+        # If a specific config path was provided, use that first
+        if self.config_path:
+            config_path = Path(self.config_path)
+            if config_path.exists():
+                try:
+                    with open(config_path, 'r') as f:
+                        config = yaml.safe_load(f)
+                    logger.info(f"Loaded user config from: {config_path}")
+                    return config or {}
+                except Exception as e:
+                    logger.warning(f"Failed to load user config from {config_path}: {e}")
+            else:
+                logger.warning(f"Specified config file does not exist: {config_path}")
+        
+        # Fall back to default search paths
         user_config_paths = [
             Path("user_config.yaml"),
             Path("config/user_config.yaml"),

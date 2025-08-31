@@ -8,14 +8,14 @@ information including server status, connection counts, and system metrics.
 import asyncio
 from datetime import datetime
 from typing import Any, Dict, Optional
-from textual.widgets import Static
-from textual.reactive import reactive
+from textual.widgets import Static  # type: ignore
+from textual.reactive import reactive  # type: ignore
 import structlog
 
 logger = structlog.get_logger(__name__)
 
 
-class StatusBar(Static):
+class StatusBar(Static):  # type: ignore
     """Status bar widget for displaying real-time status information.
     
     This widget shows server status, connection counts, system metrics,

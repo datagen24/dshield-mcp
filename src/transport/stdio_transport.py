@@ -6,9 +6,9 @@ default transport mechanism for MCP servers using stdin/stdout for communication
 """
 
 import sys
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 import structlog
-from mcp.server.stdio import stdio_server
+from mcp.server.stdio import stdio_server  # type: ignore
 
 from .base_transport import BaseTransport, TransportError
 
@@ -116,7 +116,7 @@ class STDIOTransport(BaseTransport):
             self.logger.error("STDIO transport main loop failed", error=str(e))
             raise TransportError(f"STDIO transport main loop failed: {e}", "stdio")
     
-    def get_streams(self) -> tuple:
+    def get_streams(self) -> Tuple[Any, Any]:
         """Get the read and write streams.
         
         Returns:

@@ -7,7 +7,7 @@ lifecycle management, and coordination between different transport types.
 
 import os
 import psutil
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, Union
 import structlog
 
 from .base_transport import BaseTransport, TransportError
@@ -280,10 +280,12 @@ class TransportManager:
         # Add transport-specific information
         if self.current_transport.transport_type == "tcp":
             tcp_transport = self.current_transport
-            info.update({
-                "connection_count": tcp_transport.get_connection_count(),
-                "connections": tcp_transport.get_connections_info()
-            })
+            # Type check to ensure we have the right transport type
+            if hasattr(tcp_transport, 'get_connection_count') and hasattr(tcp_transport, 'get_connections_info'):
+                info.update({
+                    "connection_count": tcp_transport.get_connection_count(),
+                    "connections": tcp_transport.get_connections_info()
+                })
         
         return info
     

@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional
 import structlog
 
 from .tui.tui_app import DShieldTUIApp
-from .user_config import get_user_config
+from .user_config import UserConfigManager
 
 logger = structlog.get_logger(__name__)
 
@@ -32,7 +32,7 @@ class TUIProcessManager:
             config_path: Optional path to configuration file
         """
         self.config_path = config_path
-        self.user_config = get_user_config(config_path)
+        self.user_config = UserConfigManager(config_path)
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
         
         # Process management
@@ -95,8 +95,7 @@ class TUIProcessManager:
             
             # Build server command
             server_cmd = [
-                sys.executable, "-m", "src.server_launcher",
-                "--tcp-mode"
+                sys.executable, "-m", "src.server_launcher"
             ]
             
             if self.config_path:
@@ -227,14 +226,14 @@ class DShieldTUILauncher:
             config_path: Optional path to configuration file
         """
         self.config_path = config_path
-        self.user_config = get_user_config(config_path)
+        self.user_config = UserConfigManager(config_path)
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
         
         # Components
         self.process_manager = TUIProcessManager(config_path)
         self.tui_app: Optional[DShieldTUIApp] = None
     
-    async def run(self) -> None:
+    def run(self) -> None:
         """Run the TUI application with server management.
         
         This method starts the TUI application and manages the server process.
@@ -247,21 +246,31 @@ class DShieldTUILauncher:
                 self.logger.error("TUI is disabled in configuration")
                 return
             
-            # Start server if auto-start is enabled
-            if self.user_config.tui_settings.auto_start_server:
+            # Start server if auto-start is enabled (run in sync context)
+            if self.user_config.tui_settings.server_management.get("auto_start_server", True):
                 self.logger.info("Auto-starting server")
-                await self.process_manager.start_server()
+                # Start server in a separate thread to avoid blocking
+                import threading
+                def start_server_sync():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(self.process_manager.start_server())
+                    loop.close()
+                
+                server_thread = threading.Thread(target=start_server_sync)
+                server_thread.start()
+                server_thread.join(timeout=5)  # Wait up to 5 seconds
             
             # Create and run TUI application
             self.tui_app = DShieldTUIApp(self.config_path)
             
             # Override server management methods to use process manager
-            self.tui_app._start_server = self._start_server
-            self.tui_app._stop_server = self._stop_server
-            self.tui_app._restart_server = self._restart_server
+            self.tui_app._start_server = self._start_server_sync
+            self.tui_app._stop_server = self._stop_server_sync
+            self.tui_app._restart_server = self._restart_server_sync
             
             # Run the TUI application
-            await self.tui_app.run_async()
+            self.tui_app.run()
             
         except KeyboardInterrupt:
             self.logger.info("TUI interrupted by user")
@@ -269,34 +278,104 @@ class DShieldTUILauncher:
             self.logger.error("Error running TUI", error=str(e))
             raise
         finally:
-            await self.cleanup()
+            # Cleanup in sync context
+            self.cleanup_sync()
     
-    async def _start_server(self) -> None:
+    def _start_server_sync(self) -> None:
         """Start the server (called by TUI app)."""
-        success = await self.process_manager.start_server()
-        if success:
-            self.tui_app.server_running = True
-            self.tui_app.notify("Server started successfully", timeout=3)
-        else:
-            self.tui_app.notify("Failed to start server", timeout=5)
+        import threading
+        def start_server_async():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                success = loop.run_until_complete(self.process_manager.start_server())
+                if success:
+                    self.tui_app.server_running = True
+                    self.tui_app.notify("Server started successfully", timeout=3)
+                else:
+                    self.tui_app.notify("Failed to start server", timeout=5)
+            finally:
+                loop.close()
+        
+        thread = threading.Thread(target=start_server_async)
+        thread.start()
     
-    async def _stop_server(self) -> None:
+    def _stop_server_sync(self) -> None:
         """Stop the server (called by TUI app)."""
-        success = await self.process_manager.stop_server()
-        if success:
-            self.tui_app.server_running = False
-            self.tui_app.notify("Server stopped successfully", timeout=3)
-        else:
-            self.tui_app.notify("Failed to stop server", timeout=5)
+        import threading
+        def stop_server_async():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                success = loop.run_until_complete(self.process_manager.stop_server())
+                if success:
+                    self.tui_app.server_running = False
+                    self.tui_app.notify("Server stopped successfully", timeout=3)
+                else:
+                    self.tui_app.notify("Failed to stop server", timeout=5)
+            finally:
+                loop.close()
+        
+        thread = threading.Thread(target=stop_server_async)
+        thread.start()
     
-    async def _restart_server(self) -> None:
+    def _restart_server_sync(self) -> None:
         """Restart the server (called by TUI app)."""
-        success = await self.process_manager.restart_server()
-        if success:
-            self.tui_app.server_running = True
-            self.tui_app.notify("Server restarted successfully", timeout=3)
-        else:
-            self.tui_app.notify("Failed to restart server", timeout=5)
+        import threading
+        def restart_server_async():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                success = loop.run_until_complete(self.process_manager.restart_server())
+                if success:
+                    self.tui_app.server_running = True
+                    self.tui_app.notify("Server restarted successfully", timeout=3)
+                else:
+                    self.tui_app.notify("Failed to restart server", timeout=5)
+            finally:
+                loop.close()
+        
+        thread = threading.Thread(target=restart_server_async)
+        thread.start()
+    
+    def cleanup_sync(self) -> None:
+        """Clean up resources in sync context."""
+        try:
+            self.logger.info("Cleaning up TUI launcher")
+            
+            # Stop server if running
+            if self.process_manager.server_running:
+                import threading
+                def stop_server_async():
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        loop.run_until_complete(self.process_manager.stop_server())
+                    finally:
+                        loop.close()
+                
+                thread = threading.Thread(target=stop_server_async)
+                thread.start()
+                thread.join(timeout=5)
+            
+            # Clean up process manager
+            import threading
+            def cleanup_async():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    loop.run_until_complete(self.process_manager.cleanup())
+                finally:
+                    loop.close()
+            
+            thread = threading.Thread(target=cleanup_async)
+            thread.start()
+            thread.join(timeout=5)
+            
+            self.logger.info("TUI launcher cleanup completed")
+            
+        except Exception as e:
+            self.logger.error("Error during TUI launcher cleanup", error=str(e))
     
     async def cleanup(self) -> None:
         """Clean up resources."""
@@ -342,7 +421,7 @@ def run_tui(config_path: Optional[str] = None) -> None:
     try:
         # Create and run the TUI launcher
         launcher = DShieldTUILauncher(config_path)
-        asyncio.run(launcher.run())
+        launcher.run()
         
     except KeyboardInterrupt:
         logger.info("TUI interrupted by user")

@@ -7,32 +7,32 @@ including starting/stopping the server, viewing server status, and configuration
 
 from datetime import datetime
 from typing import Any, Dict, Optional
-from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Input, Label
-from textual.message import Message
-from textual.reactive import reactive
-from textual.app import ComposeResult
+from textual.containers import Container, Vertical, Horizontal  # type: ignore
+from textual.widgets import Static, Button, Input, Label  # type: ignore
+from textual.message import Message  # type: ignore
+from textual.reactive import reactive  # type: ignore
+from textual.app import ComposeResult  # type: ignore
 import structlog
 
 logger = structlog.get_logger(__name__)
 
 
-class ServerStart(Message):
+class ServerStart(Message):  # type: ignore
     """Message sent when server should be started."""
     pass
 
 
-class ServerStop(Message):
+class ServerStop(Message):  # type: ignore
     """Message sent when server should be stopped."""
     pass
 
 
-class ServerRestart(Message):
+class ServerRestart(Message):  # type: ignore
     """Message sent when server should be restarted."""
     pass
 
 
-class ServerConfigUpdate(Message):
+class ServerConfigUpdate(Message):  # type: ignore
     """Message sent when server configuration should be updated."""
     
     def __init__(self, config: Dict[str, Any]) -> None:
@@ -45,7 +45,7 @@ class ServerConfigUpdate(Message):
         self.config = config
 
 
-class ServerPanel(Container):
+class ServerPanel(Container):  # type: ignore
     """Panel for managing the MCP server.
     
     This panel provides controls for starting/stopping the server,
@@ -147,6 +147,12 @@ class ServerPanel(Container):
         stop_btn.disabled = not running
         restart_btn.disabled = not running
         
+        self.logger.debug("Updated server button states", 
+                         running=running, 
+                         start_disabled=start_btn.disabled,
+                         stop_disabled=stop_btn.disabled,
+                         restart_disabled=restart_btn.disabled)
+        
         # Update status text
         status_text = self.query_one("#server-status-text", Static)
         if running:
@@ -207,10 +213,13 @@ class ServerPanel(Container):
         button_id = event.button.id
         
         if button_id == "start-server-btn":
+            self.logger.debug("Start server button pressed")
             self._start_server()
         elif button_id == "stop-server-btn":
+            self.logger.debug("Stop server button pressed")
             self._stop_server()
         elif button_id == "restart-server-btn":
+            self.logger.debug("Restart server button pressed")
             self._restart_server()
         elif button_id == "apply-config-btn":
             self._apply_config()

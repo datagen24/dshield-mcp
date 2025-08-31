@@ -7,7 +7,7 @@ network-based MCP protocol communication with authentication and rate limiting.
 
 import asyncio
 import json
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from datetime import datetime
 import structlog
 
@@ -30,7 +30,7 @@ class TCPConnection:
     """
     
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, 
-                 client_address: tuple, api_key: Optional[str] = None) -> None:
+                 client_address: Tuple[str, int], api_key: Optional[str] = None) -> None:
         """Initialize a TCP connection.
         
         Args:
@@ -92,7 +92,7 @@ class RateLimiter:
         """
         self.requests_per_minute = requests_per_minute
         self.burst_limit = burst_limit
-        self.tokens = burst_limit
+        self.tokens: float = float(burst_limit)
         self.last_refill = datetime.utcnow()
     
     def is_allowed(self) -> bool:
@@ -138,9 +138,9 @@ class TCPTransport(BaseTransport):
             config: TCP-specific configuration
         """
         super().__init__(server, config)
-        self.server_socket = None
+        self.server_socket: Optional[asyncio.Server] = None
         self.connections: Set[TCPConnection] = set()
-        self._cleanup_task = None
+        self._cleanup_task: Optional[asyncio.Task[None]] = None
     
     @property
     def transport_type(self) -> str:
@@ -233,8 +233,11 @@ class TCPTransport(BaseTransport):
             self.logger.info("Running TCP transport main loop")
             
             # Start serving
-            async with self.server_socket:
-                await self.server_socket.serve_forever()
+            if self.server_socket is not None:
+                async with self.server_socket:
+                    await self.server_socket.serve_forever()
+            else:
+                raise TransportError("Server socket is not initialized", "tcp")
                 
         except Exception as e:
             self.logger.error("TCP transport main loop failed", error=str(e))
@@ -412,7 +415,7 @@ class TCPTransport(BaseTransport):
         """
         return len(self.connections)
     
-    def get_connections_info(self) -> list:
+    def get_connections_info(self) -> List[Dict[str, Any]]:
         """Get information about active connections.
         
         Returns:

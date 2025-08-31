@@ -13,7 +13,7 @@ import structlog
 
 from .transport.transport_manager import TransportManager
 from .tcp_server import EnhancedTCPServer
-from .user_config import get_user_config
+from .user_config import UserConfigManager
 
 logger = structlog.get_logger(__name__)
 
@@ -32,7 +32,7 @@ class DShieldServerLauncher:
             config_path: Optional path to configuration file
         """
         self.config_path = config_path
-        self.user_config = get_user_config(config_path)
+        self.user_config = UserConfigManager(config_path)
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
         
         # Server components

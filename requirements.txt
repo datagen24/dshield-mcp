@@ -27,6 +27,16 @@ numpy>=1.24.0
 scipy>=1.10.0
 scikit-learn>=1.3.0
 
+# TUI and Terminal Interface
+textual>=5.0.0
+rich>=13.3.3
+
+# TCP Transport and Process Management
+psutil>=5.9.0
+
+# Network and Security
+cryptography>=41.0.0
+
 # Development dependencies (optional)
 pytest>=7.0.0
 pytest-asyncio>=0.21.0

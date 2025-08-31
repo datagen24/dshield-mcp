@@ -6,17 +6,17 @@ including filtering, searching, and log level management.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
-from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, Input, TextArea, Checkbox
-from textual.message import Message
-from textual.app import ComposeResult
+from typing import Any, Dict, List, Set
+from textual.containers import Container, Vertical, Horizontal  # type: ignore
+from textual.widgets import Static, Button, Input, TextArea, Checkbox  # type: ignore
+from textual.message import Message  # type: ignore
+from textual.app import ComposeResult  # type: ignore
 import structlog
 
 logger = structlog.get_logger(__name__)
 
 
-class LogFilterUpdate(Message):
+class LogFilterUpdate(Message):  # type: ignore
     """Message sent when log filter is updated."""
     
     def __init__(self, filter_config: Dict[str, Any]) -> None:
@@ -29,12 +29,12 @@ class LogFilterUpdate(Message):
         self.filter_config = filter_config
 
 
-class LogClear(Message):
+class LogClear(Message):  # type: ignore
     """Message sent when logs should be cleared."""
     pass
 
 
-class LogExport(Message):
+class LogExport(Message):  # type: ignore
     """Message sent when logs should be exported."""
     
     def __init__(self, export_path: str) -> None:
@@ -47,7 +47,7 @@ class LogExport(Message):
         self.export_path = export_path
 
 
-class LogPanel(Container):
+class LogPanel(Container):  # type: ignore
     """Panel for displaying and managing logs.
     
     This panel provides real-time log display with filtering, searching,
@@ -67,7 +67,7 @@ class LogPanel(Container):
         self.log_entries: List[Dict[str, Any]] = []
         self.filtered_entries: List[Dict[str, Any]] = []
         self.max_entries = 1000  # Maximum number of log entries to keep
-        self.filter_config = {
+        self.filter_config: Dict[str, Any] = {
             "levels": {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
             "search_text": "",
             "show_timestamps": True,
@@ -113,7 +113,7 @@ class LogPanel(Container):
             
             # Log display
             yield Static("Log Entries:", classes="section-title")
-            yield TextArea(id="log-display", read_only=True, wrap=True)
+            yield TextArea(id="log-display", read_only=True)
     
     def on_mount(self) -> None:
         """Handle panel mount event."""
@@ -129,6 +129,8 @@ class LogPanel(Container):
         Args:
             entries: List of log entries to add
         """
+        self.logger.debug("add_log_entries called", entries_count=len(entries), entries=entries)
+        
         for entry in entries:
             self.log_entries.append(entry)
         
@@ -136,11 +138,13 @@ class LogPanel(Container):
         if len(self.log_entries) > self.max_entries:
             self.log_entries = self.log_entries[-self.max_entries:]
         
+        self.logger.debug("Applied filters and updating display", total_entries=len(self.log_entries))
+        
         # Apply filters and update display
         self._apply_filters()
         self._update_display()
         
-        self.logger.debug("Added log entries", count=len(entries), total=len(self.log_entries))
+        self.logger.debug("Added log entries", count=len(entries), total=len(self.log_entries), filtered=len(self.filtered_entries))
     
     def clear_logs(self) -> None:
         """Clear all log entries."""
@@ -164,7 +168,8 @@ class LogPanel(Container):
             else:
                 level = "INFO"
             
-            if level not in self.filter_config["levels"]:
+            filter_levels = self.filter_config["levels"]
+            if isinstance(filter_levels, set) and level not in filter_levels:
                 continue
             
             # Check search filter
@@ -265,10 +270,12 @@ class LogPanel(Container):
         
         if checkbox_id.startswith("filter-"):
             level = checkbox_id.replace("filter-", "").upper()
-            if event.checkbox.value:
-                self.filter_config["levels"].add(level)
-            else:
-                self.filter_config["levels"].discard(level)
+            filter_levels = self.filter_config["levels"]
+            if isinstance(filter_levels, set):
+                if event.checkbox.value:
+                    filter_levels.add(level)
+                else:
+                    filter_levels.discard(level)
             
             self._apply_filters()
             self._update_display()

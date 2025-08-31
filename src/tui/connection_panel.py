@@ -6,16 +6,16 @@ including viewing active connections, disconnecting clients, and managing API ke
 """
 
 from typing import Any, Dict, List, Optional
-from textual.containers import Container, Vertical, Horizontal
-from textual.widgets import Static, Button, DataTable
-from textual.message import Message
-from textual.app import ComposeResult
+from textual.containers import Container, Vertical, Horizontal  # type: ignore
+from textual.widgets import Static, Button, DataTable  # type: ignore
+from textual.message import Message  # type: ignore
+from textual.app import ComposeResult  # type: ignore
 import structlog
 
 logger = structlog.get_logger(__name__)
 
 
-class ConnectionDisconnect(Message):
+class ConnectionDisconnect(Message):  # type: ignore
     """Message sent when a connection should be disconnected."""
     
     def __init__(self, client_address: str) -> None:
@@ -28,7 +28,7 @@ class ConnectionDisconnect(Message):
         self.client_address = client_address
 
 
-class APIKeyGenerate(Message):
+class APIKeyGenerate(Message):  # type: ignore
     """Message sent when a new API key should be generated."""
     
     def __init__(self, permissions: Optional[Dict[str, Any]] = None) -> None:
@@ -41,7 +41,7 @@ class APIKeyGenerate(Message):
         self.permissions = permissions or {}
 
 
-class APIKeyRevoke(Message):
+class APIKeyRevoke(Message):  # type: ignore
     """Message sent when an API key should be revoked."""
     
     def __init__(self, api_key_id: str) -> None:
@@ -54,7 +54,7 @@ class APIKeyRevoke(Message):
         self.api_key_id = api_key_id
 
 
-class ConnectionPanel(Container):
+class ConnectionPanel(Container):  # type: ignore
     """Panel for managing TCP connections and API keys.
     
     This panel displays active connections, allows disconnecting clients,
@@ -158,28 +158,37 @@ class ConnectionPanel(Container):
         Args:
             api_keys: List of API key information
         """
+        self.logger.debug("update_api_keys called", api_keys_count=len(api_keys), api_keys=api_keys)
         self.api_keys = api_keys
-        api_keys_table = self.query_one("#api-keys-table", DataTable)
         
-        # Clear existing data
-        api_keys_table.clear()
-        
-        # Add API key data
-        for key in api_keys:
-            permissions = key.get("permissions", {})
-            permissions_str = ", ".join([
-                f"{k}: {v}" for k, v in permissions.items() if v
-            ])
+        try:
+            api_keys_table = self.query_one("#api-keys-table", DataTable)
+            self.logger.debug("Found API keys table")
             
-            api_keys_table.add_row(
-                key.get("key_id", "Unknown"),
-                key.get("created_at", "Unknown"),
-                key.get("expires_at", "Unknown"),
-                permissions_str or "None",
-                str(key.get("active_sessions", 0))
-            )
-        
-        self.logger.debug("Updated API keys display", count=len(api_keys))
+            # Clear existing data
+            api_keys_table.clear()
+            self.logger.debug("Cleared API keys table")
+            
+            # Add API key data
+            for key in api_keys:
+                permissions = key.get("permissions", {})
+                permissions_str = ", ".join([
+                    f"{k}: {v}" for k, v in permissions.items() if v
+                ])
+                
+                api_keys_table.add_row(
+                    key.get("key_id", "Unknown"),
+                    key.get("created_at", "Unknown"),
+                    key.get("expires_at", "Unknown"),
+                    permissions_str or "None",
+                    str(key.get("active_sessions", 0))
+                )
+                self.logger.debug("Added API key row", key_id=key.get("key_id"))
+            
+            self.logger.debug("Updated API keys display", count=len(api_keys))
+            
+        except Exception as e:
+            self.logger.error("Error updating API keys display", error=str(e))
     
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events.
