@@ -81,36 +81,83 @@ class TransportManager:
         return "stdio"
     
     def _is_tui_parent(self) -> bool:
-        """Check if TUI is the parent process.
+        """Check if TUI is the parent process using multiple detection strategies.
+        
+        Detection order:
+        1. Check environment variable DSHIELD_TUI_MODE
+        2. Check parent process name/cmdline for TUI indicators
+        3. Check for TUI-specific markers in command line
+        4. Default to STDIO if uncertain
         
         Returns:
             True if TUI appears to be the parent process
         """
+        # Strategy 1: Check environment variable first (most reliable)
+        if os.getenv("DSHIELD_TUI_MODE", "").lower() in ("true", "1", "yes"):
+            self.logger.debug("TUI detection: Environment variable DSHIELD_TUI_MODE is set")
+            return True
+        
+        # Strategy 2: Check parent process information
         try:
             current_process = psutil.Process()
             parent_process = current_process.parent()
             
             if parent_process:
+                parent_pid = parent_process.pid
                 parent_name = parent_process.name().lower()
                 parent_cmdline = " ".join(parent_process.cmdline()).lower()
                 
-                # Check for TUI-related process names or command lines
+                self.logger.debug("TUI detection: Parent process info", 
+                                parent_pid=parent_pid, 
+                                parent_name=parent_name,
+                                parent_cmdline=parent_cmdline)
+                
+                # Strategy 3: Check for TUI-specific command line markers
                 tui_indicators = [
                     "tui", "textual", "rich", "curses",
-                    "dshield-mcp-tui", "mcp-tui"
+                    "dshield-mcp-tui", "mcp-tui", "tui_launcher.py"
                 ]
                 
                 for indicator in tui_indicators:
                     if indicator in parent_name or indicator in parent_cmdline:
+                        self.logger.debug("TUI detection: Found TUI indicator in parent", 
+                                        indicator=indicator,
+                                        found_in_name=indicator in parent_name,
+                                        found_in_cmdline=indicator in parent_cmdline)
                         return True
                 
-                # Check if parent is running in a terminal multiplexer
-                if any(mux in parent_cmdline for mux in ["tmux", "screen", "byobu"]):
-                    return True
-                    
+                # Strategy 4: Check if parent is running in a terminal multiplexer
+                terminal_multiplexers = ["tmux", "screen", "byobu"]
+                for mux in terminal_multiplexers:
+                    if mux in parent_cmdline:
+                        self.logger.debug("TUI detection: Found terminal multiplexer", 
+                                        multiplexer=mux)
+                        return True
+                
+                self.logger.debug("TUI detection: No TUI indicators found in parent process")
+            else:
+                self.logger.debug("TUI detection: No parent process found")
+                
+        except psutil.NoSuchProcess:
+            self.logger.debug("TUI detection: Parent process no longer exists")
+        except psutil.AccessDenied:
+            self.logger.debug("TUI detection: Access denied to parent process")
         except Exception as e:
-            self.logger.debug("Error checking parent process", error=str(e))
+            self.logger.debug("TUI detection: Error checking parent process", error=str(e))
         
+        # Strategy 5: Fallback - check current process command line for TUI markers
+        try:
+            current_cmdline = " ".join(psutil.Process().cmdline()).lower()
+            tui_launcher_indicators = ["tui_launcher.py", "src.tui_launcher", "-m src.tui_launcher"]
+            for indicator in tui_launcher_indicators:
+                if indicator in current_cmdline:
+                    self.logger.debug("TUI detection: Found TUI launcher indicator in current process", 
+                                    indicator=indicator)
+                    return True
+        except Exception as e:
+            self.logger.debug("TUI detection: Error checking current process", error=str(e))
+        
+        self.logger.debug("TUI detection: No TUI indicators found, defaulting to STDIO")
         return False
     
     def _has_tcp_flag(self) -> bool:

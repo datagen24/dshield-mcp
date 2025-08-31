@@ -493,3 +493,84 @@ The implementation plan is now complete with all user requirements incorporated.
 ✅ **Terminal Integration** for any environment (tmux, screen, etc.)  
 
 **Ready to proceed with implementation on TUI-andTCP branch.**
+
+## Enhanced TUI Detection Implementation
+
+### Overview
+The transport manager now includes enhanced TUI detection capabilities that automatically determine whether the MCP server should run in STDIO or TCP mode based on the execution context.
+
+### Detection Strategies
+The `_is_tui_parent()` method in `src/transport/transport_manager.py` implements a multi-layered detection approach:
+
+#### 1. Environment Variable Detection (Primary)
+- **Variable**: `DSHIELD_TUI_MODE`
+- **Values**: `true`, `TRUE`, `True`, `1`, `yes`, `YES`, `Yes`
+- **Priority**: Highest - most reliable detection method
+- **Usage**: Set by TUI launcher when spawning server subprocess
+
+#### 2. Parent Process Analysis
+- **Method**: Analyzes parent process name and command line
+- **Indicators**: `tui`, `textual`, `rich`, `curses`, `dshield-mcp-tui`, `mcp-tui`, `tui_launcher.py`
+- **Terminal Multiplexers**: `tmux`, `screen`, `byobu`
+- **Error Handling**: Graceful handling of `psutil.NoSuchProcess` and `psutil.AccessDenied`
+
+#### 3. Current Process Command Line Analysis
+- **Method**: Checks current process command line for TUI indicators
+- **Indicators**: `tui_launcher.py`, `src.tui_launcher`, `-m src.tui_launcher`
+- **Fallback**: Used when parent process detection fails
+
+#### 4. Default Behavior
+- **Fallback**: Returns `False` (STDIO mode) if no TUI indicators found
+- **Safety**: Conservative approach ensures compatibility
+
+### Debug Logging
+Comprehensive debug logging tracks the detection process:
+- Parent process information (PID, name, command line)
+- Detection strategy results
+- Error conditions and fallbacks
+- Final detection decision
+
+### Usage Examples
+
+#### TUI Launcher Integration
+```python
+# TUI launcher sets environment variable
+env = os.environ.copy()
+env["DSHIELD_TUI_MODE"] = "true"
+
+# Spawn server subprocess
+server_process = subprocess.Popen(
+    [sys.executable, "-m", "src.server_launcher"],
+    env=env
+)
+```
+
+#### Direct Server Execution
+```bash
+# STDIO mode (default)
+python -m src.server_launcher
+
+# TCP mode via environment variable
+DSHIELD_TUI_MODE=true python -m src.server_launcher
+
+# TCP mode via command line flag
+python -m src.server_launcher --tcp
+```
+
+### Testing
+Comprehensive test suite in `tests/test_enhanced_tui_detection.py` covers:
+- Environment variable detection (true/false values)
+- Parent process indicator detection
+- Terminal multiplexer detection
+- Current process command line detection
+- Exception handling (NoSuchProcess, AccessDenied)
+- Transport mode detection integration
+- Debug logging verification
+- Integration testing with actual TUI launcher
+
+### Benefits
+1. **Automatic Mode Selection**: No manual configuration required
+2. **Robust Detection**: Multiple fallback strategies ensure reliability
+3. **Error Resilience**: Graceful handling of process access issues
+4. **Debug Visibility**: Comprehensive logging for troubleshooting
+5. **Backward Compatibility**: Maintains existing STDIO behavior as default
