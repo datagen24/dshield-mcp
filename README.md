@@ -15,6 +15,7 @@ This MCP (Model Context Protocol) utility connects your DShield SIEM with ChatGP
 - **Config Optimization**: Streamlined index patterns to minimize connection retries
 - **LaTeX Template Automation**: Generate professional security reports using customizable LaTeX templates with variable substitution and PDF compilation
 - **Data Availability Diagnostics**: Comprehensive troubleshooting tools for data availability issues with actionable recommendations
+- **Persistent API Key Management**: Secure API key storage and management with 1Password integration, configurable permissions, and expiration handling
 
 ## DShield-Specific Capabilities
 
@@ -44,6 +45,40 @@ The following index patterns are supported and optimized for minimal retries:
 - **DShieldGeographicData**: Geographic attack distribution
 - **DShieldPortData**: Port-based attack analysis
 - **DShieldStatistics**: Comprehensive DShield statistics
+
+### API Key Management
+The system provides comprehensive API key management with persistent storage and security features:
+
+**Key Features:**
+- **Persistent Storage**: API keys stored securely in 1Password using the `op` CLI
+- **Configurable Permissions**: Granular permission control (read tools, write back, admin access)
+- **Expiration Management**: Configurable expiration periods with automatic validation
+- **Rate Limiting**: Per-key rate limiting to prevent abuse
+- **TUI Management**: Visual interface for key generation, management, and deletion
+- **Session Management**: Automatic session termination when keys are revoked
+
+**Configuration:**
+```yaml
+api_key_management:
+  storage_provider: "1password_cli"
+  onepassword_cli:
+    vault: "DShield-MCP"  # Your 1Password vault name
+    cache_ttl: 60
+    sync_interval: 60
+  defaults:
+    expiration_days: 90
+    rate_limit_per_minute: 60
+    permissions:
+      read_tools: true
+      write_back: false
+      admin_access: false
+```
+
+**Usage:**
+- Generate keys through the TUI interface or programmatically
+- Keys are automatically loaded on server startup
+- Expired keys are automatically rejected
+- Keys can be deleted with automatic session termination
 
 ### Diagnostic & Troubleshooting
 The system includes comprehensive diagnostic capabilities to help troubleshoot data availability issues:

@@ -90,7 +90,7 @@ class TUIProcessManager:
             
             # Set environment variable to indicate TUI mode
             env = os.environ.copy()
-            env["DSHIELD_MCP_TUI_MODE"] = "true"
+            env["DSHIELD_TUI_MODE"] = "true"
             env["DSHIELD_MCP_TCP_MODE"] = "true"
             
             # Build server command

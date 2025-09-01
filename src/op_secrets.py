@@ -11,6 +11,7 @@ Features:
 - Environment variable resolution
 - Complex value processing with embedded URLs
 - Error handling and logging
+- Backward compatibility with existing API
 
 Example:
     >>> from src.op_secrets import OnePasswordSecrets
@@ -23,6 +24,8 @@ import subprocess
 import re
 from typing import Optional, Dict, Any
 import structlog
+
+from .secrets.onepassword_cli_manager import OnePasswordCLIManager
 
 logger = structlog.get_logger(__name__)
 
@@ -162,4 +165,198 @@ class OnePasswordSecrets:
                                  op_url=op_url, 
                                  original_value=value)
             return resolved_value
-        return value 
+        return value
+
+
+class OnePasswordAPIKeyManager:
+    """Enhanced 1Password integration for API key management.
+    
+    This class provides comprehensive API key management using the new
+    secrets abstraction layer while maintaining compatibility with
+    existing op:// URL resolution functionality.
+    
+    Attributes:
+        secrets_manager: The underlying OnePasswordCLIManager instance
+        op_secrets: The legacy OnePasswordSecrets instance for URL resolution
+    """
+    
+    def __init__(self, vault: str = "DShield-MCP") -> None:
+        """Initialize the API key manager.
+        
+        Args:
+            vault: The 1Password vault to use for API key storage
+        """
+        self.secrets_manager = OnePasswordCLIManager(vault)
+        self.op_secrets = OnePasswordSecrets()
+        self.logger = structlog.get_logger(__name__)
+    
+    async def generate_api_key(
+        self,
+        name: str,
+        permissions: Optional[Dict[str, Any]] = None,
+        expiration_days: Optional[int] = None,
+        rate_limit: Optional[int] = None
+    ) -> Optional[str]:
+        """Generate a new API key and store it in 1Password.
+        
+        Args:
+            name: Human-readable name for the API key
+            permissions: Dictionary of permissions for the key
+            expiration_days: Number of days until expiration (None for no expiration)
+            rate_limit: Rate limit in requests per minute
+            
+        Returns:
+            The generated API key value if successful, None otherwise
+        """
+        try:
+            import secrets
+            import uuid
+            from datetime import datetime, timedelta
+            
+            # Generate a secure API key
+            key_value = f"dshield_{secrets.token_urlsafe(32)}"
+            key_id = str(uuid.uuid4())
+            
+            # Set default permissions
+            if permissions is None:
+                permissions = {
+                    "read_tools": True,
+                    "write_back": False,
+                    "admin_access": False,
+                    "rate_limit": rate_limit or 60
+                }
+            else:
+                permissions["rate_limit"] = rate_limit or permissions.get("rate_limit", 60)
+            
+            # Calculate expiration
+            expires_at = None
+            if expiration_days:
+                expires_at = datetime.utcnow() + timedelta(days=expiration_days)
+            
+            # Create API key object
+            from .secrets.base_secrets_manager import APIKey
+            api_key = APIKey(
+                key_id=key_id,
+                key_value=key_value,
+                name=name,
+                created_at=datetime.utcnow(),
+                expires_at=expires_at,
+                permissions=permissions,
+                metadata={"generated_by": "dshield-mcp", "version": "1.0"}
+            )
+            
+            # Store in 1Password
+            success = await self.secrets_manager.store_api_key(api_key)
+            if success:
+                self.logger.info(f"Generated new API key: {name} ({key_id})")
+                return key_value
+            else:
+                self.logger.error(f"Failed to store API key: {name}")
+                return None
+                
+        except Exception as e:
+            self.logger.error(f"Error generating API key: {e}")
+            return None
+    
+    async def list_api_keys(self) -> list:
+        """List all API keys stored in 1Password.
+        
+        Returns:
+            List of API key information dictionaries
+        """
+        try:
+            from datetime import datetime
+            api_keys = await self.secrets_manager.list_api_keys()
+            return [
+                {
+                    "key_id": key.key_id,
+                    "name": key.name,
+                    "created_at": key.created_at.isoformat(),
+                    "expires_at": key.expires_at.isoformat() if key.expires_at else None,
+                    "permissions": key.permissions,
+                    "is_expired": key.expires_at and key.expires_at < datetime.utcnow() if key.expires_at else False
+                }
+                for key in api_keys
+            ]
+        except Exception as e:
+            self.logger.error(f"Error listing API keys: {e}")
+            return []
+    
+    async def delete_api_key(self, key_id: str) -> bool:
+        """Delete an API key from 1Password.
+        
+        Args:
+            key_id: The unique identifier of the API key to delete
+            
+        Returns:
+            True if the key was deleted successfully, False otherwise
+        """
+        try:
+            success = await self.secrets_manager.delete_api_key(key_id)
+            if success:
+                self.logger.info(f"Deleted API key: {key_id}")
+            else:
+                self.logger.error(f"Failed to delete API key: {key_id}")
+            return success
+        except Exception as e:
+            self.logger.error(f"Error deleting API key {key_id}: {e}")
+            return False
+    
+    async def validate_api_key(self, key_value: str) -> Optional[Dict[str, Any]]:
+        """Validate an API key and return its information.
+        
+        Args:
+            key_value: The API key value to validate
+            
+        Returns:
+            Dictionary with key information if valid, None otherwise
+        """
+        try:
+            from datetime import datetime
+            api_keys = await self.secrets_manager.list_api_keys()
+            for key in api_keys:
+                if key.key_value == key_value:
+                    # Check if expired
+                    if key.expires_at and key.expires_at < datetime.utcnow():
+                        self.logger.warning(f"API key expired: {key.key_id}")
+                        return None
+                    
+                    return {
+                        "key_id": key.key_id,
+                        "name": key.name,
+                        "permissions": key.permissions,
+                        "created_at": key.created_at,
+                        "expires_at": key.expires_at
+                    }
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error validating API key: {e}")
+            return None
+    
+    def resolve_environment_variable(self, value: str) -> str:
+        """Resolve config value, handling op:// URLs (backward compatibility).
+        
+        This method provides backward compatibility with the existing
+        OnePasswordSecrets.resolve_environment_variable method.
+        
+        Args:
+            value: The config value to resolve
+            
+        Returns:
+            The resolved value
+        """
+        return self.op_secrets.resolve_environment_variable(value)
+    
+    async def health_check(self) -> bool:
+        """Check if the 1Password integration is healthy.
+        
+        Returns:
+            True if both the secrets manager and op CLI are working
+        """
+        try:
+            return await self.secrets_manager.health_check()
+        except Exception as e:
+            self.logger.error(f"Health check failed: {e}")
+            return False 

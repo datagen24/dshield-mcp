@@ -61,8 +61,13 @@ class TransportManager:
         Returns:
             Transport mode identifier ('stdio' or 'tcp')
         """
+        print(f"DEBUG: detect_transport_mode called")
+        print(f"DEBUG: DSHIELD_TUI_MODE = {os.getenv('DSHIELD_TUI_MODE')}")
+        print(f"DEBUG: DSHIELD_MCP_TCP_MODE = {os.getenv('DSHIELD_MCP_TCP_MODE')}")
+        
         # Check if TUI is the parent process
         if self._is_tui_parent():
+            print(f"DEBUG: TUI parent detected, using TCP transport")
             self.logger.info("Detected TUI parent process, using TCP transport")
             return "tcp"
         
@@ -73,10 +78,12 @@ class TransportManager:
         
         # Check environment variable
         if os.getenv("DSHIELD_MCP_TCP_MODE", "").lower() in ("true", "1", "yes"):
+            print(f"DEBUG: TCP mode environment variable detected")
             self.logger.info("Detected TCP mode environment variable, using TCP transport")
             return "tcp"
         
         # Default to STDIO mode
+        print(f"DEBUG: Defaulting to STDIO transport mode")
         self.logger.info("Using default STDIO transport mode")
         return "stdio"
     

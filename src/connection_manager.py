@@ -12,7 +12,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set
 import structlog
 
-from .op_secrets import OnePasswordSecrets
+from .op_secrets import OnePasswordSecrets, OnePasswordAPIKeyManager
+from .secrets.base_secrets_manager import APIKey as BaseAPIKey
 
 logger = structlog.get_logger(__name__)
 
@@ -112,6 +113,9 @@ class ConnectionManager:
         """
         self.config = config or {}
         self.op_secrets = OnePasswordSecrets()
+        self.api_key_manager = OnePasswordAPIKeyManager(
+            vault=config.get("vault", "DShield-MCP") if config else "DShield-MCP"
+        )
         self.api_keys: Dict[str, APIKey] = {}
         self.connections: Set[Any] = set()  # Will store TCPConnection objects
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
@@ -126,57 +130,81 @@ class ConnectionManager:
         and restores them to the in-memory cache.
         """
         try:
-            vault_path = self.config.get("api_key_management", {}).get("vault", "op://vault/item/field")
+            # Load API keys from the new API key manager
+            api_key_list = await self.api_key_manager.list_api_keys()
             
-            # This is a placeholder - actual implementation would query 1Password
-            # for stored API keys and restore them
-            self.logger.info("Loading API keys from 1Password", vault_path=vault_path)
+            for key_info in api_key_list:
+                # Convert the API key info to our local APIKey format
+                api_key = APIKey(
+                    key_id=key_info["key_id"],
+                    key_value=key_info["key_id"],  # We'll need to retrieve the actual value
+                    permissions=key_info["permissions"],
+                    expires_days=90  # Default, will be overridden
+                )
+                
+                # Update timestamps
+                api_key.created_at = datetime.fromisoformat(key_info["created_at"])
+                if key_info["expires_at"]:
+                    api_key.expires_at = datetime.fromisoformat(key_info["expires_at"])
+                
+                # Store in memory cache
+                self.api_keys[api_key.key_value] = api_key
+            
+            self.logger.info(f"Loaded {len(api_key_list)} API keys from 1Password")
             
         except Exception as e:
             self.logger.error("Failed to load API keys from 1Password", error=str(e))
     
-    def generate_api_key(self, permissions: Optional[Dict[str, Any]] = None, 
-                        key_length: int = 32) -> APIKey:
-        """Generate a new API key.
+    async def generate_api_key(self, name: str, permissions: Optional[Dict[str, Any]] = None, 
+                              expiration_days: Optional[int] = None, rate_limit: Optional[int] = None) -> Optional[APIKey]:
+        """Generate a new API key and store it in 1Password.
         
         Args:
+            name: Human-readable name for the API key
             permissions: Permissions for the new API key
-            key_length: Length of the generated key
+            expiration_days: Number of days until expiration
+            rate_limit: Rate limit in requests per minute
             
         Returns:
-            New API key instance
+            New API key instance if successful, None otherwise
         """
-        # Generate secure random key
-        alphabet = string.ascii_letters + string.digits
-        key_value = ''.join(secrets.choice(alphabet) for _ in range(key_length))
-        
-        # Generate unique key ID
-        key_id = f"key_{secrets.token_hex(8)}"
-        
-        # Get default permissions from config
-        default_permissions = self.config.get("permissions", {})
-        if permissions is None:
-            permissions = default_permissions.copy()
-        else:
-            # Merge with defaults
-            merged_permissions = default_permissions.copy()
-            merged_permissions.update(permissions)
-            permissions = merged_permissions
-        
-        # Create API key
-        expires_days = self.config.get("api_key_management", {}).get("key_expiry_days", 90)
-        api_key = APIKey(key_id, key_value, permissions, expires_days)
-        
-        # Store in memory
-        self.api_keys[key_value] = api_key
-        
-        # Store in 1Password (async)
-        asyncio.create_task(self._store_api_key_in_1password(api_key))
-        
-        self.logger.info("Generated new API key", 
-                        key_id=key_id, permissions=permissions)
-        
-        return api_key
+        try:
+            # Generate API key using the new manager
+            key_value = await self.api_key_manager.generate_api_key(
+                name=name,
+                permissions=permissions,
+                expiration_days=expiration_days,
+                rate_limit=rate_limit
+            )
+            
+            if key_value:
+                # Retrieve the full API key info
+                key_info = await self.api_key_manager.validate_api_key(key_value)
+                if key_info:
+                    # Create local APIKey instance
+                    api_key = APIKey(
+                        key_id=key_info["key_id"],
+                        key_value=key_value,
+                        permissions=key_info["permissions"],
+                        expires_days=90  # Will be overridden
+                    )
+                    
+                    # Update timestamps
+                    api_key.created_at = key_info["created_at"]
+                    if key_info["expires_at"]:
+                        api_key.expires_at = key_info["expires_at"]
+                    
+                    # Store in memory cache
+                    self.api_keys[key_value] = api_key
+                    
+                    self.logger.info("Generated new API key", key_id=key_info["key_id"], name=name)
+                    return api_key
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error("Failed to generate API key", error=str(e))
+            return None
     
     async def _store_api_key_in_1password(self, api_key: APIKey) -> None:
         """Store an API key in 1Password.
@@ -196,7 +224,7 @@ class ConnectionManager:
             self.logger.error("Failed to store API key in 1Password", 
                             key_id=api_key.key_id, error=str(e))
     
-    def validate_api_key(self, key_value: str) -> Optional[APIKey]:
+    async def validate_api_key(self, key_value: str) -> Optional[APIKey]:
         """Validate an API key.
         
         Args:
@@ -205,11 +233,31 @@ class ConnectionManager:
         Returns:
             APIKey instance if valid, None if invalid
         """
+        # First check the in-memory cache
         api_key = self.api_keys.get(key_value)
         
         if api_key is None:
-            self.logger.warning("API key not found", key_value=key_value[:8] + "...")
-            return None
+            # Try to validate using the API key manager
+            key_info = await self.api_key_manager.validate_api_key(key_value)
+            if key_info:
+                # Create local APIKey instance
+                api_key = APIKey(
+                    key_id=key_info["key_id"],
+                    key_value=key_value,
+                    permissions=key_info["permissions"],
+                    expires_days=90  # Will be overridden
+                )
+                
+                # Update timestamps
+                api_key.created_at = key_info["created_at"]
+                if key_info["expires_at"]:
+                    api_key.expires_at = key_info["expires_at"]
+                
+                # Store in memory cache
+                self.api_keys[key_value] = api_key
+            else:
+                self.logger.warning("API key not found", key_value=key_value[:8] + "...")
+                return None
         
         if not api_key.is_valid():
             self.logger.warning("API key is invalid", 
@@ -222,6 +270,44 @@ class ConnectionManager:
         api_key.update_usage()
         
         return api_key
+    
+    async def delete_api_key(self, key_id: str) -> bool:
+        """Delete an API key from 1Password and memory cache.
+        
+        Args:
+            key_id: The unique identifier of the API key to delete
+            
+        Returns:
+            True if the key was deleted successfully, False otherwise
+        """
+        try:
+            # Delete from 1Password
+            success = await self.api_key_manager.delete_api_key(key_id)
+            
+            if success:
+                # Remove from memory cache
+                keys_to_remove = [k for k, v in self.api_keys.items() if v.key_id == key_id]
+                for key_value in keys_to_remove:
+                    del self.api_keys[key_value]
+                
+                # Disconnect any active sessions using this key
+                connections_to_close = []
+                for connection in self.connections:
+                    if hasattr(connection, 'api_key') and connection.api_key.key_id == key_id:
+                        connections_to_close.append(connection)
+                
+                for connection in connections_to_close:
+                    await self.close_connection(connection)
+                
+                self.logger.info("Deleted API key and disconnected sessions", key_id=key_id)
+                return True
+            else:
+                self.logger.error("Failed to delete API key from 1Password", key_id=key_id)
+                return False
+                
+        except Exception as e:
+            self.logger.error("Error deleting API key", key_id=key_id, error=str(e))
+            return False
     
     def revoke_api_key(self, key_value: str) -> bool:
         """Revoke an API key.

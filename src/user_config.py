@@ -230,6 +230,36 @@ class TCPTransportSettings:
 
 
 @dataclass
+class APIKeyManagementSettings:
+    """User-configurable API key management settings.
+    
+    Attributes:
+        storage_provider: Secrets management provider (1password_cli, vault_cli, etc.)
+        onepassword_cli: 1Password CLI specific settings
+        defaults: Default settings for new API keys
+        cache_ttl: Cache time-to-live in seconds
+        auto_cleanup_expired: Whether to automatically cleanup expired keys
+    """
+    storage_provider: str = "1password_cli"  # Future: "vault_cli", "aws_secrets_cli"
+    onepassword_cli: Dict[str, Any] = field(default_factory=lambda: {
+        "vault": "DShield-MCP",  # User configurable vault name
+        "cache_ttl": 60,  # Cache refresh interval in seconds
+        "sync_interval": 60,  # Sync interval in seconds
+    })
+    defaults: Dict[str, Any] = field(default_factory=lambda: {
+        "expiration_days": 90,  # Default expiration in days
+        "rate_limit_per_minute": 60,  # Default rate limit
+        "permissions": {
+            "read_tools": True,
+            "write_back": False,
+            "admin_access": False,
+        }
+    })
+    cache_ttl: int = 300  # Cache time-to-live in seconds
+    auto_cleanup_expired: bool = True  # Auto cleanup expired keys
+
+
+@dataclass
 class TUISettings:
     """User-configurable TUI settings.
     
@@ -287,6 +317,7 @@ class UserConfigManager:
         logging_settings: Logging-related settings
         campaign_settings: Campaign analysis settings
         tcp_transport_settings: TCP transport settings
+        api_key_management_settings: API key management settings
         tui_settings: TUI settings
         output_directory: Directory for generated outputs (default: ~/dshield-mcp-output, configurable)
     
@@ -321,6 +352,7 @@ class UserConfigManager:
         self.logging_settings = LoggingSettings()
         self.campaign_settings = CampaignSettings()
         self.tcp_transport_settings = TCPTransportSettings()
+        self.api_key_management_settings = APIKeyManagementSettings()
         self.tui_settings = TUISettings()
         
         # Output directory (default, can be overridden)
@@ -583,6 +615,23 @@ class UserConfigManager:
                 permissions_config = tcp_config["permissions"]
                 self.tcp_transport_settings.permissions.update(permissions_config)
         
+        # API Key Management Settings
+        if "api_key_management" in user_config:
+            api_key_config = user_config["api_key_management"]
+            self.api_key_management_settings.storage_provider = api_key_config.get("storage_provider", self.api_key_management_settings.storage_provider)
+            self.api_key_management_settings.cache_ttl = api_key_config.get("cache_ttl", self.api_key_management_settings.cache_ttl)
+            self.api_key_management_settings.auto_cleanup_expired = api_key_config.get("auto_cleanup_expired", self.api_key_management_settings.auto_cleanup_expired)
+            
+            # 1Password CLI Settings
+            if "onepassword_cli" in api_key_config:
+                op_config = api_key_config["onepassword_cli"]
+                self.api_key_management_settings.onepassword_cli.update(op_config)
+            
+            # Default Settings
+            if "defaults" in api_key_config:
+                defaults_config = api_key_config["defaults"]
+                self.api_key_management_settings.defaults.update(defaults_config)
+        
         # TUI Settings
         if "tui" in user_config:
             tui_config = user_config["tui"]
@@ -685,6 +734,14 @@ class UserConfigManager:
             errors.append("tcp_transport api_key_management key_length must be at least 16")
         if api_key_mgmt.get("key_expiry_days", 0) <= 0:
             errors.append("tcp_transport api_key_management key_expiry_days must be positive")
+        
+        # API Key Management Settings Validation
+        if self.api_key_management_settings.cache_ttl <= 0:
+            errors.append("api_key_management cache_ttl must be positive")
+        if self.api_key_management_settings.defaults.get("expiration_days", 0) <= 0:
+            errors.append("api_key_management defaults expiration_days must be positive")
+        if self.api_key_management_settings.defaults.get("rate_limit_per_minute", 0) <= 0:
+            errors.append("api_key_management defaults rate_limit_per_minute must be positive")
         
         # TUI Settings Validation
         if self.tui_settings.refresh_interval_ms <= 0:

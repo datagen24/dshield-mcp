@@ -507,6 +507,7 @@ class EnhancedTCPServer:
             Exception: If server fails to start
         """
         try:
+            print(f"DEBUG: EnhancedTCPServer.start() called on port {self.config.get('port')}")
             port = self.config.get("port", 3000)
             bind_address = self.config.get("bind_address", "127.0.0.1")
             max_connections = self.config.get("max_connections", 10)
@@ -530,8 +531,10 @@ class EnhancedTCPServer:
                            port=port, bind_address=bind_address)
             
         except Exception as e:
-            self.logger.error("Failed to start enhanced TCP server", error=str(e))
-            raise
+            print(f"ERROR starting server: {e}")
+            import traceback
+            self.logger.error("Failed to start enhanced TCP server", error=str(e), traceback=traceback.format_exc())
+            raise  # Re-raise to see the error
     
     async def stop(self) -> None:
         """Stop the enhanced TCP server.

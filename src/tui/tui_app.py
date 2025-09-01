@@ -21,6 +21,7 @@ from .connection_panel import ConnectionPanel
 from .server_panel import ServerPanel, ServerStart, ServerStop, ServerRestart
 from .log_panel import LogPanel
 from .status_bar import StatusBar
+from .api_key_panel import APIKeyPanel
 from ..user_config import UserConfigManager
 from ..tcp_server import EnhancedTCPServer
 
@@ -408,10 +409,10 @@ class DShieldTUIApp(App):  # type: ignore
         self._add_log_entry("info", "Stopping TCP server")
         self._stop_server()
     
-    def action_generate_api_key(self) -> None:
+    async def action_generate_api_key(self) -> None:
         """Generate a new API key."""
         self.logger.info("Generating new API key")
-        self._generate_api_key()
+        await self._generate_api_key()
     
     def action_test_log(self) -> None:
         """Test log entry creation."""
@@ -454,6 +455,12 @@ class DShieldTUIApp(App):  # type: ignore
     def _start_server(self) -> None:
         """Start the TCP server."""
         try:
+            self.logger.info("DEBUG: _start_server called")
+            print("DEBUG: Attempting to start TCP server...")
+            
+            # Check if auto_start is enabled
+            print(f"DEBUG: auto_start_server = {self.user_config.tui_settings.server_management.get('auto_start_server', False)}")
+            
             self.logger.info("Starting TCP server")
             
             # Create server configuration
@@ -519,6 +526,11 @@ class DShieldTUIApp(App):  # type: ignore
             # Start the server in a daemon thread
             self.server_thread = threading.Thread(target=start_server_async, daemon=True)
             self.server_thread.start()
+            
+            # Check if the server thread is actually running
+            if self.server_thread:
+                print(f"DEBUG: Server thread started: {self.server_thread.is_alive()}")
+                print(f"DEBUG: Server thread name: {self.server_thread.name}")
             
             # Give the server a moment to start
             import time
@@ -610,45 +622,54 @@ class DShieldTUIApp(App):  # type: ignore
             self.logger.error("Failed to create DShieldMCPServer", error=str(e))
             raise
 
-    def _generate_api_key(self) -> None:
-        """Generate a new API key."""
+    async def _generate_api_key(self) -> None:
+        """Generate a new API key using the new API key management system."""
         try:
             if not self.server_running:
                 self.notify("Server must be running to generate API keys", timeout=3)
                 return
             
-            # For now, simulate API key generation
-            import uuid
-            from datetime import datetime, timedelta
+            # Open the API key generation screen
+            from .screens.api_key_screen import APIKeyGenerationScreen
+            self.push_screen(APIKeyGenerationScreen(), self._on_api_key_generated)
             
-            api_key_id = f"key_{uuid.uuid4().hex[:8]}"
-            api_key_value = uuid.uuid4().hex
+        except Exception as e:
+            self.logger.error("Failed to open API key generation screen", error=str(e))
+            self.notify(f"Failed to open API key generation screen: {e}", timeout=5)
+    
+    async def _on_api_key_generated(self, key_config: Dict[str, Any]) -> None:
+        """Handle API key generation completion."""
+        try:
+            if not self.server_running:
+                self.notify("Server must be running to generate API keys", timeout=3)
+                return
             
-            # Store the generated key
-            if not hasattr(self, 'generated_api_keys'):
-                self.generated_api_keys = []
+            # Get the connection manager from the TCP server
+            connection_manager = getattr(self.tcp_server, 'connection_manager', None)
+            if not connection_manager:
+                self.notify("Connection manager not available", severity="error")
+                return
             
-            key_data = {
-                "key_id": api_key_id,
-                "key_value": api_key_value,
-                "created_at": datetime.now().isoformat(),
-                "expires_at": (datetime.now() + timedelta(days=30)).isoformat(),
-                "permissions": {"read": True, "write": True},
-                "active_sessions": 0
-            }
+            # Generate the API key using the connection manager
+            api_key = await connection_manager.generate_api_key(
+                name=key_config["name"],
+                permissions=key_config["permissions"],
+                expiration_days=key_config["expiration_days"],
+                rate_limit=key_config["rate_limit"]
+            )
             
-            self.generated_api_keys.append(key_data)
-            
-            self.logger.info("Generated new API key (simulation)", api_key_id=api_key_id)
-            self.notify(f"API Key generated: {api_key_id}", timeout=5)
-            
-            # Add log entry for API key generation
-            self._add_log_entry("info", f"API Key generated: {api_key_id}")
-            
-            # Update the connection panel with the new key
-            self.logger.debug("Updating connection panel with new API key", key_id=api_key_id)
-            self._update_connection_panel()
-            
+            if api_key:
+                self.logger.info("Generated new API key", key_id=api_key.key_id, name=key_config["name"])
+                self.notify(f"API Key generated: {key_config['name']} ({api_key.key_id})", timeout=5)
+                
+                # Add log entry for API key generation
+                self._add_log_entry("info", f"API Key generated: {key_config['name']} ({api_key.key_id})")
+                
+                # Update connection panel
+                self._update_connection_panel()
+            else:
+                self.notify("Failed to generate API key", severity="error")
+                
         except Exception as e:
             self.logger.error("Failed to generate API key", error=str(e))
             self.notify(f"Failed to generate API key: {e}", timeout=5)

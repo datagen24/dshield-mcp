@@ -96,7 +96,7 @@ class TCPAuthenticator:
                 )
             
             # Validate API key
-            api_key_obj = self.connection_manager.validate_api_key(api_key)
+            api_key_obj = await self.connection_manager.validate_api_key(api_key)
             if not api_key_obj:
                 raise AuthenticationError(
                     -32001,  # RESOURCE_NOT_FOUND
