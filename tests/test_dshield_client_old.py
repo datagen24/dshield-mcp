@@ -1,10 +1,8 @@
 """Unit tests for DShield client."""
 
 import pytest
-import asyncio
-import aiohttp
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from datetime import datetime, timedelta
+from datetime import datetime
 from src.dshield_client import DShieldClient
 
 # Minimal valid config for DShieldClient

@@ -1,7 +1,7 @@
 """Tests for pagination functionality in DShield MCP service."""
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from src.elasticsearch_client import ElasticsearchClient
 
 @pytest.fixture

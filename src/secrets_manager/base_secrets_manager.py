@@ -23,7 +23,9 @@ class APIKey:
         expires_at: When the key expires (None for no expiration)
         permissions: Dictionary of permissions granted to this key
         metadata: Additional metadata for the key
+
     """
+
     key_id: str
     key_value: str
     name: str
@@ -39,7 +41,7 @@ class BaseSecretsManager(ABC):
     This class defines the interface that all secrets management providers
     must implement, ensuring consistent behavior across different backends.
     """
-    
+
     @abstractmethod
     async def store_api_key(self, api_key: APIKey) -> bool:
         """Store an API key in the secrets manager.
@@ -52,9 +54,9 @@ class BaseSecretsManager(ABC):
             
         Raises:
             RuntimeError: If the secrets manager is not available or configured
+
         """
-        pass
-    
+
     @abstractmethod
     async def retrieve_api_key(self, key_id: str) -> Optional[APIKey]:
         """Retrieve an API key by ID.
@@ -67,9 +69,9 @@ class BaseSecretsManager(ABC):
             
         Raises:
             RuntimeError: If the secrets manager is not available or configured
+
         """
-        pass
-    
+
     @abstractmethod
     async def list_api_keys(self) -> List[APIKey]:
         """List all API keys stored in the secrets manager.
@@ -79,9 +81,9 @@ class BaseSecretsManager(ABC):
             
         Raises:
             RuntimeError: If the secrets manager is not available or configured
+
         """
-        pass
-    
+
     @abstractmethod
     async def delete_api_key(self, key_id: str) -> bool:
         """Delete an API key from the secrets manager.
@@ -94,9 +96,9 @@ class BaseSecretsManager(ABC):
             
         Raises:
             RuntimeError: If the secrets manager is not available or configured
+
         """
-        pass
-    
+
     @abstractmethod
     async def update_api_key(self, api_key: APIKey) -> bool:
         """Update an existing API key in the secrets manager.
@@ -109,14 +111,14 @@ class BaseSecretsManager(ABC):
             
         Raises:
             RuntimeError: If the secrets manager is not available or configured
+
         """
-        pass
-    
+
     @abstractmethod
     async def health_check(self) -> bool:
         """Check if the secrets manager is available and properly configured.
         
         Returns:
             True if the secrets manager is healthy, False otherwise
+
         """
-        pass

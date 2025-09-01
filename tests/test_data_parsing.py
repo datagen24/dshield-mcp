@@ -1,10 +1,6 @@
 """Tests for data parsing and field mapping functionality."""
 
-import pytest
-import json
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, AsyncMock
-from typing import Dict, Any, List
+from unittest.mock import Mock, patch
 
 from src.data_processor import DataProcessor
 from src.elasticsearch_client import ElasticsearchClient

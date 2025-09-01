@@ -1,6 +1,5 @@
 """Unit tests for DataDictionary functionality."""
 
-import pytest
 import json
 from src.data_dictionary import DataDictionary
 

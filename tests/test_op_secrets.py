@@ -2,9 +2,8 @@
 
 import pytest
 import subprocess
-import os
 import yaml
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import patch
 from src.op_secrets import OnePasswordSecrets
 from src.config_loader import get_config, _resolve_secrets, ConfigError
 
@@ -23,6 +22,7 @@ class TestOnePasswordSecrets:
             assert op_secrets.op_available is True
             mock_run.assert_called_once_with(
                 ["op", "--version"],
+                check=False,
                 capture_output=True,
                 text=True,
                 timeout=5

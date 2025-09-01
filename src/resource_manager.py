@@ -1,9 +1,11 @@
 """Resource manager for DShield MCP server."""
-from typing import Callable, Any, List
 import asyncio
+from typing import Any, Callable, List
+
 
 class ResourceManager:
     """Manages resource cleanup during shutdown."""
+
     def __init__(self) -> None:
         self.resources: List[Any] = []
         self.cleanup_handlers: List[Callable[[], Any]] = []
@@ -25,4 +27,4 @@ class ResourceManager:
                 print(f"[MCP SERVER] Resource cleanup error: {e}")
 
     async def force_cleanup(self) -> None:
-        await self.cleanup_all() 
+        await self.cleanup_all()

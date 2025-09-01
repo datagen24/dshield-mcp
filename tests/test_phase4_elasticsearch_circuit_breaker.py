@@ -8,7 +8,6 @@ error handling.
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
-from typing import Dict, Any
 
 from src.elasticsearch_client import ElasticsearchClient
 from src.mcp_error_handler import MCPErrorHandler, ErrorHandlingConfig, CircuitBreaker, CircuitBreakerState

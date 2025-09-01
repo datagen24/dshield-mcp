@@ -5,11 +5,8 @@ Tests for query performance tracking and metrics collection functionality.
 
 import pytest
 import pytest_asyncio
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, patch
 
-from src.elasticsearch_client import ElasticsearchClient
 
 
 class TestPerformanceMetrics:

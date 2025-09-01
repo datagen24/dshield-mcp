@@ -18,7 +18,7 @@ from .transport_manager import TransportManager
 
 __all__ = [
     "BaseTransport",
-    "STDIOTransport", 
+    "STDIOTransport",
     "TCPTransport",
-    "TransportManager"
+    "TransportManager",
 ]

@@ -7,17 +7,11 @@ and integration edge cases.
 
 import pytest
 import pytest_asyncio
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
+from unittest.mock import AsyncMock, patch
 
-from src.elasticsearch_client import ElasticsearchClient
-from src.dshield_client import DShieldClient
 from src.data_processor import DataProcessor
 from src.context_injector import ContextInjector
-from src.campaign_analyzer import CampaignAnalyzer
-from src.user_config import UserConfigManager, get_user_config, reset_user_config
+from src.user_config import get_user_config, reset_user_config
 
 
 class TestRemainingIntegration:

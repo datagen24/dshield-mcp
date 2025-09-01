@@ -9,7 +9,6 @@ import os
 import subprocess
 import sys
 import time
-from typing import Any, Dict, Optional
 from unittest.mock import Mock, patch
 
 import pytest
@@ -288,7 +287,6 @@ class TestEnhancedTUIDetection:
 
     def test_debug_logging_output(self) -> None:
         """Test that debug logging provides useful information."""
-        import logging
         
         # Create a custom logger that captures messages
         captured_messages = []

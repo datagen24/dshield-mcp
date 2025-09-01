@@ -6,11 +6,6 @@ ensuring that the server can be started, stopped, and processes messages correct
 """
 
 import asyncio
-import json
-import socket
-import threading
-import time
-from typing import Any, Dict, List, Optional
 from unittest.mock import Mock, patch
 
 import pytest

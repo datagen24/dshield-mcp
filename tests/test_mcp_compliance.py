@@ -6,10 +6,7 @@ the Model Context Protocol specification and JSON-RPC 2.0 standard.
 """
 
 import pytest
-import json
-import asyncio
-from typing import Dict, Any, List
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import MagicMock
 
 from mcp_server import DShieldMCPServer
 from src.mcp_error_handler import MCPErrorHandler, ErrorHandlingConfig

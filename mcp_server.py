@@ -9,7 +9,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 import sys
 
@@ -2038,7 +2038,7 @@ class DShieldMCPServer:
                 "text": f"Error during statistical anomaly detection: {str(e)}"
             }]
     
-    def _register_resources(self):
+    def _register_resources(self) -> None:
         # Register main resources for cleanup
         if self.elastic_client:
             self.resource_manager.register_cleanup_handler(self.elastic_client.close)
@@ -2254,7 +2254,7 @@ class DShieldMCPServer:
             logger.error("Failed to get LaTeX circuit breaker status", error=str(e))
             return self.error_handler.create_internal_error("get_latex_circuit_breaker_status", e)
 
-    async def _tool_unavailable_response(self, tool_name: str) -> list:
+    async def _tool_unavailable_response(self, tool_name: str) -> List[Dict[str, Any]]:
         """Return a JSON-RPC error response for unavailable tool, and log to stderr."""
         feature_map = {
             'query_dshield_events': 'elasticsearch_queries',

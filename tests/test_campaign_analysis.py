@@ -6,14 +6,11 @@ timeline building, scoring, and MCP tools integration.
 
 import pytest
 import pytest_asyncio
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
 
 from src.campaign_analyzer import CampaignAnalyzer, Campaign, CampaignEvent, CorrelationMethod
 from src.campaign_mcp_tools import CampaignMCPTools
-from src.elasticsearch_client import ElasticsearchClient
 
 
 class TestCampaignAnalysis:

@@ -1,10 +1,8 @@
 """Integration tests for API key persistence and management."""
 
 import pytest
-import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, AsyncMock
-from typing import Any, Dict, List
 
 from src.op_secrets import OnePasswordAPIKeyManager
 from src.connection_manager import ConnectionManager

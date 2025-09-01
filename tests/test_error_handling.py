@@ -17,12 +17,10 @@ Test coverage includes:
 """
 
 import asyncio
-import json
 import pytest
 import sys
-from datetime import datetime
-from typing import Any, Dict, List, Optional
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from typing import Any
+from unittest.mock import Mock
 
 from src.mcp_error_handler import MCPErrorHandler, ErrorHandlingConfig
 

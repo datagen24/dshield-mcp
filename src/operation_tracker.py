@@ -1,9 +1,11 @@
 """Operation tracker for DShield MCP server."""
-from typing import Dict, List
 import asyncio
+from typing import Dict, List
+
 
 class OperationTracker:
     """Tracks active operations for graceful shutdown."""
+
     def __init__(self) -> None:
         self.active_operations: Dict[str, asyncio.Task] = {}
         self.operation_timeouts: Dict[str, int] = {}
@@ -23,4 +25,4 @@ class OperationTracker:
         await asyncio.wait([task for task in self.active_operations.values()], timeout=timeout)
 
     def get_active_operations(self) -> List[str]:
-        return list(self.active_operations.keys()) 
+        return list(self.active_operations.keys())

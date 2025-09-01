@@ -5,11 +5,9 @@ Tests the statistical anomaly detection functionality.
 """
 
 import pytest
-from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from src.statistical_analysis_tools import StatisticalAnalysisTools
-from src.elasticsearch_client import ElasticsearchClient
 
 
 class TestStatisticalAnalysisTools:

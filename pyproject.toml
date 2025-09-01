@@ -1,0 +1,267 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dshield-mcp"
+version = "1.0.0"
+description = "DShield Monitoring and Control Platform - MCP Server"
+authors = [
+    {name = "DShield MCP Team", email = "team@dshield-mcp.org"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Core MCP dependencies
+    "mcp",
+    "structlog>=23.0.0",
+    # Elasticsearch client
+    "elasticsearch>=8.0.0,<9.0.0",
+    # HTTP client for DShield API
+    "aiohttp>=3.12.13",
+    "httpx>=0.24.0",
+    # Data processing and validation
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    # Environment configuration
+    "python-dotenv>=1.0.0",
+    # Async utilities
+    "asyncio-mqtt>=0.13.0",
+    # Date/time handling
+    "python-dateutil>=2.8.0",
+    # Scientific computing and ML (optimized for Apple M-series)
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "scikit-learn>=1.3.0",
+    # TUI and Terminal Interface
+    "textual>=5.0.0",
+    "rich>=13.3.3",
+    # TCP Transport and Process Management
+    "psutil>=5.9.0",
+    # Network and Security
+    "cryptography>=41.0.0",
+    # YAML support
+    "PyYAML>=6.0",
+    # Additional utilities
+    "zipp>=3.23.0",
+    "h11>=0.16.0",
+    "pytest-cov>=6.2.1",
+    "pytest-asyncio>=1.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    
+    # Code formatting and linting
+    "black>=24.3.0",
+    "flake8>=6.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    
+    # Type checking
+    "types-python-dateutil>=2.8.0",
+    
+    # Documentation
+    "sphinx>=6.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+    "pdoc>=14.0.0",
+    "pydoc-markdown>=4.8.0",
+    
+    # Development tools
+    "pre-commit>=3.0.0",
+    "tox>=4.0.0",
+    
+    # Jupyter notebooks (for development/testing)
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
+    
+    # Debugging
+    "ipdb>=0.13.0",
+    
+    # TUI Development and Testing
+    "textual-dev>=0.1.0",
+    
+    # Security and Testing Tools
+    "bandit>=1.7.0",
+    "safety>=2.0.0",
+    
+    # Security fixes
+    "requests>=2.32.4",
+    "setuptools>=78.1.1",
+    "urllib3>=2.5.0",
+    "zipp>=3.19.1",
+]
+
+[project.scripts]
+dshield-mcp = "mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+    "ARG001", # unused-function-argument
+    "ARG002", # unused-method-argument
+    "ARG003", # unused-class-method-argument
+    "ARG004", # unused-static-method-argument
+    "ARG005", # unused-lambda-argument
+    "ASYNC", # flake8-async
+    "A", # flake8-builtins
+    "COM", # flake8-commas
+    "C90", # mccabe
+    "DJ", # flake8-django
+    "EM", # flake8-errmsg
+    "EXE", # flake8-executable
+    "FA", # flake8-future-annotations
+    "ISC", # flake8-implicit-str-concat
+    "ICN", # flake8-import-conventions
+    "G", # flake8-logging-format
+    "INP", # flake8-no-pep420
+    "PIE", # flake8-pie
+    "T20", # flake8-print
+    "PYI", # flake8-pyi
+    "PT", # flake8-pytest-style
+    "Q", # flake8-quotes
+    "RSE", # flake8-raise
+    "RET", # flake8-return
+    "SLF", # flake8-self
+    "SLOT", # flake8-slots
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "TCH", # flake8-type-checking
+    "INT", # flake8-gettext
+    "ARG", # flake8-unused-arguments
+    "PTH", # flake8-use-pathlib
+    "ERA", # eradicate
+    "PD", # pandas-vet
+    "PGH", # pygrep-hooks
+    "PL", # pylint
+    "TRY", # tryceratops
+    "FLY", # flynt
+    "NPY", # numpy
+    "AIR", # airflow
+    "PERF", # perflint
+    "FURB", # refurb
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex
+    "W191", # indentation contains tabs
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D107", # Missing docstring in __init__
+    "D203", # 1 blank line required before class docstring
+    "D213", # Multi-line docstring summary should start at the second line
+    "D400", # First line should end with a period
+    "D401", # First line should be in imperative mood
+    "D415", # First line should end with a period, question mark, or exclamation point
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*.py" = ["D", "S101", "TID252", "PLR2004", "S106", "S108"]
+
+[tool.ruff.isort]
+known-first-party = ["src"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "textual.*",
+    "mcp.*",
+    "elasticsearch.*",
+    "aiohttp.*",
+    "structlog.*",
+    "pydantic.*",
+    "networkx.*",
+    "sklearn.*",
+    "psutil.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]

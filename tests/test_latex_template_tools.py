@@ -8,10 +8,9 @@ error handling.
 
 import json
 import os
-import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import pytest_asyncio
@@ -19,11 +18,7 @@ import pytest_asyncio
 from src.latex_template_tools import LaTeXTemplateTools
 
 if TYPE_CHECKING:
-    from _pytest.capture import CaptureFixture
-    from _pytest.fixtures import FixtureRequest
-    from _pytest.logging import LogCaptureFixture
-    from _pytest.monkeypatch import MonkeyPatch
-    from pytest_mock.plugin import MockerFixture
+    pass
 
 
 class TestLaTeXTemplateTools:

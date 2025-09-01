@@ -30,11 +30,12 @@ Example:
 
 """
 
+import ipaddress
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
+
 from pydantic import BaseModel, Field, field_validator
-import ipaddress
 
 
 class EventSeverity(str, Enum):
@@ -88,7 +89,7 @@ class DShieldEventType(str, Enum):
 
 class SecurityEvent(BaseModel):
     """Model for security events from DShield SIEM."""
-    
+
     id: str = Field(..., description="Unique event identifier")
     timestamp: datetime = Field(..., description="Event timestamp")
     source_ip: Optional[str] = Field(None, description="Source IP address")
@@ -100,7 +101,7 @@ class SecurityEvent(BaseModel):
     severity: EventSeverity = Field(EventSeverity.MEDIUM, description="Event severity")
     category: EventCategory = Field(EventCategory.OTHER, description="Event category")
     description: str = Field(..., description="Event description")
-    
+
     # DShield-specific fields
     country: Optional[str] = Field(None, description="Country of origin")
     asn: Optional[str] = Field(None, description="Autonomous System Number")
@@ -111,12 +112,12 @@ class SecurityEvent(BaseModel):
     last_seen: Optional[datetime] = Field(None, description="Last seen timestamp")
     tags: List[str] = Field(default_factory=list, description="DShield tags")
     attack_types: List[str] = Field(default_factory=list, description="Types of attacks")
-    
+
     # Metadata
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw event data")
     indices: List[str] = Field(default_factory=list, description="Source indices")
-    
-    @field_validator('source_ip', 'destination_ip')
+
+    @field_validator("source_ip", "destination_ip")
     @classmethod
     def validate_ip_address(cls, v: Optional[str]) -> Optional[str]:
         """Validate IP address format.
@@ -137,8 +138,8 @@ class SecurityEvent(BaseModel):
             except ValueError:
                 raise ValueError(f"Invalid IP address: {v}")
         return v
-    
-    @field_validator('source_port', 'destination_port')
+
+    @field_validator("source_port", "destination_port")
     @classmethod
     def validate_port(cls, v: Optional[int]) -> Optional[int]:
         """Validate port number.
@@ -156,8 +157,8 @@ class SecurityEvent(BaseModel):
         if v is not None and (v < 1 or v > 65535):
             raise ValueError(f"Invalid port number: {v}")
         return v
-    
-    @field_validator('reputation_score')
+
+    @field_validator("reputation_score")
     @classmethod
     def validate_reputation_score(cls, v: Optional[float]) -> Optional[float]:
         """Validate reputation score range.
@@ -179,7 +180,7 @@ class SecurityEvent(BaseModel):
 
 class DShieldAttack(BaseModel):
     """Model for DShield attack events."""
-    
+
     id: str = Field(..., description="Unique attack identifier")
     timestamp: datetime = Field(..., description="Attack timestamp")
     source_ip: str = Field(..., description="Attacker IP address")
@@ -190,7 +191,7 @@ class DShieldAttack(BaseModel):
     attack_type: str = Field(..., description="Type of attack")
     severity: EventSeverity = Field(EventSeverity.HIGH, description="Attack severity")
     description: str = Field(..., description="Attack description")
-    
+
     # DShield-specific attack fields
     country: Optional[str] = Field(None, description="Attacker country")
     asn: Optional[str] = Field(None, description="Attacker ASN")
@@ -201,7 +202,7 @@ class DShieldAttack(BaseModel):
     last_seen: Optional[datetime] = Field(None, description="Last attack timestamp")
     tags: List[str] = Field(default_factory=list, description="Attack tags")
     attack_methods: List[str] = Field(default_factory=list, description="Attack methods used")
-    
+
     # Metadata
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw attack data")
     indices: List[str] = Field(default_factory=list, description="Source indices")
@@ -209,7 +210,7 @@ class DShieldAttack(BaseModel):
 
 class DShieldReputation(BaseModel):
     """Model for DShield reputation data."""
-    
+
     ip_address: str = Field(..., description="IP address")
     reputation_score: Optional[float] = Field(None, description="Reputation score (0-100)")
     threat_level: Optional[str] = Field(None, description="Threat level")
@@ -224,8 +225,8 @@ class DShieldReputation(BaseModel):
     port_count: Optional[int] = Field(None, description="Number of ports targeted")
     service_count: Optional[int] = Field(None, description="Number of services targeted")
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw threat data")
-    
-    @field_validator('ip_address')
+
+    @field_validator("ip_address")
     @classmethod
     def validate_ip_address(cls, v):
         """Validate IP address format."""
@@ -234,8 +235,8 @@ class DShieldReputation(BaseModel):
         except ValueError:
             raise ValueError(f"Invalid IP address: {v}")
         return v
-    
-    @field_validator('reputation_score')
+
+    @field_validator("reputation_score")
     @classmethod
     def validate_reputation_score(cls, v):
         """Validate reputation score range."""
@@ -246,7 +247,7 @@ class DShieldReputation(BaseModel):
 
 class DShieldTopAttacker(BaseModel):
     """Model for DShield top attacker data."""
-    
+
     ip_address: str = Field(..., description="Attacker IP address")
     attack_count: int = Field(..., description="Number of attacks")
     country: Optional[str] = Field(None, description="Attacker country")
@@ -260,8 +261,8 @@ class DShieldTopAttacker(BaseModel):
     target_ports: List[int] = Field(default_factory=list, description="Targeted ports")
     target_services: List[str] = Field(default_factory=list, description="Targeted services")
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw attacker data")
-    
-    @field_validator('ip_address')
+
+    @field_validator("ip_address")
     @classmethod
     def validate_ip_address(cls, v):
         """Validate IP address format."""
@@ -274,7 +275,7 @@ class DShieldTopAttacker(BaseModel):
 
 class DShieldGeographicData(BaseModel):
     """Model for DShield geographic data."""
-    
+
     country: str = Field(..., description="Country name")
     country_code: Optional[str] = Field(None, description="Country code")
     attack_count: int = Field(0, description="Number of attacks from this country")
@@ -289,7 +290,7 @@ class DShieldGeographicData(BaseModel):
 
 class DShieldPortData(BaseModel):
     """Model for DShield port data."""
-    
+
     port: int = Field(..., description="Port number")
     service: Optional[str] = Field(None, description="Service name")
     attack_count: int = Field(0, description="Number of attacks on this port")
@@ -300,8 +301,8 @@ class DShieldPortData(BaseModel):
     countries: List[str] = Field(default_factory=list, description="Attacker countries")
     timestamp: datetime = Field(default_factory=datetime.now, description="Data timestamp")
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw port data")
-    
-    @field_validator('port')
+
+    @field_validator("port")
     @classmethod
     def validate_port(cls, v):
         """Validate port number."""
@@ -312,6 +313,7 @@ class DShieldPortData(BaseModel):
 
 class ThreatIntelligenceSource(str, Enum):
     """Threat intelligence sources."""
+
     DSHIELD = "dshield"
     VIRUSTOTAL = "virustotal"
     SHODAN = "shodan"
@@ -322,7 +324,7 @@ class ThreatIntelligenceSource(str, Enum):
 
 class ThreatIntelligence(BaseModel):
     """Model for DShield threat intelligence data."""
-    
+
     ip_address: str = Field(..., description="IP address")
     reputation_score: Optional[float] = Field(None, description="Reputation score (0-100)")
     threat_level: Optional[str] = Field(None, description="Threat level")
@@ -337,8 +339,8 @@ class ThreatIntelligence(BaseModel):
     port_count: Optional[int] = Field(None, description="Number of ports targeted")
     service_count: Optional[int] = Field(None, description="Number of services targeted")
     raw_data: Dict[str, Any] = Field(default_factory=dict, description="Raw threat data")
-    
-    @field_validator('ip_address')
+
+    @field_validator("ip_address")
     @classmethod
     def validate_ip_address(cls, v):
         """Validate IP address format."""
@@ -347,8 +349,8 @@ class ThreatIntelligence(BaseModel):
         except ValueError:
             raise ValueError(f"Invalid IP address: {v}")
         return v
-    
-    @field_validator('reputation_score')
+
+    @field_validator("reputation_score")
     @classmethod
     def validate_reputation_score(cls, v):
         """Validate reputation score range."""
@@ -359,49 +361,49 @@ class ThreatIntelligence(BaseModel):
 
 class ThreatIntelligenceResult(BaseModel):
     """Enhanced threat intelligence result from multiple sources."""
-    
+
     ip_address: str = Field(..., description="IP address")
     domain: Optional[str] = Field(None, description="Associated domain")
-    
+
     # Aggregated threat scores
     overall_threat_score: Optional[float] = Field(None, description="Overall threat score (0-100)")
     confidence_score: Optional[float] = Field(None, description="Confidence in assessment (0-1)")
-    
+
     # Source-specific data
     source_results: Dict[ThreatIntelligenceSource, Dict[str, Any]] = Field(
-        default_factory=dict, description="Results from each source"
+        default_factory=dict, description="Results from each source",
     )
-    
+
     # Correlated indicators
     threat_indicators: List[Dict[str, Any]] = Field(
-        default_factory=list, description="Correlated threat indicators"
+        default_factory=list, description="Correlated threat indicators",
     )
-    
+
     # Geographic and network data
     geographic_data: Dict[str, Any] = Field(
-        default_factory=dict, description="Geographic information"
+        default_factory=dict, description="Geographic information",
     )
     network_data: Dict[str, Any] = Field(
-        default_factory=dict, description="Network infrastructure data"
+        default_factory=dict, description="Network infrastructure data",
     )
-    
+
     # Timestamps
     first_seen: Optional[datetime] = Field(None, description="First seen across sources")
     last_seen: Optional[datetime] = Field(None, description="Last seen across sources")
-    
+
     # Metadata
     sources_queried: List[ThreatIntelligenceSource] = Field(
-        default_factory=list, description="Sources that were queried"
+        default_factory=list, description="Sources that were queried",
     )
     query_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Query timestamp")
     cache_hit: bool = Field(False, description="Whether result was from cache")
-    
+
     # Correlation metrics
     correlation_metrics: Optional[Dict[str, Any]] = Field(
-        None, description="Correlation quality metrics and statistics"
+        None, description="Correlation quality metrics and statistics",
     )
-    
-    @field_validator('ip_address')
+
+    @field_validator("ip_address")
     @classmethod
     def validate_ip_address(cls, v):
         """Validate IP address format."""
@@ -410,16 +412,16 @@ class ThreatIntelligenceResult(BaseModel):
         except ValueError:
             raise ValueError(f"Invalid IP address: {v}")
         return v
-    
-    @field_validator('overall_threat_score')
+
+    @field_validator("overall_threat_score")
     @classmethod
     def validate_overall_threat_score(cls, v):
         """Validate overall threat score range."""
         if v is not None and (v < 0 or v > 100):
             raise ValueError(f"Overall threat score must be between 0 and 100: {v}")
         return v
-    
-    @field_validator('confidence_score')
+
+    @field_validator("confidence_score")
     @classmethod
     def validate_confidence_score(cls, v):
         """Validate confidence score range."""
@@ -430,43 +432,43 @@ class ThreatIntelligenceResult(BaseModel):
 
 class DomainIntelligence(BaseModel):
     """Domain threat intelligence data."""
-    
+
     domain: str = Field(..., description="Domain name")
     threat_score: Optional[float] = Field(None, description="Threat score (0-100)")
     reputation_score: Optional[float] = Field(None, description="Reputation score (0-100)")
-    
+
     # DNS and infrastructure
     ip_addresses: List[str] = Field(default_factory=list, description="Associated IP addresses")
     nameservers: List[str] = Field(default_factory=list, description="Nameservers")
     registrar: Optional[str] = Field(None, description="Domain registrar")
     creation_date: Optional[datetime] = Field(None, description="Domain creation date")
-    
+
     # Threat indicators
     malware_families: List[str] = Field(default_factory=list, description="Associated malware")
     categories: List[str] = Field(default_factory=list, description="Threat categories")
     tags: List[str] = Field(default_factory=list, description="Threat tags")
-    
+
     # Source data
     source_results: Dict[ThreatIntelligenceSource, Dict[str, Any]] = Field(
-        default_factory=dict, description="Results from each source"
+        default_factory=dict, description="Results from each source",
     )
-    
+
     # Metadata
     sources_queried: List[ThreatIntelligenceSource] = Field(
-        default_factory=list, description="Sources that were queried"
+        default_factory=list, description="Sources that were queried",
     )
     query_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Query timestamp")
     cache_hit: bool = Field(False, description="Whether result was from cache")
-    
-    @field_validator('domain')
+
+    @field_validator("domain")
     @classmethod
     def validate_domain(cls, v):
         """Validate domain name format."""
-        if not v or '.' not in v:
+        if not v or "." not in v:
             raise ValueError(f"Invalid domain name: {v}")
         return v.lower()
-    
-    @field_validator('threat_score', 'reputation_score')
+
+    @field_validator("threat_score", "reputation_score")
     @classmethod
     def validate_score(cls, v):
         """Validate score range."""
@@ -477,42 +479,42 @@ class DomainIntelligence(BaseModel):
 
 class AttackReport(BaseModel):
     """Model for structured attack reports."""
-    
+
     report_id: str = Field(..., description="Unique report identifier")
     timestamp: datetime = Field(default_factory=datetime.now, description="Report timestamp")
     title: str = Field(..., description="Report title")
     summary: str = Field(..., description="Executive summary")
-    
+
     # Event analysis
     total_events: int = Field(..., description="Total number of events analyzed")
     unique_ips: int = Field(..., description="Number of unique IP addresses")
     time_range: Dict[str, datetime] = Field(..., description="Analysis time range")
-    
+
     # Threat intelligence
     threat_indicators: List[Dict[str, Any]] = Field(default_factory=list, description="Threat indicators")
     high_risk_ips: List[str] = Field(default_factory=list, description="High-risk IP addresses")
-    
+
     # Attack details
     attack_vectors: List[str] = Field(default_factory=list, description="Attack vectors identified")
     affected_systems: List[str] = Field(default_factory=list, description="Affected systems")
     impact_assessment: str = Field(..., description="Impact assessment")
-    
+
     # DShield-specific fields
     dshield_attacks: List[DShieldAttack] = Field(default_factory=list, description="DShield attack events")
     dshield_reputation: Dict[str, DShieldReputation] = Field(default_factory=dict, description="DShield reputation data")
     top_attackers: List[DShieldTopAttacker] = Field(default_factory=list, description="Top attackers")
     geographic_data: List[DShieldGeographicData] = Field(default_factory=list, description="Geographic data")
     port_data: List[DShieldPortData] = Field(default_factory=list, description="Port data")
-    
+
     # Recommendations
     recommendations: List[str] = Field(default_factory=list, description="Security recommendations")
     mitigation_actions: List[str] = Field(default_factory=list, description="Recommended actions")
-    
+
     # Metadata
     analyst: Optional[str] = Field(None, description="Analyst name")
     confidence_level: str = Field("medium", description="Confidence level of analysis")
     tags: List[str] = Field(default_factory=list, description="Report tags")
-    
+
     # Raw data
     events: List[SecurityEvent] = Field(default_factory=list, description="Analyzed events")
     threat_intelligence: Dict[str, ThreatIntelligence] = Field(default_factory=dict, description="Threat intelligence data")
@@ -520,25 +522,25 @@ class AttackReport(BaseModel):
 
 class SecuritySummary(BaseModel):
     """Model for security summary statistics."""
-    
+
     timestamp: datetime = Field(default_factory=datetime.now, description="Summary timestamp")
     time_range_hours: int = Field(..., description="Time range in hours")
-    
+
     # Event statistics
     total_events: int = Field(0, description="Total number of events")
     events_by_severity: Dict[str, int] = Field(default_factory=dict, description="Events by severity")
     events_by_category: Dict[str, int] = Field(default_factory=dict, description="Events by category")
-    
+
     # Network statistics
     unique_source_ips: int = Field(0, description="Unique source IP addresses")
     unique_destination_ips: int = Field(0, description="Unique destination IP addresses")
     top_source_ips: List[Dict[str, Any]] = Field(default_factory=list, description="Top source IPs by event count")
     top_destination_ips: List[Dict[str, Any]] = Field(default_factory=list, description="Top destination IPs by event count")
-    
+
     # Threat statistics
     high_risk_events: int = Field(0, description="High-risk events")
     threat_intelligence_hits: int = Field(0, description="IPs with threat intelligence")
-    
+
     # DShield-specific statistics
     dshield_attacks: int = Field(0, description="DShield attack events")
     dshield_blocks: int = Field(0, description="DShield block events")
@@ -546,7 +548,7 @@ class SecuritySummary(BaseModel):
     top_attackers: List[DShieldTopAttacker] = Field(default_factory=list, description="Top attackers")
     geographic_distribution: Dict[str, int] = Field(default_factory=dict, description="Attacks by country")
     port_distribution: Dict[int, int] = Field(default_factory=dict, description="Attacks by port")
-    
+
     # Performance metrics
     query_duration_ms: Optional[float] = Field(None, description="Query duration in milliseconds")
     indices_queried: List[str] = Field(default_factory=list, description="Indices queried")
@@ -554,12 +556,12 @@ class SecuritySummary(BaseModel):
 
 class QueryFilter(BaseModel):
     """Model for Elasticsearch query filters."""
-    
+
     field: str = Field(..., description="Field to filter on")
     value: Union[str, int, float, bool, List[Any]] = Field(..., description="Filter value")
     operator: str = Field("eq", description="Filter operator (eq, ne, gt, lt, gte, lte, in, not_in)")
-    
-    @field_validator('operator')
+
+    @field_validator("operator")
     @classmethod
     def validate_operator(cls, v):
         """Validate filter operator."""
@@ -571,15 +573,15 @@ class QueryFilter(BaseModel):
 
 class ElasticsearchQuery(BaseModel):
     """Model for Elasticsearch queries."""
-    
+
     indices: List[str] = Field(default_factory=list, description="Indices to query")
     time_range: Dict[str, datetime] = Field(..., description="Time range for query")
     filters: List[QueryFilter] = Field(default_factory=list, description="Query filters")
     size: int = Field(1000, description="Maximum number of results")
     sort: List[Dict[str, str]] = Field(default_factory=list, description="Sort criteria")
     aggs: Dict[str, Any] = Field(default_factory=dict, description="Aggregations")
-    
-    @field_validator('size')
+
+    @field_validator("size")
     @classmethod
     def validate_size(cls, v):
         """Validate result size."""
@@ -590,39 +592,39 @@ class ElasticsearchQuery(BaseModel):
 
 class DShieldStatistics(BaseModel):
     """Model for DShield statistics data."""
-    
+
     timestamp: datetime = Field(default_factory=datetime.now, description="Statistics timestamp")
     time_range_hours: int = Field(..., description="Time range in hours")
-    
+
     # Attack statistics
     total_attacks: int = Field(0, description="Total number of attacks")
     unique_attackers: int = Field(0, description="Number of unique attackers")
     total_targets: int = Field(0, description="Number of unique targets")
-    
+
     # Geographic statistics
     countries_attacking: int = Field(0, description="Number of countries with attackers")
     top_countries: List[Dict[str, Any]] = Field(default_factory=list, description="Top attacking countries")
-    
+
     # Port statistics
     ports_targeted: int = Field(0, description="Number of unique ports targeted")
     top_ports: List[Dict[str, Any]] = Field(default_factory=list, description="Top targeted ports")
-    
+
     # Protocol statistics
     protocols_used: int = Field(0, description="Number of unique protocols used")
     top_protocols: List[Dict[str, Any]] = Field(default_factory=list, description="Top protocols used")
-    
+
     # ASN statistics
     asns_attacking: int = Field(0, description="Number of unique ASNs attacking")
     top_asns: List[Dict[str, Any]] = Field(default_factory=list, description="Top attacking ASNs")
-    
+
     # Organization statistics
     organizations_attacking: int = Field(0, description="Number of unique organizations attacking")
     top_organizations: List[Dict[str, Any]] = Field(default_factory=list, description="Top attacking organizations")
-    
+
     # Reputation statistics
     high_reputation_ips: int = Field(0, description="Number of IPs with high reputation scores")
     average_reputation_score: Optional[float] = Field(None, description="Average reputation score")
-    
+
     # Performance metrics
     query_duration_ms: Optional[float] = Field(None, description="Query duration in milliseconds")
-    indices_queried: List[str] = Field(default_factory=list, description="Indices queried") 
+    indices_queried: List[str] = Field(default_factory=list, description="Indices queried")

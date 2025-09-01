@@ -1,7 +1,7 @@
 """Integration tests for server startup and core components."""
 
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock, patch
 from src.models import SecurityEvent, ThreatIntelligence, AttackReport
 from src.data_processor import DataProcessor
 from src.context_injector import ContextInjector

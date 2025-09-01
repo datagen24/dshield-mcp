@@ -6,12 +6,9 @@ field selection, filtering, and smart chunking with session context.
 
 import pytest
 import pytest_asyncio
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
 
-from src.elasticsearch_client import ElasticsearchClient
 
 
 class TestStreaming:

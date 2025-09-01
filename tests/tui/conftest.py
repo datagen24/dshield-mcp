@@ -5,25 +5,15 @@ This module provides shared test fixtures for testing TUI components,
 including mock servers, applications, and test data.
 """
 
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
-from unittest.mock import Mock, AsyncMock, MagicMock
+
 # Note: textual.testing.AppTest may not be available in all versions
 # We'll use a simpler testing approach
-
-if TYPE_CHECKING:
-    from _pytest.capture import CaptureFixture
-    from _pytest.fixtures import FixtureRequest
-    from _pytest.logging import LogCaptureFixture
-    from _pytest.monkeypatch import MonkeyPatch
-    from pytest_mock.plugin import MockerFixture
-
-from src.tui.tui_app import DShieldTUIApp
-from src.tui.connection_panel import ConnectionPanel
-from src.tui.server_panel import ServerPanel
-from src.tui.log_panel import LogPanel
-from src.tui.status_bar import StatusBar
 from src.tcp_server import EnhancedTCPServer
+from src.tui.tui_app import DShieldTUIApp
 from src.user_config import UserConfigManager
 
 
@@ -33,6 +23,7 @@ def mock_tcp_server() -> Mock:
     
     Returns:
         Mock: A mock TCP server with common methods
+
     """
     server = Mock(spec=EnhancedTCPServer)
     server.start = AsyncMock()
@@ -41,11 +32,11 @@ def mock_tcp_server() -> Mock:
     server.get_server_statistics = Mock(return_value={
         "server": {"is_running": True, "port": 3000, "bind_address": "127.0.0.1"},
         "connections": {"active": 2, "total": 10},
-        "uptime": "00:05:30"
+        "uptime": "00:05:30",
     })
     server.get_connections = Mock(return_value=[
         {"id": "conn1", "address": "127.0.0.1:12345", "connected_at": "2024-01-01T10:00:00Z"},
-        {"id": "conn2", "address": "127.0.0.1:12346", "connected_at": "2024-01-01T10:01:00Z"}
+        {"id": "conn2", "address": "127.0.0.1:12346", "connected_at": "2024-01-01T10:01:00Z"},
     ])
     server.disconnect_client = AsyncMock()
     server.disconnect_all_clients = AsyncMock()
@@ -58,6 +49,7 @@ def mock_mcp_server() -> Mock:
     
     Returns:
         Mock: A mock MCP server
+
     """
     server = Mock()
     server.start = AsyncMock()
@@ -66,7 +58,7 @@ def mock_mcp_server() -> Mock:
     server.get_statistics = Mock(return_value={
         "tools_registered": 15,
         "requests_processed": 100,
-        "uptime": "00:05:30"
+        "uptime": "00:05:30",
     })
     return server
 
@@ -77,6 +69,7 @@ def mock_user_config() -> Mock:
     
     Returns:
         Mock: A mock UserConfigManager
+
     """
     config = Mock(spec=UserConfigManager)
     config.tcp_transport_settings = Mock()
@@ -216,6 +209,7 @@ async def tui_app(mock_tcp_server: Mock, mock_user_config: Mock) -> DShieldTUIAp
         
     Returns:
         DShieldTUIApp: TUI app instance with mocked dependencies
+
     """
     app = DShieldTUIApp()
     app.tcp_server = mock_tcp_server
@@ -229,6 +223,7 @@ def sample_connections() -> List[Dict[str, Any]]:
     
     Returns:
         List[Dict[str, Any]]: Sample connection data
+
     """
     return [
         {
@@ -237,24 +232,24 @@ def sample_connections() -> List[Dict[str, Any]]:
             "connected_at": "2024-01-01T10:00:00Z",
             "last_activity": "2024-01-01T10:05:00Z",
             "requests_count": 15,
-            "status": "active"
+            "status": "active",
         },
         {
-            "id": "conn2", 
+            "id": "conn2",
             "address": "127.0.0.1:12346",
             "connected_at": "2024-01-01T10:01:00Z",
             "last_activity": "2024-01-01T10:04:00Z",
             "requests_count": 8,
-            "status": "active"
+            "status": "active",
         },
         {
             "id": "conn3",
-            "address": "127.0.0.1:12347", 
+            "address": "127.0.0.1:12347",
             "connected_at": "2024-01-01T09:30:00Z",
             "last_activity": "2024-01-01T09:35:00Z",
             "requests_count": 3,
-            "status": "idle"
-        }
+            "status": "idle",
+        },
     ]
 
 
@@ -264,6 +259,7 @@ def sample_api_keys() -> List[Dict[str, Any]]:
     
     Returns:
         List[Dict[str, Any]]: Sample API key data
+
     """
     return [
         {
@@ -272,15 +268,15 @@ def sample_api_keys() -> List[Dict[str, Any]]:
             "created_at": "2024-01-01T09:00:00Z",
             "last_used": "2024-01-01T10:00:00Z",
             "usage_count": 25,
-            "status": "active"
+            "status": "active",
         },
         {
             "id": "key2",
-            "name": "Test Key 2", 
+            "name": "Test Key 2",
             "created_at": "2024-01-01T08:00:00Z",
             "last_used": "2024-01-01T09:30:00Z",
             "usage_count": 12,
-            "status": "active"
+            "status": "active",
         },
         {
             "id": "key3",
@@ -288,8 +284,8 @@ def sample_api_keys() -> List[Dict[str, Any]]:
             "created_at": "2024-01-01T07:00:00Z",
             "last_used": None,
             "usage_count": 0,
-            "status": "revoked"
-        }
+            "status": "revoked",
+        },
     ]
 
 
@@ -299,6 +295,7 @@ def sample_log_entries() -> List[Dict[str, Any]]:
     
     Returns:
         List[Dict[str, Any]]: Sample log entry data
+
     """
     return [
         {
@@ -306,29 +303,29 @@ def sample_log_entries() -> List[Dict[str, Any]]:
             "level": "INFO",
             "message": "Server started successfully",
             "source": "tcp_server",
-            "details": {"port": 3000, "bind_address": "127.0.0.1"}
+            "details": {"port": 3000, "bind_address": "127.0.0.1"},
         },
         {
             "timestamp": "2024-01-01T10:01:00Z",
             "level": "WARNING",
             "message": "Connection timeout detected",
             "source": "connection_manager",
-            "details": {"connection_id": "conn1", "timeout_duration": 30}
+            "details": {"connection_id": "conn1", "timeout_duration": 30},
         },
         {
             "timestamp": "2024-01-01T10:02:00Z",
             "level": "ERROR",
             "message": "Failed to process request",
             "source": "request_handler",
-            "details": {"error": "Invalid JSON", "request_id": "req123"}
+            "details": {"error": "Invalid JSON", "request_id": "req123"},
         },
         {
             "timestamp": "2024-01-01T10:03:00Z",
             "level": "DEBUG",
             "message": "Processing MCP request",
             "source": "mcp_handler",
-            "details": {"method": "tools/list", "request_id": "req124"}
-        }
+            "details": {"method": "tools/list", "request_id": "req124"},
+        },
     ]
 
 
@@ -338,6 +335,7 @@ def sample_server_status() -> Dict[str, Any]:
     
     Returns:
         Dict[str, Any]: Sample server status data
+
     """
     return {
         "server": {
@@ -345,31 +343,31 @@ def sample_server_status() -> Dict[str, Any]:
             "port": 3000,
             "bind_address": "127.0.0.1",
             "uptime": "00:05:30",
-            "started_at": "2024-01-01T09:55:00Z"
+            "started_at": "2024-01-01T09:55:00Z",
         },
         "connections": {
             "active": 2,
             "total": 10,
             "max_connections": 10,
-            "connection_rate": 0.5
+            "connection_rate": 0.5,
         },
         "requests": {
             "total": 150,
             "successful": 145,
             "failed": 5,
-            "rate": 2.5
+            "rate": 2.5,
         },
         "performance": {
             "cpu_usage": 15.5,
             "memory_usage": 128.7,
             "response_time_avg": 45.2,
-            "response_time_p95": 120.5
+            "response_time_p95": 120.5,
         },
         "errors": {
             "total": 5,
             "rate": 0.1,
-            "last_error": "2024-01-01T10:02:00Z"
-        }
+            "last_error": "2024-01-01T10:02:00Z",
+        },
     }
 
 
@@ -379,5 +377,6 @@ def mock_app_test():
     
     Returns:
         Mock: Mock app test instance for testing
+
     """
     return Mock()

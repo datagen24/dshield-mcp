@@ -1,14 +1,15 @@
 """Signal handler for graceful shutdown of DShield MCP server."""
 import asyncio
 import signal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from mcp_server import DShieldMCPServer
 
 class SignalHandler:
     """Manages signal handling for graceful shutdown."""
-    def __init__(self, server: 'DShieldMCPServer') -> None:
+
+    def __init__(self, server: "DShieldMCPServer") -> None:
         self.server = server
         self._shutdown_event = asyncio.Event()
         self._shutdown_timeout = 30  # seconds
@@ -17,14 +18,14 @@ class SignalHandler:
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
 
-    def signal_handler(self, signum, frame):
+    def signal_handler(self, signum: int, frame: Any) -> None:
         print(f"[MCP SERVER] Received signal {signum}, initiating graceful shutdown...", flush=True)
         asyncio.get_event_loop().create_task(self.graceful_shutdown())
 
-    async def wait_for_shutdown(self):
+    async def wait_for_shutdown(self) -> None:
         await self._shutdown_event.wait()
 
-    async def graceful_shutdown(self):
+    async def graceful_shutdown(self) -> None:
         print("[MCP SERVER] Running graceful shutdown procedures...", flush=True)
         await self.server.cleanup()
-        self._shutdown_event.set() 
+        self._shutdown_event.set()

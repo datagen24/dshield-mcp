@@ -1,16 +1,15 @@
 """Pytest configuration and common fixtures for DShield MCP tests."""
 
-import pytest
 import asyncio
-import os
 import sys
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from src.models import SecurityEvent, ThreatIntelligence, DShieldAttack, DShieldReputation
 
 
 @pytest.fixture
@@ -77,7 +76,7 @@ def sample_security_events():
             "tags": ["brute_force", "ssh"],
             "attack_types": ["ssh_brute_force"],
             "port": 22,
-            "service": "ssh"
+            "service": "ssh",
         },
         {
             "timestamp": "2024-01-01T11:00:00Z",
@@ -100,8 +99,8 @@ def sample_security_events():
             "tags": ["port_scan", "reconnaissance"],
             "attack_types": ["port_scan"],
             "port": 443,
-            "service": "https"
-        }
+            "service": "https",
+        },
     ]
 
 
@@ -120,7 +119,7 @@ def sample_threat_intelligence():
             "asn": "AS12345",
             "organization": "Test Org",
             "attack_types": ["ssh_brute_force", "port_scan"],
-            "tags": ["brute_force", "ssh", "malicious"]
+            "tags": ["brute_force", "ssh", "malicious"],
         },
         "203.0.113.1": {
             "ip_address": "203.0.113.1",
@@ -133,15 +132,15 @@ def sample_threat_intelligence():
             "asn": "AS67890",
             "organization": "Another Org",
             "attack_types": ["port_scan"],
-            "tags": ["port_scan", "reconnaissance"]
-        }
+            "tags": ["port_scan", "reconnaissance"],
+        },
     }
 
 
 @pytest.fixture
 def mock_op_secrets():
     """Mock 1Password secrets for testing."""
-    with patch('src.op_secrets.op_secrets') as mock:
+    with patch("src.op_secrets.op_secrets") as mock:
         mock.op_available = True
         mock.resolve_op_url.return_value = "resolved_secret"
         mock.resolve_environment_variable.return_value = "resolved_secret"
@@ -160,7 +159,7 @@ def test_env_vars():
         "LOG_LEVEL": "INFO",
         "RATE_LIMIT_REQUESTS_PER_MINUTE": "60",
         "MAX_QUERY_RESULTS": "1000",
-        "QUERY_TIMEOUT_SECONDS": "30"
+        "QUERY_TIMEOUT_SECONDS": "30",
     }
 
 
@@ -173,5 +172,5 @@ def test_op_env_vars():
         "ELASTICSEARCH_PASSWORD": "op://vault/elasticsearch/password",
         "DSHIELD_API_KEY": "op://vault/dshield/api-key",
         "DSHIELD_API_URL": "https://test-dshield.org/api",
-        "LOG_LEVEL": "INFO"
-    } 
+        "LOG_LEVEL": "INFO",
+    }

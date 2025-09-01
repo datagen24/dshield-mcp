@@ -7,7 +7,6 @@ and security monitoring capabilities.
 """
 
 import pytest
-from typing import Dict, List, Any
 from datetime import datetime
 
 from src.security_validator import (

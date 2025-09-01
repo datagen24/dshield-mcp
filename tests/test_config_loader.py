@@ -10,8 +10,6 @@ import os
 import pytest
 import tempfile
 import yaml
-from unittest.mock import Mock, patch
-from typing import Any, Dict
 
 from src.config_loader import (
     get_config, 

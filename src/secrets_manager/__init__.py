@@ -4,11 +4,11 @@ This module provides an abstraction layer for managing API keys and other secret
 across different secrets management providers (1Password, HashiCorp Vault, etc.).
 """
 
-from .base_secrets_manager import BaseSecretsManager, APIKey
+from .base_secrets_manager import APIKey, BaseSecretsManager
 from .onepassword_cli_manager import OnePasswordCLIManager
 
 __all__ = [
+    "APIKey",
     "BaseSecretsManager",
-    "APIKey", 
     "OnePasswordCLIManager",
 ]
