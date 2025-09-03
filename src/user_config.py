@@ -24,7 +24,7 @@ Example:
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import structlog
 import yaml
@@ -42,7 +42,7 @@ load_dotenv()
 @dataclass
 class QuerySettings:
     """User-configurable query settings.
-    
+
     Attributes:
         default_page_size: Default number of results per page
         max_page_size: Maximum allowed page size
@@ -66,7 +66,7 @@ class QuerySettings:
 @dataclass
 class PaginationSettings:
     """User-configurable pagination settings.
-    
+
     Attributes:
         default_method: Default pagination method (page or cursor)
         max_pages_per_request: Maximum pages per request
@@ -86,7 +86,7 @@ class PaginationSettings:
 @dataclass
 class StreamingSettings:
     """User-configurable streaming settings.
-    
+
     Attributes:
         default_chunk_size: Default chunk size for streaming
         max_chunk_size: Maximum allowed chunk size
@@ -98,9 +98,13 @@ class StreamingSettings:
 
     default_chunk_size: int = 50
     max_chunk_size: int = 200
-    session_context_fields: List[str] = field(default_factory=lambda: [
-        "source.ip", "user.name", "session.id",
-    ])
+    session_context_fields: list[str] = field(
+        default_factory=lambda: [
+            "source.ip",
+            "user.name",
+            "session.id",
+        ]
+    )
     enable_session_summaries: bool = True
     session_timeout_minutes: int = 30
 
@@ -108,7 +112,7 @@ class StreamingSettings:
 @dataclass
 class PerformanceSettings:
     """User-configurable performance settings.
-    
+
     Attributes:
         enable_caching: Whether to enable caching
         cache_ttl_seconds: Cache time-to-live in seconds
@@ -136,7 +140,7 @@ class PerformanceSettings:
 @dataclass
 class SecuritySettings:
     """User-configurable security settings.
-    
+
     Attributes:
         rate_limit_requests_per_minute: Rate limit for requests per minute
         max_query_results: Maximum query results
@@ -150,19 +154,26 @@ class SecuritySettings:
     rate_limit_requests_per_minute: int = 60
     max_query_results: int = 1000
     enable_field_validation: bool = True
-    allowed_field_patterns: List[str] = field(default_factory=lambda: [
-        r"^[a-zA-Z_][a-zA-Z0-9_.]*$",
-    ])
+    allowed_field_patterns: list[str] = field(
+        default_factory=lambda: [
+            r"^[a-zA-Z_][a-zA-Z0-9_.]*$",
+        ]
+    )
     block_sensitive_fields: bool = True
-    sensitive_field_patterns: List[str] = field(default_factory=lambda: [
-        r"password", r"secret", r"key", r"token",
-    ])
+    sensitive_field_patterns: list[str] = field(
+        default_factory=lambda: [
+            r"password",
+            r"secret",
+            r"key",
+            r"token",
+        ]
+    )
 
 
 @dataclass
 class LoggingSettings:
     """User-configurable logging settings.
-    
+
     Attributes:
         log_level: Logging level
         log_format: Log format (json, text)
@@ -184,7 +195,7 @@ class LoggingSettings:
 @dataclass
 class CampaignSettings:
     """User-configurable campaign analysis settings.
-    
+
     Attributes:
         correlation_window_minutes: Correlation window in minutes
         min_confidence_threshold: Minimum confidence threshold
@@ -214,7 +225,7 @@ class CampaignSettings:
 @dataclass
 class TCPTransportSettings:
     """User-configurable TCP transport settings.
-    
+
     Attributes:
         enabled: Whether TCP transport is enabled (default: False for STDIO mode)
         port: TCP port to bind to (default: 3000)
@@ -231,26 +242,30 @@ class TCPTransportSettings:
     bind_address: str = "127.0.0.1"
     max_connections: int = 10
     connection_timeout_seconds: int = 300
-    api_key_management: Dict[str, Any] = field(default_factory=lambda: {
-        "vault": "op://vault/item/field",  # User-configurable 1Password vault
-        "rate_limit_per_key": 60,  # Requests per minute per API key
-        "untested_agent_limit": 10,  # Lower limit for untested agents
-        "key_length": 32,  # API key length in characters
-        "key_expiry_days": 90,  # API key expiry in days
-    })
-    permissions: Dict[str, Any] = field(default_factory=lambda: {
-        "elastic_write_back": False,  # Default permission for new keys
-        "max_query_results": 1000,
-        "timeout_seconds": 30,
-        "allowed_tools": [],  # Empty list means all tools allowed
-        "blocked_tools": [],  # Tools to block for this key
-    })
+    api_key_management: dict[str, Any] = field(
+        default_factory=lambda: {
+            "vault": "op://vault/item/field",  # User-configurable 1Password vault
+            "rate_limit_per_key": 60,  # Requests per minute per API key
+            "untested_agent_limit": 10,  # Lower limit for untested agents
+            "key_length": 32,  # API key length in characters
+            "key_expiry_days": 90,  # API key expiry in days
+        }
+    )
+    permissions: dict[str, Any] = field(
+        default_factory=lambda: {
+            "elastic_write_back": False,  # Default permission for new keys
+            "max_query_results": 1000,
+            "timeout_seconds": 30,
+            "allowed_tools": [],  # Empty list means all tools allowed
+            "blocked_tools": [],  # Tools to block for this key
+        }
+    )
 
 
 @dataclass
 class APIKeyManagementSettings:
     """User-configurable API key management settings.
-    
+
     Attributes:
         storage_provider: Secrets management provider (1password_cli, vault_cli, etc.)
         onepassword_cli: 1Password CLI specific settings
@@ -261,20 +276,24 @@ class APIKeyManagementSettings:
     """
 
     storage_provider: str = "1password_cli"  # Future: "vault_cli", "aws_secrets_cli"
-    onepassword_cli: Dict[str, Any] = field(default_factory=lambda: {
-        "vault": "DShield-MCP",  # User configurable vault name
-        "cache_ttl": 60,  # Cache refresh interval in seconds
-        "sync_interval": 60,  # Sync interval in seconds
-    })
-    defaults: Dict[str, Any] = field(default_factory=lambda: {
-        "expiration_days": 90,  # Default expiration in days
-        "rate_limit_per_minute": 60,  # Default rate limit
-        "permissions": {
-            "read_tools": True,
-            "write_back": False,
-            "admin_access": False,
-        },
-    })
+    onepassword_cli: dict[str, Any] = field(
+        default_factory=lambda: {
+            "vault": "DShield-MCP",  # User configurable vault name
+            "cache_ttl": 60,  # Cache refresh interval in seconds
+            "sync_interval": 60,  # Sync interval in seconds
+        }
+    )
+    defaults: dict[str, Any] = field(
+        default_factory=lambda: {
+            "expiration_days": 90,  # Default expiration in days
+            "rate_limit_per_minute": 60,  # Default rate limit
+            "permissions": {
+                "read_tools": True,
+                "write_back": False,
+                "admin_access": False,
+            },
+        }
+    )
     cache_ttl: int = 300  # Cache time-to-live in seconds
     auto_cleanup_expired: bool = True  # Auto cleanup expired keys
 
@@ -282,7 +301,7 @@ class APIKeyManagementSettings:
 @dataclass
 class TUISettings:
     """User-configurable TUI settings.
-    
+
     Attributes:
         enabled: Whether TUI is enabled (default: False for headless mode)
         refresh_interval_ms: UI refresh interval in milliseconds
@@ -295,38 +314,42 @@ class TUISettings:
     enabled: bool = False  # Default to headless mode
     refresh_interval_ms: int = 1000
     log_history_size: int = 1000
-    server_management: Dict[str, Any] = field(default_factory=lambda: {
-        "restart_on_update": True,
-        "graceful_shutdown_timeout": 30,
-        "auto_start_server": True,
-    })
-    panels: Dict[str, Any] = field(default_factory=lambda: {
-        "connections": {
-            "enabled": True,
-            "show_details": True,
-            "show_rate_limits": True,
-        },
-        "tools": {
-            "enabled": True,
-            "show_metrics": True,
-        },
-        "logs": {
-            "enabled": True,
-            "log_levels": ["INFO", "WARN", "ERROR"],
-        },
-    })
+    server_management: dict[str, Any] = field(
+        default_factory=lambda: {
+            "restart_on_update": True,
+            "graceful_shutdown_timeout": 30,
+            "auto_start_server": True,
+        }
+    )
+    panels: dict[str, Any] = field(
+        default_factory=lambda: {
+            "connections": {
+                "enabled": True,
+                "show_details": True,
+                "show_rate_limits": True,
+            },
+            "tools": {
+                "enabled": True,
+                "show_metrics": True,
+            },
+            "logs": {
+                "enabled": True,
+                "log_levels": ["INFO", "WARN", "ERROR"],
+            },
+        }
+    )
 
 
 class UserConfigManager:
     """Manages user-configurable settings with validation and environment variable support.
-    
+
     This class provides a comprehensive configuration management system that
     supports multiple configuration sources with precedence ordering:
     1. Environment variables (highest priority)
     2. User configuration file
     3. Base configuration
     4. Default values (lowest priority)
-    
+
     Attributes:
         config_path: Path to the configuration file
         op_secrets: OnePassword secrets manager
@@ -342,7 +365,7 @@ class UserConfigManager:
         api_key_management_settings: API key management settings
         tui_settings: TUI settings
         output_directory: Directory for generated outputs (default: ~/dshield-mcp-output, configurable)
-    
+
     Example:
         >>> manager = UserConfigManager()
         >>> output_dir = manager.output_directory
@@ -350,9 +373,9 @@ class UserConfigManager:
 
     """
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
+    def __init__(self, config_path: str | None = None) -> None:
         """Initialize the UserConfigManager.
-        
+
         Args:
             config_path: Optional path to the configuration file
 
@@ -387,14 +410,16 @@ class UserConfigManager:
 
         # Ensure output directory exists
         if self.output_directory is None:
-            self.output_directory = os.path.expanduser(os.getenv("DMC_OUTPUT_DIRECTORY", "~/dshield-mcp-output"))
+            self.output_directory = os.path.expanduser(
+                os.getenv("DMC_OUTPUT_DIRECTORY", "~/dshield-mcp-output")
+            )
         self.output_directory = os.path.expandvars(self.output_directory)
         self.output_directory = os.path.abspath(self.output_directory)
         os.makedirs(self.output_directory, exist_ok=True)
 
     def _load_user_config(self) -> None:
         """Load user configuration from multiple sources with precedence.
-        
+
         Loads configuration from environment variables, user config file,
         and base config, applying them in order of precedence.
         """
@@ -416,15 +441,15 @@ class UserConfigManager:
         # Validate all settings
         self._validate_settings()
 
-    def _load_user_config_file(self) -> Dict[str, Any]:
+    def _load_user_config_file(self) -> dict[str, Any]:
         """Load user configuration from file.
-        
-        If a specific config path was provided, use that. Otherwise, searches for 
+
+        If a specific config path was provided, use that. Otherwise, searches for
         user configuration files in multiple locations:
         - Current directory: user_config.yaml
         - Config directory: config/user_config.yaml
         - Home directory: ~/.dshield-mcp/user_config.yaml
-        
+
         Returns:
             Dictionary containing user configuration or empty dict if not found
 
@@ -464,81 +489,231 @@ class UserConfigManager:
 
     def _apply_env_overrides(self) -> None:
         """Apply environment variable overrides to settings.
-        
+
         Reads environment variables and applies them to the appropriate
         settings categories, overriding file-based configuration.
         """
         # Query Settings
-        self.query_settings.default_page_size = int(os.getenv("DEFAULT_PAGE_SIZE", self.query_settings.default_page_size))
-        self.query_settings.max_page_size = int(os.getenv("MAX_PAGE_SIZE", self.query_settings.max_page_size))
-        self.query_settings.default_timeout_seconds = int(os.getenv("DEFAULT_TIMEOUT_SECONDS", self.query_settings.default_timeout_seconds))
-        self.query_settings.max_timeout_seconds = int(os.getenv("MAX_TIMEOUT_SECONDS", self.query_settings.max_timeout_seconds))
-        self.query_settings.enable_smart_optimization = os.getenv("ENABLE_SMART_OPTIMIZATION", str(self.query_settings.enable_smart_optimization)).lower() == "true"
-        self.query_settings.fallback_strategy = os.getenv("FALLBACK_STRATEGY", self.query_settings.fallback_strategy)
-        self.query_settings.max_query_complexity = int(os.getenv("MAX_QUERY_COMPLEXITY", self.query_settings.max_query_complexity))
+        self.query_settings.default_page_size = int(
+            os.getenv("DEFAULT_PAGE_SIZE", self.query_settings.default_page_size)
+        )
+        self.query_settings.max_page_size = int(
+            os.getenv("MAX_PAGE_SIZE", self.query_settings.max_page_size)
+        )
+        self.query_settings.default_timeout_seconds = int(
+            os.getenv("DEFAULT_TIMEOUT_SECONDS", self.query_settings.default_timeout_seconds)
+        )
+        self.query_settings.max_timeout_seconds = int(
+            os.getenv("MAX_TIMEOUT_SECONDS", self.query_settings.max_timeout_seconds)
+        )
+        self.query_settings.enable_smart_optimization = (
+            os.getenv(
+                "ENABLE_SMART_OPTIMIZATION", str(self.query_settings.enable_smart_optimization)
+            ).lower()
+            == "true"
+        )
+        self.query_settings.fallback_strategy = os.getenv(
+            "FALLBACK_STRATEGY", self.query_settings.fallback_strategy
+        )
+        self.query_settings.max_query_complexity = int(
+            os.getenv("MAX_QUERY_COMPLEXITY", self.query_settings.max_query_complexity)
+        )
 
         # Pagination Settings
-        self.pagination_settings.default_method = os.getenv("PAGINATION_METHOD", self.pagination_settings.default_method)
-        self.pagination_settings.max_pages_per_request = int(os.getenv("MAX_PAGES_PER_REQUEST", self.pagination_settings.max_pages_per_request))
-        self.pagination_settings.cursor_timeout_seconds = int(os.getenv("CURSOR_TIMEOUT_SECONDS", self.pagination_settings.cursor_timeout_seconds))
-        self.pagination_settings.enable_metadata = os.getenv("ENABLE_PAGINATION_METADATA", str(self.pagination_settings.enable_metadata)).lower() == "true"
-        self.pagination_settings.include_performance_metrics = os.getenv("INCLUDE_PERFORMANCE_METRICS", str(self.pagination_settings.include_performance_metrics)).lower() == "true"
+        self.pagination_settings.default_method = os.getenv(
+            "PAGINATION_METHOD", self.pagination_settings.default_method
+        )
+        self.pagination_settings.max_pages_per_request = int(
+            os.getenv("MAX_PAGES_PER_REQUEST", self.pagination_settings.max_pages_per_request)
+        )
+        self.pagination_settings.cursor_timeout_seconds = int(
+            os.getenv("CURSOR_TIMEOUT_SECONDS", self.pagination_settings.cursor_timeout_seconds)
+        )
+        self.pagination_settings.enable_metadata = (
+            os.getenv(
+                "ENABLE_PAGINATION_METADATA", str(self.pagination_settings.enable_metadata)
+            ).lower()
+            == "true"
+        )
+        self.pagination_settings.include_performance_metrics = (
+            os.getenv(
+                "INCLUDE_PERFORMANCE_METRICS",
+                str(self.pagination_settings.include_performance_metrics),
+            ).lower()
+            == "true"
+        )
 
         # Streaming Settings
-        self.streaming_settings.default_chunk_size = int(os.getenv("DEFAULT_CHUNK_SIZE", self.streaming_settings.default_chunk_size))
-        self.streaming_settings.max_chunk_size = int(os.getenv("MAX_CHUNK_SIZE", self.streaming_settings.max_chunk_size))
+        self.streaming_settings.default_chunk_size = int(
+            os.getenv("DEFAULT_CHUNK_SIZE", self.streaming_settings.default_chunk_size)
+        )
+        self.streaming_settings.max_chunk_size = int(
+            os.getenv("MAX_CHUNK_SIZE", self.streaming_settings.max_chunk_size)
+        )
         session_fields = os.getenv("SESSION_CONTEXT_FIELDS")
         if session_fields:
-            self.streaming_settings.session_context_fields = [f.strip() for f in session_fields.split(",")]
-        self.streaming_settings.enable_session_summaries = os.getenv("ENABLE_SESSION_SUMMARIES", str(self.streaming_settings.enable_session_summaries)).lower() == "true"
-        self.streaming_settings.session_timeout_minutes = int(os.getenv("SESSION_TIMEOUT_MINUTES", self.streaming_settings.session_timeout_minutes))
+            self.streaming_settings.session_context_fields = [
+                f.strip() for f in session_fields.split(",")
+            ]
+        self.streaming_settings.enable_session_summaries = (
+            os.getenv(
+                "ENABLE_SESSION_SUMMARIES", str(self.streaming_settings.enable_session_summaries)
+            ).lower()
+            == "true"
+        )
+        self.streaming_settings.session_timeout_minutes = int(
+            os.getenv("SESSION_TIMEOUT_MINUTES", self.streaming_settings.session_timeout_minutes)
+        )
 
         # Performance Settings
-        self.performance_settings.enable_caching = os.getenv("ENABLE_CACHING", str(self.performance_settings.enable_caching)).lower() == "true"
-        self.performance_settings.cache_ttl_seconds = int(os.getenv("CACHE_TTL_SECONDS", self.performance_settings.cache_ttl_seconds))
-        self.performance_settings.max_cache_size = int(os.getenv("MAX_CACHE_SIZE", self.performance_settings.max_cache_size))
-        self.performance_settings.enable_connection_pooling = os.getenv("ENABLE_CONNECTION_POOLING", str(self.performance_settings.enable_connection_pooling)).lower() == "true"
-        self.performance_settings.connection_pool_size = int(os.getenv("CONNECTION_POOL_SIZE", self.performance_settings.connection_pool_size))
-        self.performance_settings.request_timeout_seconds = int(os.getenv("REQUEST_TIMEOUT_SECONDS", self.performance_settings.request_timeout_seconds))
-        self.performance_settings.enable_sqlite_cache = os.getenv("ENABLE_SQLITE_CACHE", str(self.performance_settings.enable_sqlite_cache)).lower() == "true"
-        self.performance_settings.sqlite_cache_ttl_hours = int(os.getenv("SQLITE_CACHE_TTL_HOURS", self.performance_settings.sqlite_cache_ttl_hours))
-        self.performance_settings.sqlite_cache_db_name = os.getenv("SQLITE_CACHE_DB_NAME", self.performance_settings.sqlite_cache_db_name)
+        self.performance_settings.enable_caching = (
+            os.getenv("ENABLE_CACHING", str(self.performance_settings.enable_caching)).lower()
+            == "true"
+        )
+        self.performance_settings.cache_ttl_seconds = int(
+            os.getenv("CACHE_TTL_SECONDS", self.performance_settings.cache_ttl_seconds)
+        )
+        self.performance_settings.max_cache_size = int(
+            os.getenv("MAX_CACHE_SIZE", self.performance_settings.max_cache_size)
+        )
+        self.performance_settings.enable_connection_pooling = (
+            os.getenv(
+                "ENABLE_CONNECTION_POOLING",
+                str(self.performance_settings.enable_connection_pooling),
+            ).lower()
+            == "true"
+        )
+        self.performance_settings.connection_pool_size = int(
+            os.getenv("CONNECTION_POOL_SIZE", self.performance_settings.connection_pool_size)
+        )
+        self.performance_settings.request_timeout_seconds = int(
+            os.getenv("REQUEST_TIMEOUT_SECONDS", self.performance_settings.request_timeout_seconds)
+        )
+        self.performance_settings.enable_sqlite_cache = (
+            os.getenv(
+                "ENABLE_SQLITE_CACHE", str(self.performance_settings.enable_sqlite_cache)
+            ).lower()
+            == "true"
+        )
+        self.performance_settings.sqlite_cache_ttl_hours = int(
+            os.getenv("SQLITE_CACHE_TTL_HOURS", self.performance_settings.sqlite_cache_ttl_hours)
+        )
+        self.performance_settings.sqlite_cache_db_name = os.getenv(
+            "SQLITE_CACHE_DB_NAME", self.performance_settings.sqlite_cache_db_name
+        )
 
         # Security Settings
-        self.security_settings.rate_limit_requests_per_minute = int(os.getenv("RATE_LIMIT_REQUESTS_PER_MINUTE", self.security_settings.rate_limit_requests_per_minute))
-        self.security_settings.max_query_results = int(os.getenv("MAX_QUERY_RESULTS", self.security_settings.max_query_results))
-        self.security_settings.enable_field_validation = os.getenv("ENABLE_FIELD_VALIDATION", str(self.security_settings.enable_field_validation)).lower() == "true"
+        self.security_settings.rate_limit_requests_per_minute = int(
+            os.getenv(
+                "RATE_LIMIT_REQUESTS_PER_MINUTE",
+                self.security_settings.rate_limit_requests_per_minute,
+            )
+        )
+        self.security_settings.max_query_results = int(
+            os.getenv("MAX_QUERY_RESULTS", self.security_settings.max_query_results)
+        )
+        self.security_settings.enable_field_validation = (
+            os.getenv(
+                "ENABLE_FIELD_VALIDATION", str(self.security_settings.enable_field_validation)
+            ).lower()
+            == "true"
+        )
         allowed_patterns = os.getenv("ALLOWED_FIELD_PATTERNS")
         if allowed_patterns:
-            self.security_settings.allowed_field_patterns = [p.strip() for p in allowed_patterns.split(",")]
-        self.security_settings.block_sensitive_fields = os.getenv("BLOCK_SENSITIVE_FIELDS", str(self.security_settings.block_sensitive_fields)).lower() == "true"
+            self.security_settings.allowed_field_patterns = [
+                p.strip() for p in allowed_patterns.split(",")
+            ]
+        self.security_settings.block_sensitive_fields = (
+            os.getenv(
+                "BLOCK_SENSITIVE_FIELDS", str(self.security_settings.block_sensitive_fields)
+            ).lower()
+            == "true"
+        )
         sensitive_patterns = os.getenv("SENSITIVE_FIELD_PATTERNS")
         if sensitive_patterns:
-            self.security_settings.sensitive_field_patterns = [p.strip() for p in sensitive_patterns.split(",")]
+            self.security_settings.sensitive_field_patterns = [
+                p.strip() for p in sensitive_patterns.split(",")
+            ]
 
         # Logging Settings
         self.logging_settings.log_level = os.getenv("LOG_LEVEL", self.logging_settings.log_level)
         self.logging_settings.log_format = os.getenv("LOG_FORMAT", self.logging_settings.log_format)
-        self.logging_settings.enable_query_logging = os.getenv("ENABLE_QUERY_LOGGING", str(self.logging_settings.enable_query_logging)).lower() == "true"
-        self.logging_settings.enable_performance_logging = os.getenv("ENABLE_PERFORMANCE_LOGGING", str(self.logging_settings.enable_performance_logging)).lower() == "true"
-        self.logging_settings.log_sensitive_data = os.getenv("LOG_SENSITIVE_DATA", str(self.logging_settings.log_sensitive_data)).lower() == "true"
-        self.logging_settings.max_log_size_mb = int(os.getenv("MAX_LOG_SIZE_MB", self.logging_settings.max_log_size_mb))
+        self.logging_settings.enable_query_logging = (
+            os.getenv(
+                "ENABLE_QUERY_LOGGING", str(self.logging_settings.enable_query_logging)
+            ).lower()
+            == "true"
+        )
+        self.logging_settings.enable_performance_logging = (
+            os.getenv(
+                "ENABLE_PERFORMANCE_LOGGING", str(self.logging_settings.enable_performance_logging)
+            ).lower()
+            == "true"
+        )
+        self.logging_settings.log_sensitive_data = (
+            os.getenv("LOG_SENSITIVE_DATA", str(self.logging_settings.log_sensitive_data)).lower()
+            == "true"
+        )
+        self.logging_settings.max_log_size_mb = int(
+            os.getenv("MAX_LOG_SIZE_MB", self.logging_settings.max_log_size_mb)
+        )
 
         # Campaign Settings
-        self.campaign_settings.correlation_window_minutes = int(os.getenv("CORRELATION_WINDOW_MINUTES", self.campaign_settings.correlation_window_minutes))
-        self.campaign_settings.min_confidence_threshold = float(os.getenv("MIN_CONFIDENCE_THRESHOLD", self.campaign_settings.min_confidence_threshold))
-        self.campaign_settings.max_campaign_events = int(os.getenv("MAX_CAMPAIGN_EVENTS", self.campaign_settings.max_campaign_events))
-        self.campaign_settings.enable_geospatial_correlation = os.getenv("ENABLE_GEOSPATIAL_CORRELATION", str(self.campaign_settings.enable_geospatial_correlation)).lower() == "true"
-        self.campaign_settings.enable_infrastructure_correlation = os.getenv("ENABLE_INFRASTRUCTURE_CORRELATION", str(self.campaign_settings.enable_infrastructure_correlation)).lower() == "true"
-        self.campaign_settings.enable_behavioral_correlation = os.getenv("ENABLE_BEHAVIORAL_CORRELATION", str(self.campaign_settings.enable_behavioral_correlation)).lower() == "true"
-        self.campaign_settings.enable_temporal_correlation = os.getenv("ENABLE_TEMPORAL_CORRELATION", str(self.campaign_settings.enable_temporal_correlation)).lower() == "true"
-        self.campaign_settings.enable_ip_correlation = os.getenv("ENABLE_IP_CORRELATION", str(self.campaign_settings.enable_ip_correlation)).lower() == "true"
-        self.campaign_settings.max_expansion_depth = int(os.getenv("MAX_EXPANSION_DEPTH", self.campaign_settings.max_expansion_depth))
-        self.campaign_settings.expansion_timeout_seconds = int(os.getenv("EXPANSION_TIMEOUT_SECONDS", self.campaign_settings.expansion_timeout_seconds))
+        self.campaign_settings.correlation_window_minutes = int(
+            os.getenv(
+                "CORRELATION_WINDOW_MINUTES", self.campaign_settings.correlation_window_minutes
+            )
+        )
+        self.campaign_settings.min_confidence_threshold = float(
+            os.getenv("MIN_CONFIDENCE_THRESHOLD", self.campaign_settings.min_confidence_threshold)
+        )
+        self.campaign_settings.max_campaign_events = int(
+            os.getenv("MAX_CAMPAIGN_EVENTS", self.campaign_settings.max_campaign_events)
+        )
+        self.campaign_settings.enable_geospatial_correlation = (
+            os.getenv(
+                "ENABLE_GEOSPATIAL_CORRELATION",
+                str(self.campaign_settings.enable_geospatial_correlation),
+            ).lower()
+            == "true"
+        )
+        self.campaign_settings.enable_infrastructure_correlation = (
+            os.getenv(
+                "ENABLE_INFRASTRUCTURE_CORRELATION",
+                str(self.campaign_settings.enable_infrastructure_correlation),
+            ).lower()
+            == "true"
+        )
+        self.campaign_settings.enable_behavioral_correlation = (
+            os.getenv(
+                "ENABLE_BEHAVIORAL_CORRELATION",
+                str(self.campaign_settings.enable_behavioral_correlation),
+            ).lower()
+            == "true"
+        )
+        self.campaign_settings.enable_temporal_correlation = (
+            os.getenv(
+                "ENABLE_TEMPORAL_CORRELATION",
+                str(self.campaign_settings.enable_temporal_correlation),
+            ).lower()
+            == "true"
+        )
+        self.campaign_settings.enable_ip_correlation = (
+            os.getenv(
+                "ENABLE_IP_CORRELATION", str(self.campaign_settings.enable_ip_correlation)
+            ).lower()
+            == "true"
+        )
+        self.campaign_settings.max_expansion_depth = int(
+            os.getenv("MAX_EXPANSION_DEPTH", self.campaign_settings.max_expansion_depth)
+        )
+        self.campaign_settings.expansion_timeout_seconds = int(
+            os.getenv("EXPANSION_TIMEOUT_SECONDS", self.campaign_settings.expansion_timeout_seconds)
+        )
 
-    def _apply_user_config(self, user_config: Dict[str, Any]) -> None:
+    def _apply_user_config(self, user_config: dict[str, Any]) -> None:
         """Apply user configuration file settings.
-        
+
         Args:
             user_config: User configuration dictionary
 
@@ -546,90 +721,200 @@ class UserConfigManager:
         # Query Settings
         if "query" in user_config:
             query_config = user_config["query"]
-            self.query_settings.default_page_size = query_config.get("default_page_size", self.query_settings.default_page_size)
-            self.query_settings.max_page_size = query_config.get("max_page_size", self.query_settings.max_page_size)
-            self.query_settings.default_timeout_seconds = query_config.get("default_timeout_seconds", self.query_settings.default_timeout_seconds)
-            self.query_settings.max_timeout_seconds = query_config.get("max_timeout_seconds", self.query_settings.max_timeout_seconds)
-            self.query_settings.enable_smart_optimization = query_config.get("enable_smart_optimization", self.query_settings.enable_smart_optimization)
-            self.query_settings.fallback_strategy = query_config.get("fallback_strategy", self.query_settings.fallback_strategy)
-            self.query_settings.max_query_complexity = query_config.get("max_query_complexity", self.query_settings.max_query_complexity)
+            self.query_settings.default_page_size = query_config.get(
+                "default_page_size", self.query_settings.default_page_size
+            )
+            self.query_settings.max_page_size = query_config.get(
+                "max_page_size", self.query_settings.max_page_size
+            )
+            self.query_settings.default_timeout_seconds = query_config.get(
+                "default_timeout_seconds", self.query_settings.default_timeout_seconds
+            )
+            self.query_settings.max_timeout_seconds = query_config.get(
+                "max_timeout_seconds", self.query_settings.max_timeout_seconds
+            )
+            self.query_settings.enable_smart_optimization = query_config.get(
+                "enable_smart_optimization", self.query_settings.enable_smart_optimization
+            )
+            self.query_settings.fallback_strategy = query_config.get(
+                "fallback_strategy", self.query_settings.fallback_strategy
+            )
+            self.query_settings.max_query_complexity = query_config.get(
+                "max_query_complexity", self.query_settings.max_query_complexity
+            )
 
         # Pagination Settings
         if "pagination" in user_config:
             pagination_config = user_config["pagination"]
-            self.pagination_settings.default_method = pagination_config.get("default_method", self.pagination_settings.default_method)
-            self.pagination_settings.max_pages_per_request = pagination_config.get("max_pages_per_request", self.pagination_settings.max_pages_per_request)
-            self.pagination_settings.cursor_timeout_seconds = pagination_config.get("cursor_timeout_seconds", self.pagination_settings.cursor_timeout_seconds)
-            self.pagination_settings.enable_metadata = pagination_config.get("enable_metadata", self.pagination_settings.enable_metadata)
-            self.pagination_settings.include_performance_metrics = pagination_config.get("include_performance_metrics", self.pagination_settings.include_performance_metrics)
+            self.pagination_settings.default_method = pagination_config.get(
+                "default_method", self.pagination_settings.default_method
+            )
+            self.pagination_settings.max_pages_per_request = pagination_config.get(
+                "max_pages_per_request", self.pagination_settings.max_pages_per_request
+            )
+            self.pagination_settings.cursor_timeout_seconds = pagination_config.get(
+                "cursor_timeout_seconds", self.pagination_settings.cursor_timeout_seconds
+            )
+            self.pagination_settings.enable_metadata = pagination_config.get(
+                "enable_metadata", self.pagination_settings.enable_metadata
+            )
+            self.pagination_settings.include_performance_metrics = pagination_config.get(
+                "include_performance_metrics", self.pagination_settings.include_performance_metrics
+            )
 
         # Streaming Settings
         if "streaming" in user_config:
             streaming_config = user_config["streaming"]
-            self.streaming_settings.default_chunk_size = streaming_config.get("default_chunk_size", self.streaming_settings.default_chunk_size)
-            self.streaming_settings.max_chunk_size = streaming_config.get("max_chunk_size", self.streaming_settings.max_chunk_size)
+            self.streaming_settings.default_chunk_size = streaming_config.get(
+                "default_chunk_size", self.streaming_settings.default_chunk_size
+            )
+            self.streaming_settings.max_chunk_size = streaming_config.get(
+                "max_chunk_size", self.streaming_settings.max_chunk_size
+            )
             if "session_context_fields" in streaming_config:
-                self.streaming_settings.session_context_fields = streaming_config["session_context_fields"]
-            self.streaming_settings.enable_session_summaries = streaming_config.get("enable_session_summaries", self.streaming_settings.enable_session_summaries)
-            self.streaming_settings.session_timeout_minutes = streaming_config.get("session_timeout_minutes", self.streaming_settings.session_timeout_minutes)
+                self.streaming_settings.session_context_fields = streaming_config[
+                    "session_context_fields"
+                ]
+            self.streaming_settings.enable_session_summaries = streaming_config.get(
+                "enable_session_summaries", self.streaming_settings.enable_session_summaries
+            )
+            self.streaming_settings.session_timeout_minutes = streaming_config.get(
+                "session_timeout_minutes", self.streaming_settings.session_timeout_minutes
+            )
 
         # Performance Settings
         if "performance" in user_config:
             performance_config = user_config["performance"]
-            self.performance_settings.enable_caching = performance_config.get("enable_caching", self.performance_settings.enable_caching)
-            self.performance_settings.cache_ttl_seconds = performance_config.get("cache_ttl_seconds", self.performance_settings.cache_ttl_seconds)
-            self.performance_settings.max_cache_size = performance_config.get("max_cache_size", self.performance_settings.max_cache_size)
-            self.performance_settings.enable_connection_pooling = performance_config.get("enable_connection_pooling", self.performance_settings.enable_connection_pooling)
-            self.performance_settings.connection_pool_size = performance_config.get("connection_pool_size", self.performance_settings.connection_pool_size)
-            self.performance_settings.request_timeout_seconds = performance_config.get("request_timeout_seconds", self.performance_settings.request_timeout_seconds)
-            self.performance_settings.enable_sqlite_cache = performance_config.get("enable_sqlite_cache", self.performance_settings.enable_sqlite_cache)
-            self.performance_settings.sqlite_cache_ttl_hours = performance_config.get("sqlite_cache_ttl_hours", self.performance_settings.sqlite_cache_ttl_hours)
-            self.performance_settings.sqlite_cache_db_name = performance_config.get("sqlite_cache_db_name", self.performance_settings.sqlite_cache_db_name)
+            self.performance_settings.enable_caching = performance_config.get(
+                "enable_caching", self.performance_settings.enable_caching
+            )
+            self.performance_settings.cache_ttl_seconds = performance_config.get(
+                "cache_ttl_seconds", self.performance_settings.cache_ttl_seconds
+            )
+            self.performance_settings.max_cache_size = performance_config.get(
+                "max_cache_size", self.performance_settings.max_cache_size
+            )
+            self.performance_settings.enable_connection_pooling = performance_config.get(
+                "enable_connection_pooling", self.performance_settings.enable_connection_pooling
+            )
+            self.performance_settings.connection_pool_size = performance_config.get(
+                "connection_pool_size", self.performance_settings.connection_pool_size
+            )
+            self.performance_settings.request_timeout_seconds = performance_config.get(
+                "request_timeout_seconds", self.performance_settings.request_timeout_seconds
+            )
+            self.performance_settings.enable_sqlite_cache = performance_config.get(
+                "enable_sqlite_cache", self.performance_settings.enable_sqlite_cache
+            )
+            self.performance_settings.sqlite_cache_ttl_hours = performance_config.get(
+                "sqlite_cache_ttl_hours", self.performance_settings.sqlite_cache_ttl_hours
+            )
+            self.performance_settings.sqlite_cache_db_name = performance_config.get(
+                "sqlite_cache_db_name", self.performance_settings.sqlite_cache_db_name
+            )
 
         # Security Settings
         if "security" in user_config:
             security_config = user_config["security"]
-            self.security_settings.rate_limit_requests_per_minute = security_config.get("rate_limit_requests_per_minute", self.security_settings.rate_limit_requests_per_minute)
-            self.security_settings.max_query_results = security_config.get("max_query_results", self.security_settings.max_query_results)
-            self.security_settings.enable_field_validation = security_config.get("enable_field_validation", self.security_settings.enable_field_validation)
+            self.security_settings.rate_limit_requests_per_minute = security_config.get(
+                "rate_limit_requests_per_minute",
+                self.security_settings.rate_limit_requests_per_minute,
+            )
+            self.security_settings.max_query_results = security_config.get(
+                "max_query_results", self.security_settings.max_query_results
+            )
+            self.security_settings.enable_field_validation = security_config.get(
+                "enable_field_validation", self.security_settings.enable_field_validation
+            )
             if "allowed_field_patterns" in security_config:
-                self.security_settings.allowed_field_patterns = security_config["allowed_field_patterns"]
-            self.security_settings.block_sensitive_fields = security_config.get("block_sensitive_fields", self.security_settings.block_sensitive_fields)
+                self.security_settings.allowed_field_patterns = security_config[
+                    "allowed_field_patterns"
+                ]
+            self.security_settings.block_sensitive_fields = security_config.get(
+                "block_sensitive_fields", self.security_settings.block_sensitive_fields
+            )
             if "sensitive_field_patterns" in security_config:
-                self.security_settings.sensitive_field_patterns = security_config["sensitive_field_patterns"]
+                self.security_settings.sensitive_field_patterns = security_config[
+                    "sensitive_field_patterns"
+                ]
 
         # Logging Settings
         if "logging" in user_config:
             logging_config = user_config["logging"]
-            self.logging_settings.log_level = logging_config.get("log_level", self.logging_settings.log_level)
-            self.logging_settings.log_format = logging_config.get("log_format", self.logging_settings.log_format)
-            self.logging_settings.enable_query_logging = logging_config.get("enable_query_logging", self.logging_settings.enable_query_logging)
-            self.logging_settings.enable_performance_logging = logging_config.get("enable_performance_logging", self.logging_settings.enable_performance_logging)
-            self.logging_settings.log_sensitive_data = logging_config.get("log_sensitive_data", self.logging_settings.log_sensitive_data)
-            self.logging_settings.max_log_size_mb = logging_config.get("max_log_size_mb", self.logging_settings.max_log_size_mb)
+            self.logging_settings.log_level = logging_config.get(
+                "log_level", self.logging_settings.log_level
+            )
+            self.logging_settings.log_format = logging_config.get(
+                "log_format", self.logging_settings.log_format
+            )
+            self.logging_settings.enable_query_logging = logging_config.get(
+                "enable_query_logging", self.logging_settings.enable_query_logging
+            )
+            self.logging_settings.enable_performance_logging = logging_config.get(
+                "enable_performance_logging", self.logging_settings.enable_performance_logging
+            )
+            self.logging_settings.log_sensitive_data = logging_config.get(
+                "log_sensitive_data", self.logging_settings.log_sensitive_data
+            )
+            self.logging_settings.max_log_size_mb = logging_config.get(
+                "max_log_size_mb", self.logging_settings.max_log_size_mb
+            )
 
         # Campaign Settings
         if "campaign" in user_config:
             campaign_config = user_config["campaign"]
-            self.campaign_settings.correlation_window_minutes = campaign_config.get("correlation_window_minutes", self.campaign_settings.correlation_window_minutes)
-            self.campaign_settings.min_confidence_threshold = campaign_config.get("min_confidence_threshold", self.campaign_settings.min_confidence_threshold)
-            self.campaign_settings.max_campaign_events = campaign_config.get("max_campaign_events", self.campaign_settings.max_campaign_events)
-            self.campaign_settings.enable_geospatial_correlation = campaign_config.get("enable_geospatial_correlation", self.campaign_settings.enable_geospatial_correlation)
-            self.campaign_settings.enable_infrastructure_correlation = campaign_config.get("enable_infrastructure_correlation", self.campaign_settings.enable_infrastructure_correlation)
-            self.campaign_settings.enable_behavioral_correlation = campaign_config.get("enable_behavioral_correlation", self.campaign_settings.enable_behavioral_correlation)
-            self.campaign_settings.enable_temporal_correlation = campaign_config.get("enable_temporal_correlation", self.campaign_settings.enable_temporal_correlation)
-            self.campaign_settings.enable_ip_correlation = campaign_config.get("enable_ip_correlation", self.campaign_settings.enable_ip_correlation)
-            self.campaign_settings.max_expansion_depth = campaign_config.get("max_expansion_depth", self.campaign_settings.max_expansion_depth)
-            self.campaign_settings.expansion_timeout_seconds = campaign_config.get("expansion_timeout_seconds", self.campaign_settings.expansion_timeout_seconds)
+            self.campaign_settings.correlation_window_minutes = campaign_config.get(
+                "correlation_window_minutes", self.campaign_settings.correlation_window_minutes
+            )
+            self.campaign_settings.min_confidence_threshold = campaign_config.get(
+                "min_confidence_threshold", self.campaign_settings.min_confidence_threshold
+            )
+            self.campaign_settings.max_campaign_events = campaign_config.get(
+                "max_campaign_events", self.campaign_settings.max_campaign_events
+            )
+            self.campaign_settings.enable_geospatial_correlation = campaign_config.get(
+                "enable_geospatial_correlation",
+                self.campaign_settings.enable_geospatial_correlation,
+            )
+            self.campaign_settings.enable_infrastructure_correlation = campaign_config.get(
+                "enable_infrastructure_correlation",
+                self.campaign_settings.enable_infrastructure_correlation,
+            )
+            self.campaign_settings.enable_behavioral_correlation = campaign_config.get(
+                "enable_behavioral_correlation",
+                self.campaign_settings.enable_behavioral_correlation,
+            )
+            self.campaign_settings.enable_temporal_correlation = campaign_config.get(
+                "enable_temporal_correlation", self.campaign_settings.enable_temporal_correlation
+            )
+            self.campaign_settings.enable_ip_correlation = campaign_config.get(
+                "enable_ip_correlation", self.campaign_settings.enable_ip_correlation
+            )
+            self.campaign_settings.max_expansion_depth = campaign_config.get(
+                "max_expansion_depth", self.campaign_settings.max_expansion_depth
+            )
+            self.campaign_settings.expansion_timeout_seconds = campaign_config.get(
+                "expansion_timeout_seconds", self.campaign_settings.expansion_timeout_seconds
+            )
 
         # TCP Transport Settings
         if "tcp_transport" in user_config:
             tcp_config = user_config["tcp_transport"]
-            self.tcp_transport_settings.enabled = tcp_config.get("enabled", self.tcp_transport_settings.enabled)
-            self.tcp_transport_settings.port = tcp_config.get("port", self.tcp_transport_settings.port)
-            self.tcp_transport_settings.bind_address = tcp_config.get("bind_address", self.tcp_transport_settings.bind_address)
-            self.tcp_transport_settings.max_connections = tcp_config.get("max_connections", self.tcp_transport_settings.max_connections)
-            self.tcp_transport_settings.connection_timeout_seconds = tcp_config.get("connection_timeout_seconds", self.tcp_transport_settings.connection_timeout_seconds)
+            self.tcp_transport_settings.enabled = tcp_config.get(
+                "enabled", self.tcp_transport_settings.enabled
+            )
+            self.tcp_transport_settings.port = tcp_config.get(
+                "port", self.tcp_transport_settings.port
+            )
+            self.tcp_transport_settings.bind_address = tcp_config.get(
+                "bind_address", self.tcp_transport_settings.bind_address
+            )
+            self.tcp_transport_settings.max_connections = tcp_config.get(
+                "max_connections", self.tcp_transport_settings.max_connections
+            )
+            self.tcp_transport_settings.connection_timeout_seconds = tcp_config.get(
+                "connection_timeout_seconds", self.tcp_transport_settings.connection_timeout_seconds
+            )
 
             # API Key Management
             if "api_key_management" in tcp_config:
@@ -644,9 +929,15 @@ class UserConfigManager:
         # API Key Management Settings
         if "api_key_management" in user_config:
             api_key_config = user_config["api_key_management"]
-            self.api_key_management_settings.storage_provider = api_key_config.get("storage_provider", self.api_key_management_settings.storage_provider)
-            self.api_key_management_settings.cache_ttl = api_key_config.get("cache_ttl", self.api_key_management_settings.cache_ttl)
-            self.api_key_management_settings.auto_cleanup_expired = api_key_config.get("auto_cleanup_expired", self.api_key_management_settings.auto_cleanup_expired)
+            self.api_key_management_settings.storage_provider = api_key_config.get(
+                "storage_provider", self.api_key_management_settings.storage_provider
+            )
+            self.api_key_management_settings.cache_ttl = api_key_config.get(
+                "cache_ttl", self.api_key_management_settings.cache_ttl
+            )
+            self.api_key_management_settings.auto_cleanup_expired = api_key_config.get(
+                "auto_cleanup_expired", self.api_key_management_settings.auto_cleanup_expired
+            )
 
             # 1Password CLI Settings
             if "onepassword_cli" in api_key_config:
@@ -662,8 +953,12 @@ class UserConfigManager:
         if "tui" in user_config:
             tui_config = user_config["tui"]
             self.tui_settings.enabled = tui_config.get("enabled", self.tui_settings.enabled)
-            self.tui_settings.refresh_interval_ms = tui_config.get("refresh_interval_ms", self.tui_settings.refresh_interval_ms)
-            self.tui_settings.log_history_size = tui_config.get("log_history_size", self.tui_settings.log_history_size)
+            self.tui_settings.refresh_interval_ms = tui_config.get(
+                "refresh_interval_ms", self.tui_settings.refresh_interval_ms
+            )
+            self.tui_settings.log_history_size = tui_config.get(
+                "log_history_size", self.tui_settings.log_history_size
+            )
 
             # Server Management
             if "server_management" in tui_config:
@@ -677,16 +972,16 @@ class UserConfigManager:
 
     def _validate_settings(self) -> None:
         """Validate all settings for consistency and correctness.
-        
+
         Performs validation checks on all configuration settings to ensure
         they are within acceptable ranges and consistent with each other.
-        
+
         Raises:
             ValueError: If settings are invalid or inconsistent
 
         """
         errors = []
-        warnings = []
+        warnings: list[str] = []
 
         # Query Settings Validation
         if self.query_settings.default_page_size > self.query_settings.max_page_size:
@@ -791,14 +1086,14 @@ class UserConfigManager:
 
     def get_setting(self, category: str, setting: str) -> Any:
         """Get a specific setting value.
-        
+
         Args:
             category: Setting category (query, pagination, streaming, etc.)
             setting: Setting name within the category
-        
+
         Returns:
             Setting value
-        
+
         Raises:
             KeyError: If category or setting does not exist
 
@@ -826,12 +1121,12 @@ class UserConfigManager:
 
     def update_setting(self, category: str, setting: str, value: Any) -> None:
         """Update a specific setting value.
-        
+
         Args:
             category: Setting category (query, pagination, streaming, etc.)
             setting: Setting name within the category
             value: New value for the setting
-        
+
         Raises:
             KeyError: If category or setting does not exist
             ValueError: If value is invalid for the setting
@@ -860,9 +1155,9 @@ class UserConfigManager:
         self._validate_settings()
         logger.info(f"Updated setting: {category}.{setting} = {value}")
 
-    def export_config(self) -> Dict[str, Any]:
+    def export_config(self) -> dict[str, Any]:
         """Export current configuration as a dictionary.
-        
+
         Returns:
             Dictionary containing all current configuration settings
 
@@ -933,9 +1228,9 @@ class UserConfigManager:
             },
         }
 
-    def save_user_config(self, file_path: Optional[str] = None) -> None:
+    def save_user_config(self, file_path: str | None = None) -> None:
         """Save current configuration to a file.
-        
+
         Args:
             file_path: Path to save the configuration file (default: auto-detected)
 
@@ -943,7 +1238,7 @@ class UserConfigManager:
         if file_path is None:
             config_dir = Path.home() / ".dshield-mcp"
             config_dir.mkdir(exist_ok=True)
-            file_path = config_dir / "user_config.yaml"
+            file_path = str(config_dir / "user_config.yaml")
 
         config_data = self.export_config()
 
@@ -955,9 +1250,9 @@ class UserConfigManager:
             logger.error(f"Failed to save user configuration: {e}")
             raise
 
-    def get_environment_variables(self) -> Dict[str, str]:
+    def get_environment_variables(self) -> dict[str, str]:
         """Get environment variables that can be used to override settings.
-        
+
         Returns:
             Dictionary mapping setting names to environment variable names
 
@@ -971,21 +1266,20 @@ class UserConfigManager:
             "ENABLE_SMART_OPTIMIZATION": str(self.query_settings.enable_smart_optimization),
             "FALLBACK_STRATEGY": self.query_settings.fallback_strategy,
             "MAX_QUERY_COMPLEXITY": str(self.query_settings.max_query_complexity),
-
             # Pagination Settings
             "PAGINATION_METHOD": self.pagination_settings.default_method,
             "MAX_PAGES_PER_REQUEST": str(self.pagination_settings.max_pages_per_request),
             "CURSOR_TIMEOUT_SECONDS": str(self.pagination_settings.cursor_timeout_seconds),
             "ENABLE_PAGINATION_METADATA": str(self.pagination_settings.enable_metadata),
-            "INCLUDE_PERFORMANCE_METRICS": str(self.pagination_settings.include_performance_metrics),
-
+            "INCLUDE_PERFORMANCE_METRICS": str(
+                self.pagination_settings.include_performance_metrics
+            ),
             # Streaming Settings
             "DEFAULT_CHUNK_SIZE": str(self.streaming_settings.default_chunk_size),
             "MAX_CHUNK_SIZE": str(self.streaming_settings.max_chunk_size),
             "SESSION_CONTEXT_FIELDS": ",".join(self.streaming_settings.session_context_fields),
             "ENABLE_SESSION_SUMMARIES": str(self.streaming_settings.enable_session_summaries),
             "SESSION_TIMEOUT_MINUTES": str(self.streaming_settings.session_timeout_minutes),
-
             # Performance Settings
             "ENABLE_CACHING": str(self.performance_settings.enable_caching),
             "CACHE_TTL_SECONDS": str(self.performance_settings.cache_ttl_seconds),
@@ -996,15 +1290,15 @@ class UserConfigManager:
             "ENABLE_SQLITE_CACHE": str(self.performance_settings.enable_sqlite_cache),
             "SQLITE_CACHE_TTL_HOURS": str(self.performance_settings.sqlite_cache_ttl_hours),
             "SQLITE_CACHE_DB_NAME": self.performance_settings.sqlite_cache_db_name,
-
             # Security Settings
-            "RATE_LIMIT_REQUESTS_PER_MINUTE": str(self.security_settings.rate_limit_requests_per_minute),
+            "RATE_LIMIT_REQUESTS_PER_MINUTE": str(
+                self.security_settings.rate_limit_requests_per_minute
+            ),
             "MAX_QUERY_RESULTS": str(self.security_settings.max_query_results),
             "ENABLE_FIELD_VALIDATION": str(self.security_settings.enable_field_validation),
             "ALLOWED_FIELD_PATTERNS": ",".join(self.security_settings.allowed_field_patterns),
             "BLOCK_SENSITIVE_FIELDS": str(self.security_settings.block_sensitive_fields),
             "SENSITIVE_FIELD_PATTERNS": ",".join(self.security_settings.sensitive_field_patterns),
-
             # Logging Settings
             "LOG_LEVEL": self.logging_settings.log_level,
             "LOG_FORMAT": self.logging_settings.log_format,
@@ -1012,14 +1306,19 @@ class UserConfigManager:
             "ENABLE_PERFORMANCE_LOGGING": str(self.logging_settings.enable_performance_logging),
             "LOG_SENSITIVE_DATA": str(self.logging_settings.log_sensitive_data),
             "MAX_LOG_SIZE_MB": str(self.logging_settings.max_log_size_mb),
-
             # Campaign Settings
             "CORRELATION_WINDOW_MINUTES": str(self.campaign_settings.correlation_window_minutes),
             "MIN_CONFIDENCE_THRESHOLD": str(self.campaign_settings.min_confidence_threshold),
             "MAX_CAMPAIGN_EVENTS": str(self.campaign_settings.max_campaign_events),
-            "ENABLE_GEOSPATIAL_CORRELATION": str(self.campaign_settings.enable_geospatial_correlation),
-            "ENABLE_INFRASTRUCTURE_CORRELATION": str(self.campaign_settings.enable_infrastructure_correlation),
-            "ENABLE_BEHAVIORAL_CORRELATION": str(self.campaign_settings.enable_behavioral_correlation),
+            "ENABLE_GEOSPATIAL_CORRELATION": str(
+                self.campaign_settings.enable_geospatial_correlation
+            ),
+            "ENABLE_INFRASTRUCTURE_CORRELATION": str(
+                self.campaign_settings.enable_infrastructure_correlation
+            ),
+            "ENABLE_BEHAVIORAL_CORRELATION": str(
+                self.campaign_settings.enable_behavioral_correlation
+            ),
             "ENABLE_TEMPORAL_CORRELATION": str(self.campaign_settings.enable_temporal_correlation),
             "ENABLE_IP_CORRELATION": str(self.campaign_settings.enable_ip_correlation),
             "MAX_EXPANSION_DEPTH": str(self.campaign_settings.max_expansion_depth),
@@ -1028,18 +1327,20 @@ class UserConfigManager:
 
     def get_database_directory(self) -> str:
         """Get the database directory path.
-        
+
         Returns:
             str: Path to the database directory (~/dshield-mcp-output/db)
 
         """
+        if self.output_directory is None:
+            raise ValueError("Output directory is not set")
         db_dir = os.path.join(self.output_directory, "db")
         os.makedirs(db_dir, exist_ok=True)
         return db_dir
 
     def get_cache_database_path(self) -> str:
         """Get the full path to the cache database file.
-        
+
         Returns:
             str: Full path to the cache database file
 
@@ -1049,12 +1350,12 @@ class UserConfigManager:
 
 
 # Global instance for easy access
-_user_config_manager: Optional[UserConfigManager] = None
+_user_config_manager: UserConfigManager | None = None
 
 
 def get_user_config() -> UserConfigManager:
     """Get the global user configuration manager instance.
-    
+
     Returns:
         UserConfigManager: The global configuration manager instance
 
@@ -1067,7 +1368,7 @@ def get_user_config() -> UserConfigManager:
 
 def reset_user_config() -> None:
     """Reset the global user configuration manager instance.
-    
+
     This function clears the global configuration manager, forcing
     a reload of configuration on the next get_user_config() call.
     """

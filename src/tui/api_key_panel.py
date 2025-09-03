@@ -5,7 +5,7 @@ generating, and deleting API keys stored in 1Password.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import structlog
 from textual.app import ComposeResult  # type: ignore
@@ -21,7 +21,7 @@ class APIKeyDelete(Message):  # type: ignore
 
     def __init__(self, key_id: str) -> None:
         """Initialize API key delete message.
-        
+
         Args:
             key_id: The unique identifier of the API key to delete
 
@@ -37,7 +37,7 @@ class APIKeyPanel(Container):
         """Initialize the API key panel."""
         super().__init__(**kwargs)
         self.logger = structlog.get_logger(__name__)
-        self.api_keys: List[Dict[str, Any]] = []
+        self.api_keys: list[dict[str, Any]] = []
 
     def compose(self) -> ComposeResult:
         """Compose the panel layout."""
@@ -92,9 +92,10 @@ class APIKeyPanel(Container):
     def _generate_new_key(self) -> None:
         """Open the API key generation screen."""
         from .screens.api_key_screen import APIKeyGenerationScreen
+
         self.app.push_screen(APIKeyGenerationScreen(), self._on_api_key_generated)
 
-    async def _on_api_key_generated(self, key_config: Dict[str, Any]) -> None:
+    async def _on_api_key_generated(self, key_config: dict[str, Any]) -> None:
         """Handle API key generation completion."""
         try:
             # This would typically call the connection manager to generate the key

@@ -9,7 +9,7 @@ import asyncio
 import os
 import subprocess
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
 
@@ -21,14 +21,14 @@ logger = structlog.get_logger(__name__)
 
 class TUIProcessManager:
     """Manages the MCP server process for the TUI.
-    
+
     This class handles starting, stopping, and monitoring the MCP server
     process when running in TUI mode.
     """
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
+    def __init__(self, config_path: str | None = None) -> None:
         """Initialize the TUI process manager.
-        
+
         Args:
             config_path: Optional path to configuration file
 
@@ -38,7 +38,7 @@ class TUIProcessManager:
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
         # Process management
-        self.server_process: Optional[subprocess.Popen] = None
+        self.server_process: subprocess.Popen[bytes] | None = None
         self.server_running = False
         self.server_restart_pending = False
 
@@ -55,7 +55,9 @@ class TUIProcessManager:
             "security": {
                 "global_rate_limit": 1000,
                 "global_burst_limit": 100,
-                "client_rate_limit": self.user_config.tcp_transport_settings.api_key_management.get("rate_limit_per_key", 60),
+                "client_rate_limit": self.user_config.tcp_transport_settings.api_key_management.get(
+                    "rate_limit_per_key", 60
+                ),
                 "client_burst_limit": 10,
                 "abuse_threshold": 10,
                 "block_duration_seconds": 3600,
@@ -65,8 +67,14 @@ class TUIProcessManager:
                     "max_message_size": 1048576,
                     "max_field_length": 10000,
                     "allowed_methods": [
-                        "initialize", "initialized", "tools/list", "tools/call",
-                        "resources/list", "resources/read", "prompts/list", "prompts/get",
+                        "initialize",
+                        "initialized",
+                        "tools/list",
+                        "tools/call",
+                        "resources/list",
+                        "resources/read",
+                        "prompts/list",
+                        "prompts/get",
                         "authenticate",
                     ],
                 },
@@ -79,7 +87,7 @@ class TUIProcessManager:
 
     async def start_server(self) -> bool:
         """Start the MCP server process.
-        
+
         Returns:
             True if server started successfully, False otherwise
 
@@ -98,7 +106,9 @@ class TUIProcessManager:
 
             # Build server command
             server_cmd = [
-                sys.executable, "-m", "src.server_launcher",
+                sys.executable,
+                "-m",
+                "src.server_launcher",
             ]
 
             if self.config_path:
@@ -118,7 +128,9 @@ class TUIProcessManager:
 
             if self.server_process.poll() is None:
                 self.server_running = True
-                self.logger.info("MCP server process started successfully", pid=self.server_process.pid)
+                self.logger.info(
+                    "MCP server process started successfully", pid=self.server_process.pid
+                )
                 return True
             self.logger.error("MCP server process failed to start")
             return False
@@ -129,7 +141,7 @@ class TUIProcessManager:
 
     async def stop_server(self) -> bool:
         """Stop the MCP server process.
-        
+
         Returns:
             True if server stopped successfully, False otherwise
 
@@ -165,7 +177,7 @@ class TUIProcessManager:
 
     async def restart_server(self) -> bool:
         """Restart the MCP server process.
-        
+
         Returns:
             True if server restarted successfully, False otherwise
 
@@ -186,7 +198,7 @@ class TUIProcessManager:
 
     def is_server_running(self) -> bool:
         """Check if the server process is running.
-        
+
         Returns:
             True if server is running, False otherwise
 
@@ -196,9 +208,9 @@ class TUIProcessManager:
 
         return self.server_process.poll() is None
 
-    def get_server_status(self) -> Dict[str, Any]:
+    def get_server_status(self) -> dict[str, Any]:
         """Get server process status.
-        
+
         Returns:
             Dictionary of server status information
 
@@ -221,13 +233,13 @@ class TUIProcessManager:
 
 class DShieldTUILauncher:
     """Main launcher for the DShield MCP TUI.
-    
+
     This class coordinates the TUI application and server process management.
     """
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
+    def __init__(self, config_path: str | None = None) -> None:
         """Initialize the TUI launcher.
-        
+
         Args:
             config_path: Optional path to configuration file
 
@@ -238,11 +250,11 @@ class DShieldTUILauncher:
 
         # Components
         self.process_manager = TUIProcessManager(config_path)
-        self.tui_app: Optional[DShieldTUIApp] = None
+        self.tui_app: DShieldTUIApp | None = None
 
     def run(self) -> None:
         """Run the TUI application with server management.
-        
+
         This method starts the TUI application and manages the server process.
         """
         try:
@@ -258,7 +270,8 @@ class DShieldTUILauncher:
                 self.logger.info("Auto-starting server")
                 # Start server in a separate thread to avoid blocking
                 import threading
-                def start_server_sync():
+
+                def start_server_sync() -> None:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     loop.run_until_complete(self.process_manager.start_server())
@@ -291,7 +304,8 @@ class DShieldTUILauncher:
     def _start_server_sync(self) -> None:
         """Start the server (called by TUI app)."""
         import threading
-        def start_server_async():
+
+        def start_server_async() -> None:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
@@ -310,6 +324,7 @@ class DShieldTUILauncher:
     def _stop_server_sync(self) -> None:
         """Stop the server (called by TUI app)."""
         import threading
+
         def stop_server_async():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -329,7 +344,8 @@ class DShieldTUILauncher:
     def _restart_server_sync(self) -> None:
         """Restart the server (called by TUI app)."""
         import threading
-        def restart_server_async():
+
+        def restart_server_async() -> None:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
@@ -353,7 +369,8 @@ class DShieldTUILauncher:
             # Stop server if running
             if self.process_manager.server_running:
                 import threading
-                def stop_server_async():
+
+                def stop_server_async() -> None:
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
@@ -367,7 +384,8 @@ class DShieldTUILauncher:
 
             # Clean up process manager
             import threading
-            def cleanup_async():
+
+            def cleanup_async() -> None:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
@@ -398,9 +416,9 @@ class DShieldTUILauncher:
             self.logger.error("Error during TUI launcher cleanup", error=str(e))
 
 
-def run_tui(config_path: Optional[str] = None) -> None:
+def run_tui(config_path: str | None = None) -> None:
     """Run the TUI application.
-    
+
     Args:
         config_path: Optional path to configuration file
 

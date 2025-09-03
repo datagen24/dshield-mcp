@@ -7,7 +7,7 @@ support, authentication, security, and integration with the existing MCP server.
 
 import asyncio
 import json
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 import structlog
 
@@ -22,14 +22,14 @@ logger = structlog.get_logger(__name__)
 
 class MCPServerAdapter:
     """Adapter to integrate TCP transport with MCP server.
-    
+
     This class bridges the gap between the TCP transport layer and the
     existing MCP server, handling protocol translation and message routing.
     """
 
-    def __init__(self, mcp_server: Any, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, mcp_server: Any, config: dict[str, Any] | None = None) -> None:
         """Initialize the MCP server adapter.
-        
+
         Args:
             mcp_server: The MCP server instance
             config: Adapter configuration
@@ -44,16 +44,17 @@ class MCPServerAdapter:
         self.error_handler = MCPErrorHandler(error_config)
 
         # Track active sessions
-        self.active_sessions: Dict[str, Dict[str, Any]] = {}
+        self.active_sessions: dict[str, dict[str, Any]] = {}
 
-    async def process_mcp_message(self, connection: TCPConnection,
-                                message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def process_mcp_message(
+        self, connection: TCPConnection, message: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Process an MCP protocol message.
-        
+
         Args:
             connection: The TCP connection
             message: The MCP message to process
-            
+
         Returns:
             Response message if applicable, None for notifications
 
@@ -76,9 +77,11 @@ class MCPServerAdapter:
             return await self._route_mcp_message(connection, message)
 
         except Exception as e:
-            self.logger.error("Error processing MCP message",
-                            client_address=connection.client_address,
-                            error=str(e))
+            self.logger.error(
+                "Error processing MCP message",
+                client_address=connection.client_address,
+                error=str(e),
+            )
             return self._create_error_response(
                 message.get("id"),
                 -32603,  # INTERNAL_ERROR
@@ -86,14 +89,15 @@ class MCPServerAdapter:
                 {"error": str(e)},
             )
 
-    async def _handle_authentication(self, connection: TCPConnection,
-                                   message: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_authentication(
+        self, connection: TCPConnection, message: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle authentication message.
-        
+
         Args:
             connection: The TCP connection
             message: Authentication message
-            
+
         Returns:
             Authentication response
 
@@ -142,14 +146,15 @@ class MCPServerAdapter:
                 {"error": str(e)},
             )
 
-    async def _route_mcp_message(self, connection: TCPConnection,
-                               message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def _route_mcp_message(
+        self, connection: TCPConnection, message: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Route MCP message to appropriate handler.
-        
+
         Args:
             connection: The TCP connection
             message: The MCP message
-            
+
         Returns:
             Response message if applicable
 
@@ -184,10 +189,12 @@ class MCPServerAdapter:
             )
 
         except Exception as e:
-            self.logger.error("Error routing MCP message",
-                            method=method,
-                            client_address=connection.client_address,
-                            error=str(e))
+            self.logger.error(
+                "Error routing MCP message",
+                method=method,
+                client_address=connection.client_address,
+                error=str(e),
+            )
             return self._create_error_response(
                 message_id,
                 -32603,  # INTERNAL_ERROR
@@ -195,15 +202,16 @@ class MCPServerAdapter:
                 {"error": str(e)},
             )
 
-    async def _handle_initialize(self, connection: TCPConnection,
-                               message_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_initialize(
+        self, connection: TCPConnection, message_id: Any, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle MCP initialize method.
-        
+
         Args:
             connection: The TCP connection
             message_id: Message ID
             params: Initialize parameters
-            
+
         Returns:
             Initialize response
 
@@ -224,10 +232,11 @@ class MCPServerAdapter:
             },
         }
 
-    async def _handle_initialized(self, connection: TCPConnection,
-                                message_id: Any, params: Dict[str, Any]) -> None:
+    async def _handle_initialized(
+        self, connection: TCPConnection, message_id: Any, params: dict[str, Any]
+    ) -> None:
         """Handle MCP initialized notification.
-        
+
         Args:
             connection: The TCP connection
             message_id: Message ID (should be None for notifications)
@@ -236,18 +245,18 @@ class MCPServerAdapter:
         """
         # Mark connection as initialized
         connection.is_initialized = True
-        self.logger.info("MCP connection initialized",
-                        client_address=connection.client_address)
+        self.logger.info("MCP connection initialized", client_address=connection.client_address)
 
-    async def _handle_tools_list(self, connection: TCPConnection,
-                               message_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_tools_list(
+        self, connection: TCPConnection, message_id: Any, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle MCP tools/list method.
-        
+
         Args:
             connection: The TCP connection
             message_id: Message ID
             params: List parameters
-            
+
         Returns:
             Tools list response
 
@@ -263,15 +272,16 @@ class MCPServerAdapter:
             },
         }
 
-    async def _handle_tools_call(self, connection: TCPConnection,
-                               message_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_tools_call(
+        self, connection: TCPConnection, message_id: Any, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle MCP tools/call method.
-        
+
         Args:
             connection: The TCP connection
             message_id: Message ID
             params: Call parameters
-            
+
         Returns:
             Tool call response
 
@@ -312,15 +322,16 @@ class MCPServerAdapter:
                 {"tool": tool_name, "error": str(e)},
             )
 
-    async def _handle_resources_list(self, connection: TCPConnection,
-                                   message_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_resources_list(
+        self, connection: TCPConnection, message_id: Any, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle MCP resources/list method.
-        
+
         Args:
             connection: The TCP connection
             message_id: Message ID
             params: List parameters
-            
+
         Returns:
             Resources list response
 
@@ -336,15 +347,16 @@ class MCPServerAdapter:
             },
         }
 
-    async def _handle_resources_read(self, connection: TCPConnection,
-                                   message_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_resources_read(
+        self, connection: TCPConnection, message_id: Any, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle MCP resources/read method.
-        
+
         Args:
             connection: The TCP connection
             message_id: Message ID
             params: Read parameters
-            
+
         Returns:
             Resource read response
 
@@ -379,15 +391,16 @@ class MCPServerAdapter:
                 {"uri": resource_uri, "error": str(e)},
             )
 
-    async def _handle_prompts_list(self, connection: TCPConnection,
-                                 message_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_prompts_list(
+        self, connection: TCPConnection, message_id: Any, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle MCP prompts/list method.
-        
+
         Args:
             connection: The TCP connection
             message_id: Message ID
             params: List parameters
-            
+
         Returns:
             Prompts list response
 
@@ -403,15 +416,16 @@ class MCPServerAdapter:
             },
         }
 
-    async def _handle_prompts_get(self, connection: TCPConnection,
-                                message_id: Any, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _handle_prompts_get(
+        self, connection: TCPConnection, message_id: Any, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Handle MCP prompts/get method.
-        
+
         Args:
             connection: The TCP connection
             message_id: Message ID
             params: Get parameters
-            
+
         Returns:
             Prompt get response
 
@@ -448,16 +462,21 @@ class MCPServerAdapter:
                 {"name": prompt_name, "error": str(e)},
             )
 
-    def _create_error_response(self, message_id: Any, error_code: int,
-                             error_message: str, error_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _create_error_response(
+        self,
+        message_id: Any,
+        error_code: int,
+        error_message: str,
+        error_data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Create a JSON-RPC error response.
-        
+
         Args:
             message_id: Message ID
             error_code: Error code
             error_message: Error message
             error_data: Additional error data
-            
+
         Returns:
             Error response dictionary
 
@@ -479,15 +498,15 @@ class MCPServerAdapter:
 
 class EnhancedTCPServer:
     """Enhanced TCP server with full MCP protocol support.
-    
+
     This class provides a complete TCP server implementation that integrates
     with the existing MCP server, providing authentication, security, and
     full protocol compliance.
     """
 
-    def __init__(self, mcp_server: Any, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, mcp_server: Any, config: dict[str, Any] | None = None) -> None:
         """Initialize the enhanced TCP server.
-        
+
         Args:
             mcp_server: The MCP server instance
             config: Server configuration
@@ -509,13 +528,13 @@ class EnhancedTCPServer:
 
         # Server state
         self.is_running = False
-        self.server_socket = None
-        self.connections: Set[TCPConnection] = set()
-        self._cleanup_task = None
+        self.server_socket: asyncio.Server | None = None
+        self.connections: set[TCPConnection] = set()
+        self._cleanup_task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
         """Start the enhanced TCP server.
-        
+
         Raises:
             Exception: If server fails to start
 
@@ -526,8 +545,12 @@ class EnhancedTCPServer:
             bind_address = self.config.get("bind_address", "127.0.0.1")
             max_connections = self.config.get("max_connections", 10)
 
-            self.logger.info("Starting enhanced TCP server",
-                           port=port, bind_address=bind_address, max_connections=max_connections)
+            self.logger.info(
+                "Starting enhanced TCP server",
+                port=port,
+                bind_address=bind_address,
+                max_connections=max_connections,
+            )
 
             # Create TCP server
             self.server_socket = await asyncio.start_server(
@@ -541,18 +564,24 @@ class EnhancedTCPServer:
             self._cleanup_task = asyncio.create_task(self._cleanup_expired_connections())
 
             self.is_running = True
-            self.logger.info("Enhanced TCP server started successfully",
-                           port=port, bind_address=bind_address)
+            self.logger.info(
+                "Enhanced TCP server started successfully", port=port, bind_address=bind_address
+            )
 
         except Exception as e:
             print(f"ERROR starting server: {e}")
             import traceback
-            self.logger.error("Failed to start enhanced TCP server", error=str(e), traceback=traceback.format_exc())
+
+            self.logger.error(
+                "Failed to start enhanced TCP server",
+                error=str(e),
+                traceback=traceback.format_exc(),
+            )
             raise  # Re-raise to see the error
 
     async def stop(self) -> None:
         """Stop the enhanced TCP server.
-        
+
         Closes all connections and cleans up resources.
         """
         try:
@@ -582,10 +611,11 @@ class EnhancedTCPServer:
         except Exception as e:
             self.logger.error("Error stopping enhanced TCP server", error=str(e))
 
-    async def _handle_connection(self, reader: asyncio.StreamReader,
-                               writer: asyncio.StreamWriter) -> None:
+    async def _handle_connection(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
         """Handle a new TCP connection.
-        
+
         Args:
             reader: StreamReader for reading from the connection
             writer: StreamWriter for writing to the connection
@@ -613,8 +643,9 @@ class EnhancedTCPServer:
             await self._process_connection(connection)
 
         except Exception as e:
-            self.logger.error("Error handling TCP connection",
-                            client_address=client_address, error=str(e))
+            self.logger.error(
+                "Error handling TCP connection", client_address=client_address, error=str(e)
+            )
         finally:
             # Clean up connection
             if connection:
@@ -625,7 +656,7 @@ class EnhancedTCPServer:
 
     async def _process_connection(self, connection: TCPConnection) -> None:
         """Process messages from a TCP connection.
-        
+
         Args:
             connection: The TCP connection to process
 
@@ -651,12 +682,14 @@ class EnhancedTCPServer:
 
                     # Validate message with security manager
                     validated_message = self.security_manager.validate_message(
-                        message, str(connection.client_address),
+                        message,
+                        str(connection.client_address),
                     )
 
                     # Process message through MCP adapter
                     response = await self.mcp_adapter.process_mcp_message(
-                        connection, validated_message,
+                        connection,
+                        validated_message,
                     )
 
                     # Send response if applicable
@@ -666,20 +699,27 @@ class EnhancedTCPServer:
                 except SecurityViolation as e:
                     await self._send_error_response(connection, e.violation_type, str(e))
                 except json.JSONDecodeError as e:
-                    await self._send_error_response(connection, "INVALID_JSON", f"Invalid JSON: {e}")
+                    await self._send_error_response(
+                        connection, "INVALID_JSON", f"Invalid JSON: {e}"
+                    )
                 except Exception as e:
-                    await self._send_error_response(connection, "INTERNAL_ERROR", f"Internal error: {e}")
+                    await self._send_error_response(
+                        connection, "INTERNAL_ERROR", f"Internal error: {e}"
+                    )
 
         except asyncio.IncompleteReadError:
             # Connection closed by client
             pass
         except Exception as e:
-            self.logger.error("Error processing TCP connection",
-                            client_address=connection.client_address, error=str(e))
+            self.logger.error(
+                "Error processing TCP connection",
+                client_address=connection.client_address,
+                error=str(e),
+            )
 
-    async def _send_response(self, connection: TCPConnection, response: Dict[str, Any]) -> None:
+    async def _send_response(self, connection: TCPConnection, response: dict[str, Any]) -> None:
         """Send a response to a TCP connection.
-        
+
         Args:
             connection: The TCP connection
             response: The response to send
@@ -696,13 +736,15 @@ class EnhancedTCPServer:
             await connection.writer.drain()
 
         except Exception as e:
-            self.logger.error("Error sending TCP response",
-                            client_address=connection.client_address, error=str(e))
+            self.logger.error(
+                "Error sending TCP response", client_address=connection.client_address, error=str(e)
+            )
 
-    async def _send_error_response(self, connection: TCPConnection,
-                                 error_type: str, error_message: str) -> None:
+    async def _send_error_response(
+        self, connection: TCPConnection, error_type: str, error_message: str
+    ) -> None:
         """Send an error response to a TCP connection.
-        
+
         Args:
             connection: The TCP connection
             error_type: Error type
@@ -722,7 +764,7 @@ class EnhancedTCPServer:
 
     async def _cleanup_expired_connections(self) -> None:
         """Clean up expired connections and security data.
-        
+
         Runs periodically to remove expired connections and clean up security data.
         """
         timeout_seconds = self.config.get("connection_timeout_seconds", 300)
@@ -733,13 +775,13 @@ class EnhancedTCPServer:
 
                 # Clean up expired connections
                 expired_connections = [
-                    conn for conn in self.connections
-                    if conn.is_expired(timeout_seconds)
+                    conn for conn in self.connections if conn.is_expired(timeout_seconds)
                 ]
 
                 for connection in expired_connections:
-                    self.logger.info("Closing expired connection",
-                                   client_address=connection.client_address)
+                    self.logger.info(
+                        "Closing expired connection", client_address=connection.client_address
+                    )
                     self.connections.discard(connection)
                     self.connection_manager.remove_connection(connection)
                     await connection.close()
@@ -755,9 +797,9 @@ class EnhancedTCPServer:
             except Exception as e:
                 self.logger.error("Error in cleanup task", error=str(e))
 
-    def get_server_statistics(self) -> Dict[str, Any]:
+    def get_server_statistics(self) -> dict[str, Any]:
         """Get server statistics.
-        
+
         Returns:
             Dictionary of server statistics
 

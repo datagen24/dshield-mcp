@@ -1,7 +1,8 @@
 """Health check manager for DShield MCP server dependencies."""
+
 import asyncio
 import subprocess
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
 
@@ -13,13 +14,13 @@ class HealthCheckManager:
 
     def __init__(self) -> None:
         """Initialize the health check manager."""
-        self.health_status: Dict[str, bool] = {}
-        self.health_details: Dict[str, Dict[str, Any]] = {}
-        self.health_checks = {}
+        self.health_status: dict[str, bool] = {}
+        self.health_details: dict[str, dict[str, Any]] = {}
+        self.health_checks: dict[str, Callable[[], bool]] = {}
 
     async def check_elasticsearch(self) -> bool:
         """Check Elasticsearch connectivity and health.
-        
+
         Returns:
             bool: True if Elasticsearch is healthy, False otherwise
 
@@ -54,7 +55,7 @@ class HealthCheckManager:
 
     async def check_dshield_api(self) -> bool:
         """Check DShield API connectivity and authentication.
-        
+
         Returns:
             bool: True if DShield API is healthy, False otherwise
 
@@ -89,7 +90,7 @@ class HealthCheckManager:
 
     async def check_latex_availability(self) -> bool:
         """Check if LaTeX compilation is available.
-        
+
         Returns:
             bool: True if LaTeX is available, False otherwise
 
@@ -98,7 +99,8 @@ class HealthCheckManager:
             # Check if pdflatex binary is available
             result = subprocess.run(
                 ["which", "pdflatex"],
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=5,
             )
@@ -124,7 +126,8 @@ class HealthCheckManager:
                     # Try to compile
                     compile_result = subprocess.run(
                         ["pdflatex", "-interaction=nonstopmode", temp_file],
-                        check=False, capture_output=True,
+                        check=False,
+                        capture_output=True,
                         text=True,
                         timeout=30,
                         cwd=os.path.dirname(temp_file),
@@ -182,9 +185,9 @@ class HealthCheckManager:
             }
             return False
 
-    async def check_threat_intel_sources(self) -> Dict[str, bool]:
+    async def check_threat_intel_sources(self) -> dict[str, bool]:
         """Check availability of threat intelligence sources.
-        
+
         Returns:
             Dict[str, bool]: Dictionary mapping source names to availability status
 
@@ -199,6 +202,7 @@ class HealthCheckManager:
             # Check if we have any cached threat intelligence data
             try:
                 from src.threat_intelligence_manager import ThreatIntelligenceManager
+
                 tim = ThreatIntelligenceManager()
                 has_cached_data = await tim.has_cached_data()
                 sources_status["cached_data"] = has_cached_data
@@ -208,6 +212,7 @@ class HealthCheckManager:
             # Check if we have offline threat intelligence sources
             try:
                 from src.data_dictionary import DataDictionary
+
                 dd = DataDictionary()
                 has_offline_sources = dd.has_offline_threat_intel()
                 sources_status["offline_sources"] = has_offline_sources
@@ -235,7 +240,7 @@ class HealthCheckManager:
 
     async def check_database_health(self) -> bool:
         """Check database connectivity and health.
-        
+
         Returns:
             bool: True if database is healthy, False otherwise
 
@@ -263,9 +268,9 @@ class HealthCheckManager:
             }
             return False
 
-    async def run_all_checks(self) -> Dict[str, Any]:
+    async def run_all_checks(self) -> dict[str, Any]:
         """Run all health checks and return comprehensive status.
-        
+
         Returns:
             Dict[str, Any]: Dictionary containing health status and details for all dependencies
 
@@ -273,11 +278,11 @@ class HealthCheckManager:
         logger.info("Starting comprehensive health checks")
 
         # Run all health checks concurrently with timeout protection
-        async def run_with_timeout(coro, timeout_seconds: int = 30):
+        async def run_with_timeout(coro: Any, timeout_seconds: int = 30) -> Any:
             """Run a coroutine with timeout protection."""
             try:
                 return await asyncio.wait_for(coro, timeout=timeout_seconds)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(f"Health check timed out after {timeout_seconds} seconds")
                 return False
             except Exception as e:
@@ -295,20 +300,30 @@ class HealthCheckManager:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Process results
-        self.health_status["elasticsearch"] = results[0] if not isinstance(results[0], Exception) else False
-        self.health_status["dshield_api"] = results[1] if not isinstance(results[1], Exception) else False
+        self.health_status["elasticsearch"] = (
+            results[0] if not isinstance(results[0], Exception) else False
+        )
+        self.health_status["dshield_api"] = (
+            results[1] if not isinstance(results[1], Exception) else False
+        )
         self.health_status["latex"] = results[2] if not isinstance(results[2], Exception) else False
 
         threat_intel_result = results[3] if not isinstance(results[3], Exception) else {}
-        self.health_status["threat_intel_sources"] = all(threat_intel_result.values()) if threat_intel_result else False
+        self.health_status["threat_intel_sources"] = (
+            all(threat_intel_result.values()) if threat_intel_result else False
+        )
 
-        self.health_status["database"] = results[4] if not isinstance(results[4], Exception) else False
+        self.health_status["database"] = (
+            results[4] if not isinstance(results[4], Exception) else False
+        )
 
         # Log health check results
-        logger.info("Health checks completed",
-                   health_status=self.health_status,
-                   healthy_count=sum(self.health_status.values()),
-                   total_count=len(self.health_status))
+        logger.info(
+            "Health checks completed",
+            health_status=self.health_status,
+            healthy_count=sum(self.health_status.values()),
+            total_count=len(self.health_status),
+        )
 
         return {
             "status": self.health_status,
@@ -320,9 +335,9 @@ class HealthCheckManager:
             },
         }
 
-    def get_health_summary(self) -> Dict[str, Any]:
+    def get_health_summary(self) -> dict[str, Any]:
         """Get a summary of current health status.
-        
+
         Returns:
             Dict[str, Any]: Health status summary
 
@@ -331,27 +346,29 @@ class HealthCheckManager:
             "overall_health": sum(self.health_status.values()) / len(self.health_status),
             "healthy_services": [k for k, v in self.health_status.items() if v],
             "unhealthy_services": [k for k, v in self.health_status.items() if not v],
-            "last_check": max([details.get("timestamp", 0) for details in self.health_details.values()], default=0),
+            "last_check": max(
+                [details.get("timestamp", 0) for details in self.health_details.values()], default=0
+            ),
         }
 
     def is_service_healthy(self, service_name: str) -> bool:
         """Check if a specific service is healthy.
-        
+
         Args:
             service_name: Name of the service to check
-            
+
         Returns:
             bool: True if service is healthy, False otherwise
 
         """
         return self.health_status.get(service_name, False)
 
-    def get_service_details(self, service_name: str) -> Optional[Dict[str, Any]]:
+    def get_service_details(self, service_name: str) -> dict[str, Any] | None:
         """Get detailed health information for a specific service.
-        
+
         Args:
             service_name: Name of the service
-            
+
         Returns:
             Optional[Dict[str, Any]]: Service health details or None if not found
 

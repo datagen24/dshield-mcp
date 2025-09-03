@@ -23,8 +23,8 @@ Example:
 
 import json
 import os
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 from dotenv import load_dotenv
@@ -37,16 +37,16 @@ logger = structlog.get_logger(__name__)
 
 class ContextInjector:
     """Prepare and inject security context for ChatGPT analysis.
-    
+
     This class provides methods to prepare and format various types of
     security data for injection into ChatGPT conversations. It supports
     multiple output formats and optimizes data for AI consumption.
-    
+
     Attributes:
         max_context_size: Maximum context size in characters
         include_raw_data: Whether to include raw data in context
         context_format: Output format (structured, summary, or raw)
-    
+
     Example:
         >>> injector = ContextInjector()
         >>> context = injector.prepare_security_context(events)
@@ -56,37 +56,39 @@ class ContextInjector:
 
     def __init__(self) -> None:
         """Initialize the ContextInjector.
-        
+
         Loads configuration from environment variables for context
         formatting preferences and size limits.
         """
         self.max_context_size = int(os.getenv("MAX_CONTEXT_SIZE", "10000"))  # characters
         self.include_raw_data = os.getenv("INCLUDE_RAW_DATA", "false").lower() == "true"
-        self.context_format = os.getenv("CONTEXT_FORMAT", "structured")  # structured, summary, or raw
+        self.context_format = os.getenv(
+            "CONTEXT_FORMAT", "structured"
+        )  # structured, summary, or raw
 
     def prepare_security_context(
         self,
-        events: List[Dict[str, Any]],
-        threat_intelligence: Optional[Dict[str, Any]] = None,
-        summary: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        events: list[dict[str, Any]],
+        threat_intelligence: dict[str, Any] | None = None,
+        summary: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Prepare security context for injection.
-        
+
         Creates a comprehensive security context from events, threat
         intelligence, and summary data, formatted according to the
         configured context format preference.
-        
+
         Args:
             events: List of security event dictionaries
             threat_intelligence: Optional threat intelligence data
             summary: Optional summary data
-        
+
         Returns:
             Dictionary containing formatted security context
 
         """
-        context = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+        context: dict[str, Any] = {
+            "timestamp": datetime.now(UTC).isoformat(),
             "context_type": "security_analysis",
             "data": {},
         }
@@ -97,11 +99,15 @@ class ContextInjector:
         elif self.context_format == "summary":
             context["data"]["events"] = self._summarize_events(events)
         else:  # raw
-            context["data"]["events"] = events if self.include_raw_data else self._clean_events(events)
+            context["data"]["events"] = (
+                events if self.include_raw_data else self._clean_events(events)
+            )
 
         # Add threat intelligence
         if threat_intelligence:
-            context["data"]["threat_intelligence"] = self._process_threat_intelligence(threat_intelligence)
+            context["data"]["threat_intelligence"] = self._process_threat_intelligence(
+                threat_intelligence
+            )
 
         # Add summary if provided
         if summary:
@@ -111,25 +117,27 @@ class ContextInjector:
         context["data"]["metadata"] = self._generate_metadata(events, threat_intelligence)
 
         # Add analysis hints
-        context["data"]["analysis_hints"] = self._generate_analysis_hints(events, threat_intelligence)
+        context["data"]["analysis_hints"] = self._generate_analysis_hints(
+            events, threat_intelligence
+        )
 
         return context
 
-    def prepare_attack_report_context(self, report: Dict[str, Any]) -> Dict[str, Any]:
+    def prepare_attack_report_context(self, report: dict[str, Any]) -> dict[str, Any]:
         """Prepare attack report context for injection.
-        
+
         Formats an attack report for injection into ChatGPT conversations,
         including metadata and confidence information.
-        
+
         Args:
             report: Attack report dictionary
-        
+
         Returns:
             Dictionary containing formatted attack report context
 
         """
         context = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "context_type": "attack_report",
             "data": {
                 "report": self._format_attack_report(report),
@@ -146,25 +154,25 @@ class ContextInjector:
     def prepare_query_context(
         self,
         query_type: str,
-        parameters: Dict[str, Any],
-        results: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        parameters: dict[str, Any],
+        results: list[dict[str, Any]],
+    ) -> dict[str, Any]:
         """Prepare query context for injection.
-        
+
         Formats query results and parameters for injection into ChatGPT
         conversations, including metadata about the query execution.
-        
+
         Args:
             query_type: Type of query that was executed
             parameters: Query parameters that were used
             results: Query results to format
-        
+
         Returns:
             Dictionary containing formatted query context
 
         """
         context = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "context_type": "query_results",
             "data": {
                 "query_type": query_type,
@@ -172,7 +180,7 @@ class ContextInjector:
                 "results": self._format_query_results(results),
                 "result_count": len(results),
                 "metadata": {
-                    "query_timestamp": datetime.now(timezone.utc).isoformat(),
+                    "query_timestamp": datetime.now(UTC).isoformat(),
                     "result_format": self.context_format,
                 },
             },
@@ -180,16 +188,16 @@ class ContextInjector:
 
         return context
 
-    def inject_context_for_chatgpt(self, context: Dict[str, Any]) -> str:
+    def inject_context_for_chatgpt(self, context: dict[str, Any]) -> str:
         """Format context for ChatGPT consumption.
-        
+
         Converts a context dictionary into a string format optimized
         for ChatGPT consumption, handling different context types
         appropriately.
-        
+
         Args:
             context: Context dictionary to format
-        
+
         Returns:
             String formatted for ChatGPT consumption
 
@@ -203,15 +211,15 @@ class ContextInjector:
             return self._format_query_results_for_chatgpt(context["data"])
         return json.dumps(context, indent=2)
 
-    def create_mcp_context_injection(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def create_mcp_context_injection(self, context: dict[str, Any]) -> dict[str, Any]:
         """Create MCP-compatible context injection.
-        
+
         Formats context data for use with the Model Context Protocol (MCP),
         including proper metadata and version information.
-        
+
         Args:
             context: Context dictionary to format
-        
+
         Returns:
             Dictionary formatted for MCP protocol
 
@@ -231,15 +239,15 @@ class ContextInjector:
 
         return mcp_context
 
-    def _structure_events(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _structure_events(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Structure events for better analysis.
-        
+
         Converts raw event data into a structured format optimized
         for analysis, organizing network information and metadata.
-        
+
         Args:
             events: List of raw event dictionaries
-        
+
         Returns:
             List of structured event dictionaries
 
@@ -271,15 +279,15 @@ class ContextInjector:
 
         return structured_events
 
-    def _summarize_events(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _summarize_events(self, events: list[dict[str, Any]]) -> dict[str, Any]:
         """Create a summary of events instead of full details.
-        
+
         Generates a summary of events including counts by severity,
         category, and unique IP addresses for efficient context injection.
-        
+
         Args:
             events: List of event dictionaries to summarize
-        
+
         Returns:
             Dictionary containing event summary
 
@@ -288,13 +296,13 @@ class ContextInjector:
             return {"message": "No events found"}
 
         # Count by severity
-        severity_counts = {}
+        severity_counts: dict[str, int] = {}
         for event in events:
             severity = event.get("severity", "unknown")
             severity_counts[severity] = severity_counts.get(severity, 0) + 1
 
         # Count by category
-        category_counts = {}
+        category_counts: dict[str, int] = {}
         for event in events:
             category = event.get("category", "unknown")
             category_counts[category] = category_counts.get(category, 0) + 1
@@ -305,13 +313,13 @@ class ContextInjector:
         for event in events:
             if event.get("source_ip"):
                 source_ip = event["source_ip"]
-                if isinstance(source_ip, (list, dict)):
+                if isinstance(source_ip, list | dict):
                     source_ips.add(str(source_ip))
                 else:
                     source_ips.add(str(source_ip))
             if event.get("destination_ip"):
                 destination_ip = event["destination_ip"]
-                if isinstance(destination_ip, (list, dict)):
+                if isinstance(destination_ip, list | dict):
                     destination_ips.add(str(destination_ip))
                 else:
                     destination_ips.add(str(destination_ip))
@@ -328,15 +336,15 @@ class ContextInjector:
             "sample_events": self._structure_events(sample_events),
         }
 
-    def _clean_events(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _clean_events(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Clean events by removing sensitive or unnecessary data.
-        
+
         Removes sensitive fields and unnecessary metadata from events
         while preserving essential information for analysis.
-        
+
         Args:
             events: List of event dictionaries to clean
-        
+
         Returns:
             List of cleaned event dictionaries
 
@@ -364,20 +372,20 @@ class ContextInjector:
 
         return cleaned_events
 
-    def _process_threat_intelligence(self, threat_intelligence: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_threat_intelligence(self, threat_intelligence: dict[str, Any]) -> dict[str, Any]:
         """Process threat intelligence data for context injection.
-        
+
         Formats threat intelligence data for inclusion in context,
         organizing it by IP address and threat level.
-        
+
         Args:
             threat_intelligence: Raw threat intelligence data
-        
+
         Returns:
             Processed threat intelligence dictionary
 
         """
-        processed_ti = {
+        processed_ti: dict[str, Any] = {
             "total_ips": len(threat_intelligence),
             "high_risk_ips": [],
             "medium_risk_ips": [],
@@ -408,16 +416,18 @@ class ContextInjector:
 
         return processed_ti
 
-    def _generate_metadata(self, events: List[Dict[str, Any]], threat_intelligence: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    def _generate_metadata(
+        self, events: list[dict[str, Any]], threat_intelligence: dict[str, Any] | None
+    ) -> dict[str, Any]:
         """Generate metadata for the context.
-        
+
         Creates metadata including time ranges, data sources, and
         processing information for the context.
-        
+
         Args:
             events: List of events to analyze
             threat_intelligence: Optional threat intelligence data
-        
+
         Returns:
             Dictionary containing context metadata
 
@@ -426,7 +436,8 @@ class ContextInjector:
             "event_count": len(events),
             "time_range": self._extract_time_range(events),
             "data_sources": self._extract_data_sources(events),
-            "threat_intelligence_available": threat_intelligence is not None and len(threat_intelligence) > 0,
+            "threat_intelligence_available": threat_intelligence is not None
+            and len(threat_intelligence) > 0,
         }
 
         if threat_intelligence:
@@ -434,16 +445,18 @@ class ContextInjector:
 
         return metadata
 
-    def _generate_analysis_hints(self, events: List[Dict[str, Any]], threat_intelligence: Optional[Dict[str, Any]]) -> List[str]:
+    def _generate_analysis_hints(
+        self, events: list[dict[str, Any]], threat_intelligence: dict[str, Any] | None
+    ) -> list[str]:
         """Generate analysis hints for ChatGPT.
-        
+
         Creates a list of analysis hints and suggestions based on
         the events and threat intelligence data.
-        
+
         Args:
             events: List of events to analyze
             threat_intelligence: Optional threat intelligence data
-        
+
         Returns:
             List of analysis hints and suggestions
 
@@ -451,16 +464,25 @@ class ContextInjector:
         hints = []
 
         # Analyze event patterns
-        high_severity_count = sum(1 for event in events if event.get("severity") in ["high", "critical"])
+        high_severity_count = sum(
+            1 for event in events if event.get("severity") in ["high", "critical"]
+        )
         if high_severity_count > 0:
-            hints.append(f"Found {high_severity_count} high/critical severity events requiring immediate attention")
+            hints.append(
+                f"Found {high_severity_count} high/critical severity events requiring immediate attention"
+            )
 
         # Check for threat intelligence hits
         if threat_intelligence:
-            high_risk_ti = sum(1 for ti in threat_intelligence.values()
-                             if isinstance(ti, dict) and ti.get("threat_level") == "high")
+            high_risk_ti = sum(
+                1
+                for ti in threat_intelligence.values()
+                if isinstance(ti, dict) and ti.get("threat_level") == "high"
+            )
             if high_risk_ti > 0:
-                hints.append(f"Identified {high_risk_ti} IP addresses with high threat intelligence scores")
+                hints.append(
+                    f"Identified {high_risk_ti} IP addresses with high threat intelligence scores"
+                )
 
         # Check for attack patterns
         attack_patterns = self._detect_attack_patterns(events)
@@ -469,21 +491,23 @@ class ContextInjector:
                 hints.append(f"Detected {count} events matching {pattern} pattern")
 
         # Add general analysis guidance
-        hints.append("Consider correlating events with threat intelligence for comprehensive analysis")
+        hints.append(
+            "Consider correlating events with threat intelligence for comprehensive analysis"
+        )
         hints.append("Look for patterns in source IPs, ports, and protocols")
         hints.append("Assess the potential impact and recommend mitigation strategies")
 
         return hints
 
-    def _format_attack_report(self, report: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_attack_report(self, report: dict[str, Any]) -> dict[str, Any]:
         """Format attack report for context injection.
-        
+
         Formats an attack report for inclusion in context, organizing
         it into sections for executive summary, details, and recommendations.
-        
+
         Args:
             report: Raw attack report dictionary
-        
+
         Returns:
             Formatted attack report dictionary
 
@@ -504,15 +528,15 @@ class ContextInjector:
 
         return formatted_report
 
-    def _format_query_results(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _format_query_results(self, results: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Format query results for context injection.
-        
+
         Formats query results for inclusion in context, ensuring
         they are properly structured and readable.
-        
+
         Args:
             results: Raw query results list
-        
+
         Returns:
             Formatted query results list
 
@@ -520,19 +544,19 @@ class ContextInjector:
         if self.context_format == "structured":
             return self._structure_events(results)
         if self.context_format == "summary":
-            return self._summarize_events(results)
+            return [self._summarize_events(results)]
         return self._clean_events(results)
 
-    def _format_security_context_for_chatgpt(self, data: Dict[str, Any]) -> str:
+    def _format_security_context_for_chatgpt(self, data: dict[str, Any]) -> str:
         """Format security context specifically for ChatGPT.
-        
+
         Converts security context data into a text format optimized
         for ChatGPT consumption, including structured sections and
         analysis guidance.
-        
+
         Args:
             data: Security context data dictionary
-        
+
         Returns:
             String formatted for ChatGPT consumption
 
@@ -555,14 +579,20 @@ class ContextInjector:
                 # Summary format
                 output.append("=== EVENT SUMMARY ===")
                 output.append(f"Total Events: {events['total_events']}")
-                output.append(f"Severity Distribution: {json.dumps(events.get('severity_distribution', {}), indent=2)}")
-                output.append(f"Category Distribution: {json.dumps(events.get('category_distribution', {}), indent=2)}")
+                output.append(
+                    f"Severity Distribution: {json.dumps(events.get('severity_distribution', {}), indent=2)}"
+                )
+                output.append(
+                    f"Category Distribution: {json.dumps(events.get('category_distribution', {}), indent=2)}"
+                )
                 output.append("")
 
                 if "sample_events" in events:
                     output.append("=== SAMPLE EVENTS ===")
                     for event in events["sample_events"]:
-                        output.append(f"- {event.get('event_type', 'Unknown')}: {event.get('description', 'No description')}")
+                        output.append(
+                            f"- {event.get('event_type', 'Unknown')}: {event.get('description', 'No description')}"
+                        )
                     output.append("")
             else:
                 # Full events format
@@ -588,7 +618,9 @@ class ContextInjector:
             if ti.get("high_risk_ips"):
                 output.append("High Risk IPs:")
                 for ip_info in ti["high_risk_ips"]:
-                    output.append(f"  - {ip_info['ip']} (Score: {ip_info.get('reputation_score', 'Unknown')})")
+                    output.append(
+                        f"  - {ip_info['ip']} (Score: {ip_info.get('reputation_score', 'Unknown')})"
+                    )
             output.append("")
 
         # Add analysis hints
@@ -600,16 +632,16 @@ class ContextInjector:
 
         return "\n".join(output)
 
-    def _format_attack_report_for_chatgpt(self, data: Dict[str, Any]) -> str:
+    def _format_attack_report_for_chatgpt(self, data: dict[str, Any]) -> str:
         """Format attack report specifically for ChatGPT.
-        
+
         Converts attack report data into a text format optimized
         for ChatGPT consumption, including executive summary and
         detailed analysis sections.
-        
+
         Args:
             data: Attack report data dictionary
-        
+
         Returns:
             String formatted for ChatGPT consumption
 
@@ -652,16 +684,16 @@ class ContextInjector:
 
         return "\n".join(output)
 
-    def _format_query_results_for_chatgpt(self, data: Dict[str, Any]) -> str:
+    def _format_query_results_for_chatgpt(self, data: dict[str, Any]) -> str:
         """Format query results specifically for ChatGPT.
-        
+
         Converts query results data into a text format optimized
         for ChatGPT consumption, including query parameters and
         result summaries.
-        
+
         Args:
             data: Query results data dictionary
-        
+
         Returns:
             String formatted for ChatGPT consumption
 
@@ -676,8 +708,12 @@ class ContextInjector:
             # Summary format
             output.append("Event Summary:")
             output.append(f"- Total Events: {results['total_events']}")
-            output.append(f"- Severity Distribution: {json.dumps(results.get('severity_distribution', {}), indent=2)}")
-            output.append(f"- Category Distribution: {json.dumps(results.get('category_distribution', {}), indent=2)}")
+            output.append(
+                f"- Severity Distribution: {json.dumps(results.get('severity_distribution', {}), indent=2)}"
+            )
+            output.append(
+                f"- Category Distribution: {json.dumps(results.get('category_distribution', {}), indent=2)}"
+            )
         else:
             # Full results format
             for i, result in enumerate(results[:10], 1):  # Limit to first 10
@@ -689,15 +725,15 @@ class ContextInjector:
 
         return "\n".join(output)
 
-    def _extract_time_range(self, events: List[Dict[str, Any]]) -> Dict[str, str]:
+    def _extract_time_range(self, events: list[dict[str, Any]]) -> dict[str, str]:
         """Extract time range from events.
-        
+
         Determines the earliest and latest timestamps from a list
         of events to establish the time range.
-        
+
         Args:
             events: List of event dictionaries
-        
+
         Returns:
             Dictionary with 'start' and 'end' timestamps
 
@@ -722,15 +758,15 @@ class ContextInjector:
 
         return {"start": "", "end": ""}
 
-    def _extract_data_sources(self, events: List[Dict[str, Any]]) -> List[str]:
+    def _extract_data_sources(self, events: list[dict[str, Any]]) -> list[str]:
         """Extract data sources from events.
-        
+
         Identifies the unique data sources (indices) from which
         the events were retrieved.
-        
+
         Args:
             events: List of event dictionaries
-        
+
         Returns:
             List of unique data source names
 
@@ -741,7 +777,7 @@ class ContextInjector:
                 indices = event["indices"]
                 if isinstance(indices, list):
                     for index in indices:
-                        if isinstance(index, (list, dict)):
+                        if isinstance(index, list | dict):
                             sources.add(str(index))
                         else:
                             sources.add(str(index))
@@ -750,15 +786,15 @@ class ContextInjector:
 
         return list(sources)
 
-    def _detect_attack_patterns(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _detect_attack_patterns(self, events: list[dict[str, Any]]) -> dict[str, int]:
         """Detect attack patterns in events.
-        
+
         Analyzes events to identify common attack patterns and
         their frequencies.
-        
+
         Args:
             events: List of event dictionaries
-        
+
         Returns:
             Dictionary mapping attack patterns to their counts
 
@@ -788,29 +824,40 @@ class ContextInjector:
             else:
                 event_type = str(event_type_raw).lower()
 
-            if any(keyword in description or keyword in event_type
-                  for keyword in ["brute", "auth", "login", "failed"]):
+            if any(
+                keyword in description or keyword in event_type
+                for keyword in ["brute", "auth", "login", "failed"]
+            ):
                 patterns["brute_force"] += 1
-            elif any(keyword in description or keyword in event_type
-                    for keyword in ["scan", "port", "nmap"]):
+            elif any(
+                keyword in description or keyword in event_type
+                for keyword in ["scan", "port", "nmap"]
+            ):
                 patterns["port_scan"] += 1
-            elif any(keyword in description or keyword in event_type
-                    for keyword in ["sql", "injection"]):
+            elif any(
+                keyword in description or keyword in event_type for keyword in ["sql", "injection"]
+            ):
                 patterns["sql_injection"] += 1
-            elif any(keyword in description or keyword in event_type
-                    for keyword in ["xss", "script"]):
+            elif any(
+                keyword in description or keyword in event_type for keyword in ["xss", "script"]
+            ):
                 patterns["xss"] += 1
-            elif any(keyword in description or keyword in event_type
-                    for keyword in ["ddos", "flood"]):
+            elif any(
+                keyword in description or keyword in event_type for keyword in ["ddos", "flood"]
+            ):
                 patterns["ddos"] += 1
-            elif any(keyword in description or keyword in event_type
-                    for keyword in ["malware", "virus"]):
+            elif any(
+                keyword in description or keyword in event_type for keyword in ["malware", "virus"]
+            ):
                 patterns["malware"] += 1
-            elif any(keyword in description or keyword in event_type
-                    for keyword in ["phishing", "email"]):
+            elif any(
+                keyword in description or keyword in event_type for keyword in ["phishing", "email"]
+            ):
                 patterns["phishing"] += 1
-            elif any(keyword in description or keyword in event_type
-                    for keyword in ["recon", "enumeration"]):
+            elif any(
+                keyword in description or keyword in event_type
+                for keyword in ["recon", "enumeration"]
+            ):
                 patterns["reconnaissance"] += 1
 
         return {k: v for k, v in patterns.items() if v > 0}

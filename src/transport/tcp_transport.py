@@ -8,7 +8,7 @@ network-based MCP protocol communication with authentication and rate limiting.
 import asyncio
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 import structlog
 
@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 
 class TCPConnection:
     """Represents a TCP connection to the MCP server.
-    
+
     Attributes:
         reader: StreamReader for reading from the connection
         writer: StreamWriter for writing to the connection
@@ -31,10 +31,15 @@ class TCPConnection:
 
     """
 
-    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
-                 client_address: Tuple[str, int], api_key: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
+        client_address: tuple[str, int],
+        api_key: str | None = None,
+    ) -> None:
         """Initialize a TCP connection.
-        
+
         Args:
             reader: StreamReader for reading from the connection
             writer: StreamWriter for writing to the connection
@@ -50,10 +55,11 @@ class TCPConnection:
         self.last_activity = datetime.utcnow()
         self.rate_limiter = RateLimiter()
         self.is_authenticated = api_key is not None
+        self.is_initialized = False
 
     async def close(self) -> None:
         """Close the connection.
-        
+
         Closes the writer and reader streams.
         """
         try:
@@ -61,8 +67,9 @@ class TCPConnection:
                 self.writer.close()
                 await self.writer.wait_closed()
         except Exception as e:
-            logger.warning("Error closing TCP connection",
-                          client_address=self.client_address, error=str(e))
+            logger.warning(
+                "Error closing TCP connection", client_address=self.client_address, error=str(e)
+            )
 
     def update_activity(self) -> None:
         """Update the last activity timestamp."""
@@ -70,10 +77,10 @@ class TCPConnection:
 
     def is_expired(self, timeout_seconds: int) -> bool:
         """Check if the connection has expired.
-        
+
         Args:
             timeout_seconds: Connection timeout in seconds
-            
+
         Returns:
             True if connection has expired, False otherwise
 
@@ -83,13 +90,13 @@ class TCPConnection:
 
 class RateLimiter:
     """Rate limiter for TCP connections.
-    
+
     Implements token bucket rate limiting for individual connections.
     """
 
     def __init__(self, requests_per_minute: int = 60, burst_limit: int = 10) -> None:
         """Initialize the rate limiter.
-        
+
         Args:
             requests_per_minute: Maximum requests per minute
             burst_limit: Maximum burst requests
@@ -102,7 +109,7 @@ class RateLimiter:
 
     def is_allowed(self) -> bool:
         """Check if a request is allowed.
-        
+
         Returns:
             True if request is allowed, False if rate limited
 
@@ -124,10 +131,10 @@ class RateLimiter:
 
 class TCPTransport(BaseTransport):
     """TCP socket-based transport implementation.
-    
+
     This transport uses TCP sockets for MCP protocol communication,
     supporting multiple concurrent connections with authentication and rate limiting.
-    
+
     Attributes:
         server: The MCP server instance
         config: TCP-specific configuration
@@ -137,23 +144,23 @@ class TCPTransport(BaseTransport):
 
     """
 
-    def __init__(self, server: Any, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, server: Any, config: dict[str, Any] | None = None) -> None:
         """Initialize the TCP transport.
-        
+
         Args:
             server: The MCP server instance
             config: TCP-specific configuration
 
         """
         super().__init__(server, config)
-        self.server_socket: Optional[asyncio.Server] = None
-        self.connections: Set[TCPConnection] = set()
-        self._cleanup_task: Optional[asyncio.Task[None]] = None
+        self.server_socket: asyncio.Server | None = None
+        self.connections: set[TCPConnection] = set()
+        self._cleanup_task: asyncio.Task[None] | None = None
 
     @property
     def transport_type(self) -> str:
         """Get the transport type identifier.
-        
+
         Returns:
             'tcp' for TCP transport
 
@@ -162,9 +169,9 @@ class TCPTransport(BaseTransport):
 
     async def start(self) -> None:
         """Start the TCP transport.
-        
+
         Creates and binds the TCP server socket, then begins accepting connections.
-        
+
         Raises:
             TransportError: If the TCP transport fails to start
 
@@ -174,8 +181,12 @@ class TCPTransport(BaseTransport):
             bind_address = self.get_config("bind_address", "127.0.0.1")
             max_connections = self.get_config("max_connections", 10)
 
-            self.logger.info("Starting TCP transport",
-                           port=port, bind_address=bind_address, max_connections=max_connections)
+            self.logger.info(
+                "Starting TCP transport",
+                port=port,
+                bind_address=bind_address,
+                max_connections=max_connections,
+            )
 
             # Create TCP server
             self.server_socket = await asyncio.start_server(
@@ -189,16 +200,17 @@ class TCPTransport(BaseTransport):
             self._cleanup_task = asyncio.create_task(self._cleanup_expired_connections())
 
             self.is_running = True
-            self.logger.info("TCP transport started successfully",
-                           port=port, bind_address=bind_address)
+            self.logger.info(
+                "TCP transport started successfully", port=port, bind_address=bind_address
+            )
 
         except Exception as e:
             self.logger.error("Failed to start TCP transport", error=str(e))
-            raise TransportError(f"Failed to start TCP transport: {e}", "tcp")
+            raise TransportError(f"Failed to start TCP transport: {e}", "tcp") from e
 
     async def stop(self) -> None:
         """Stop the TCP transport.
-        
+
         Closes all connections, stops the server socket, and cleans up resources.
         """
         try:
@@ -230,9 +242,9 @@ class TCPTransport(BaseTransport):
 
     async def run(self) -> None:
         """Run the TCP transport main loop.
-        
+
         Starts the server and waits for it to complete.
-        
+
         Raises:
             TransportError: If the transport fails during execution
 
@@ -252,12 +264,13 @@ class TCPTransport(BaseTransport):
 
         except Exception as e:
             self.logger.error("TCP transport main loop failed", error=str(e))
-            raise TransportError(f"TCP transport main loop failed: {e}", "tcp")
+            raise TransportError(f"TCP transport main loop failed: {e}", "tcp") from e
 
-    async def _handle_connection(self, reader: asyncio.StreamReader,
-                               writer: asyncio.StreamWriter) -> None:
+    async def _handle_connection(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
         """Handle a new TCP connection.
-        
+
         Args:
             reader: StreamReader for reading from the connection
             writer: StreamWriter for writing to the connection
@@ -277,8 +290,9 @@ class TCPTransport(BaseTransport):
             await self._process_connection(connection)
 
         except Exception as e:
-            self.logger.error("Error handling TCP connection",
-                            client_address=client_address, error=str(e))
+            self.logger.error(
+                "Error handling TCP connection", client_address=client_address, error=str(e)
+            )
         finally:
             # Clean up connection
             if connection:
@@ -288,7 +302,7 @@ class TCPTransport(BaseTransport):
 
     async def _process_connection(self, connection: TCPConnection) -> None:
         """Process messages from a TCP connection.
-        
+
         Args:
             connection: The TCP connection to process
 
@@ -329,12 +343,17 @@ class TCPTransport(BaseTransport):
             # Connection closed by client
             pass
         except Exception as e:
-            self.logger.error("Error processing TCP connection",
-                            client_address=connection.client_address, error=str(e))
+            self.logger.error(
+                "Error processing TCP connection",
+                client_address=connection.client_address,
+                error=str(e),
+            )
 
-    async def _process_mcp_message(self, connection: TCPConnection, message: Dict[str, Any]) -> None:
+    async def _process_mcp_message(
+        self, connection: TCPConnection, message: dict[str, Any]
+    ) -> None:
         """Process an MCP protocol message.
-        
+
         Args:
             connection: The TCP connection
             message: The MCP message to process
@@ -342,9 +361,11 @@ class TCPTransport(BaseTransport):
         """
         # This method is now handled by the EnhancedTCPServer
         # This is a placeholder for backward compatibility
-        self.logger.debug("Processing MCP message",
-                         client_address=connection.client_address,
-                         message_type=message.get("method", "unknown"))
+        self.logger.debug(
+            "Processing MCP message",
+            client_address=connection.client_address,
+            message_type=message.get("method", "unknown"),
+        )
 
         # For now, send a simple response
         response = {
@@ -354,9 +375,9 @@ class TCPTransport(BaseTransport):
         }
         await self._send_response(connection, response)
 
-    async def _send_response(self, connection: TCPConnection, response: Dict[str, Any]) -> None:
+    async def _send_response(self, connection: TCPConnection, response: dict[str, Any]) -> None:
         """Send a response to a TCP connection.
-        
+
         Args:
             connection: The TCP connection
             response: The response to send
@@ -373,13 +394,15 @@ class TCPTransport(BaseTransport):
             await connection.writer.drain()
 
         except Exception as e:
-            self.logger.error("Error sending TCP response",
-                            client_address=connection.client_address, error=str(e))
+            self.logger.error(
+                "Error sending TCP response", client_address=connection.client_address, error=str(e)
+            )
 
-    async def _send_error_response(self, connection: TCPConnection,
-                                 error_code: int, error_message: str) -> None:
+    async def _send_error_response(
+        self, connection: TCPConnection, error_code: int, error_message: str
+    ) -> None:
         """Send an error response to a TCP connection.
-        
+
         Args:
             connection: The TCP connection
             error_code: JSON-RPC error code
@@ -398,7 +421,7 @@ class TCPTransport(BaseTransport):
 
     async def _cleanup_expired_connections(self) -> None:
         """Clean up expired connections.
-        
+
         Runs periodically to remove connections that have timed out.
         """
         timeout_seconds = self.get_config("connection_timeout_seconds", 300)
@@ -408,13 +431,13 @@ class TCPTransport(BaseTransport):
                 await asyncio.sleep(60)  # Check every minute
 
                 expired_connections = [
-                    conn for conn in self.connections
-                    if conn.is_expired(timeout_seconds)
+                    conn for conn in self.connections if conn.is_expired(timeout_seconds)
                 ]
 
                 for connection in expired_connections:
-                    self.logger.info("Closing expired connection",
-                                   client_address=connection.client_address)
+                    self.logger.info(
+                        "Closing expired connection", client_address=connection.client_address
+                    )
                     self.connections.discard(connection)
                     await connection.close()
 
@@ -425,16 +448,16 @@ class TCPTransport(BaseTransport):
 
     def get_connection_count(self) -> int:
         """Get the number of active connections.
-        
+
         Returns:
             Number of active connections
 
         """
         return len(self.connections)
 
-    def get_connections_info(self) -> List[Dict[str, Any]]:
+    def get_connections_info(self) -> list[dict[str, Any]]:
         """Get information about active connections.
-        
+
         Returns:
             List of connection information dictionaries
 

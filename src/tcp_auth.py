@@ -6,7 +6,7 @@ including API key validation, permission checking, and session management.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import structlog
 
@@ -18,7 +18,7 @@ logger = structlog.get_logger(__name__)
 
 class AuthenticationError(Exception):
     """Exception raised for authentication-related errors.
-    
+
     Attributes:
         error_code: JSON-RPC error code
         message: Error message
@@ -26,9 +26,11 @@ class AuthenticationError(Exception):
 
     """
 
-    def __init__(self, error_code: int, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self, error_code: int, message: str, details: dict[str, Any] | None = None
+    ) -> None:
         """Initialize authentication error.
-        
+
         Args:
             error_code: JSON-RPC error code
             message: Error message
@@ -43,10 +45,10 @@ class AuthenticationError(Exception):
 
 class TCPAuthenticator:
     """Handles authentication for TCP connections.
-    
+
     This class manages API key validation, permission checking, and
     session management for TCP-based MCP connections.
-    
+
     Attributes:
         connection_manager: Connection manager instance
         error_handler: MCP error handler instance
@@ -55,11 +57,14 @@ class TCPAuthenticator:
 
     """
 
-    def __init__(self, connection_manager: ConnectionManager,
-                 error_handler: MCPErrorHandler,
-                 config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self,
+        connection_manager: ConnectionManager,
+        error_handler: MCPErrorHandler,
+        config: dict[str, Any] | None = None,
+    ) -> None:
         """Initialize the TCP authenticator.
-        
+
         Args:
             connection_manager: Connection manager instance
             error_handler: MCP error handler instance
@@ -69,24 +74,25 @@ class TCPAuthenticator:
         self.connection_manager = connection_manager
         self.error_handler = error_handler
         self.config = config or {}
-        self.sessions: Dict[str, Dict[str, Any]] = {}
+        self.sessions: dict[str, dict[str, Any]] = {}
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
         # Session configuration
         self.session_timeout = self.config.get("session_timeout_seconds", 3600)  # 1 hour
         self.max_sessions_per_key = self.config.get("max_sessions_per_key", 5)
 
-    async def authenticate_connection(self, connection: Any,
-                                   auth_message: Dict[str, Any]) -> Dict[str, Any]:
+    async def authenticate_connection(
+        self, connection: Any, auth_message: dict[str, Any]
+    ) -> dict[str, Any]:
         """Authenticate a TCP connection.
-        
+
         Args:
             connection: The TCP connection object
             auth_message: Authentication message from client
-            
+
         Returns:
             Authentication result with session information
-            
+
         Raises:
             AuthenticationError: If authentication fails
 
@@ -126,10 +132,12 @@ class TCPAuthenticator:
             connection.is_authenticated = True
             connection.session_id = session_id
 
-            self.logger.info("Connection authenticated successfully",
-                           client_address=connection.client_address,
-                           api_key_id=api_key_obj.key_id,
-                           session_id=session_id)
+            self.logger.info(
+                "Connection authenticated successfully",
+                client_address=connection.client_address,
+                api_key_id=api_key_obj.key_id,
+                session_id=session_id,
+            )
 
             return {
                 "authenticated": True,
@@ -141,39 +149,41 @@ class TCPAuthenticator:
         except AuthenticationError:
             raise
         except Exception as e:
-            self.logger.error("Authentication error",
-                            client_address=connection.client_address, error=str(e))
+            self.logger.error(
+                "Authentication error", client_address=connection.client_address, error=str(e)
+            )
             raise AuthenticationError(
                 -32603,  # INTERNAL_ERROR
                 "Authentication failed due to internal error",
                 {"error": str(e)},
-            )
+            ) from e
 
     def _check_session_limits(self, api_key: str) -> bool:
         """Check if session limits are exceeded for an API key.
-        
+
         Args:
             api_key: The API key to check
-            
+
         Returns:
             True if session limits are not exceeded, False otherwise
 
         """
         # Count active sessions for this API key
         active_sessions = sum(
-            1 for session in self.sessions.values()
+            1
+            for session in self.sessions.values()
             if session.get("api_key") == api_key and not self._is_session_expired(session)
         )
 
-        return active_sessions < self.max_sessions_per_key
+        return bool(active_sessions < self.max_sessions_per_key)
 
     def _create_session(self, connection: Any, api_key_obj: APIKey) -> str:
         """Create a new authentication session.
-        
+
         Args:
             connection: The TCP connection
             api_key_obj: The validated API key object
-            
+
         Returns:
             Session ID for the new session
 
@@ -195,12 +205,12 @@ class TCPAuthenticator:
 
         return session_id
 
-    def _is_session_expired(self, session: Dict[str, Any]) -> bool:
+    def _is_session_expired(self, session: dict[str, Any]) -> bool:
         """Check if a session has expired.
-        
+
         Args:
             session: Session dictionary
-            
+
         Returns:
             True if session has expired, False otherwise
 
@@ -212,14 +222,14 @@ class TCPAuthenticator:
         if isinstance(last_activity, str):
             last_activity = datetime.fromisoformat(last_activity)
 
-        return (datetime.utcnow() - last_activity).total_seconds() > self.session_timeout
+        return bool((datetime.utcnow() - last_activity).total_seconds() > self.session_timeout)
 
-    def validate_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def validate_session(self, session_id: str) -> dict[str, Any] | None:
         """Validate an authentication session.
-        
+
         Args:
             session_id: Session ID to validate
-            
+
         Returns:
             Session information if valid, None if invalid
 
@@ -239,35 +249,38 @@ class TCPAuthenticator:
 
     def revoke_session(self, session_id: str) -> bool:
         """Revoke an authentication session.
-        
+
         Args:
             session_id: Session ID to revoke
-            
+
         Returns:
             True if session was revoked, False if not found
 
         """
         if session_id in self.sessions:
             session = self.sessions[session_id]
-            self.logger.info("Session revoked",
-                           session_id=session_id,
-                           client_address=session.get("client_address"))
+            self.logger.info(
+                "Session revoked",
+                session_id=session_id,
+                client_address=session.get("client_address"),
+            )
             del self.sessions[session_id]
             return True
         return False
 
     def revoke_all_sessions_for_key(self, api_key: str) -> int:
         """Revoke all sessions for a specific API key.
-        
+
         Args:
             api_key: API key to revoke sessions for
-            
+
         Returns:
             Number of sessions revoked
 
         """
         sessions_to_revoke = [
-            session_id for session_id, session in self.sessions.items()
+            session_id
+            for session_id, session in self.sessions.items()
             if session.get("api_key") == api_key
         ]
 
@@ -275,19 +288,21 @@ class TCPAuthenticator:
             self.revoke_session(session_id)
 
         if sessions_to_revoke:
-            self.logger.info("Revoked all sessions for API key",
-                           api_key=api_key[:8] + "...",
-                           session_count=len(sessions_to_revoke))
+            self.logger.info(
+                "Revoked all sessions for API key",
+                api_key=api_key[:8] + "...",
+                session_count=len(sessions_to_revoke),
+            )
 
         return len(sessions_to_revoke)
 
     def check_permission(self, session_id: str, permission: str) -> bool:
         """Check if a session has a specific permission.
-        
+
         Args:
             session_id: Session ID to check
             permission: Permission to check
-            
+
         Returns:
             True if permission is granted, False otherwise
 
@@ -297,15 +312,15 @@ class TCPAuthenticator:
             return False
 
         permissions = session.get("permissions", {})
-        return permissions.get(permission, False)
+        return bool(permissions.get(permission, False))
 
     def check_tool_permission(self, session_id: str, tool_name: str) -> bool:
         """Check if a session has permission to use a specific tool.
-        
+
         Args:
             session_id: Session ID to check
             tool_name: Tool name to check
-            
+
         Returns:
             True if tool permission is granted, False otherwise
 
@@ -329,12 +344,12 @@ class TCPAuthenticator:
         # Check if tool is in allowed_tools
         return tool_name in allowed_tools
 
-    def get_session_info(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def get_session_info(self, session_id: str) -> dict[str, Any] | None:
         """Get information about a session.
-        
+
         Args:
             session_id: Session ID
-            
+
         Returns:
             Session information if valid, None if invalid
 
@@ -353,9 +368,9 @@ class TCPAuthenticator:
             "last_activity": session["last_activity"].isoformat(),
         }
 
-    def get_all_sessions_info(self) -> List[Dict[str, Any]]:
+    def get_all_sessions_info(self) -> list[dict[str, Any]]:
         """Get information about all active sessions.
-        
+
         Returns:
             List of session information dictionaries
 
@@ -373,13 +388,14 @@ class TCPAuthenticator:
 
     def cleanup_expired_sessions(self) -> int:
         """Clean up expired sessions.
-        
+
         Returns:
             Number of sessions cleaned up
 
         """
         expired_sessions = [
-            session_id for session_id, session in self.sessions.items()
+            session_id
+            for session_id, session in self.sessions.items()
             if self._is_session_expired(session)
         ]
 
@@ -391,15 +407,17 @@ class TCPAuthenticator:
 
         return len(expired_sessions)
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get authentication statistics.
-        
+
         Returns:
             Dictionary of authentication statistics
 
         """
         total_sessions = len(self.sessions)
-        active_sessions = len([s for s in self.sessions.values() if not self._is_session_expired(s)])
+        active_sessions = len(
+            [s for s in self.sessions.values() if not self._is_session_expired(s)]
+        )
         expired_sessions = total_sessions - active_sessions
 
         return {

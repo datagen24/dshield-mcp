@@ -6,15 +6,18 @@ Setup script for DShield MCP - Elastic SIEM Integration
 from setuptools import setup, find_packages
 import os
 
+
 # Read the README file
 def read_readme():
     with open("README.md", "r", encoding="utf-8") as fh:
         return fh.read()
 
+
 # Read requirements
 def read_requirements():
     with open("requirements.txt", "r", encoding="utf-8") as fh:
         return [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+
 
 setup(
     name="dshield-mcp",
@@ -56,4 +59,4 @@ setup(
         "Source": "https://github.com/your-org/dshield-mcp",
         "Documentation": "https://github.com/your-org/dshield-mcp/blob/main/README.md",
     },
-) 
+)

@@ -22,7 +22,7 @@ Example:
 
 import asyncio
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urljoin
 
 import aiohttp
@@ -42,11 +42,11 @@ logger = structlog.get_logger(__name__)
 
 class DShieldClient:
     """Client for interacting with DShield threat intelligence API.
-    
+
     This class provides methods to query DShield for IP reputation, details,
     attack summaries, and batch enrichment. It manages authentication, rate
     limiting, caching, and session lifecycle for efficient API usage.
-    
+
     Attributes:
         api_key: API key for DShield authentication
         base_url: Base URL for DShield API
@@ -62,7 +62,7 @@ class DShieldClient:
         enable_performance_logging: Whether to log performance metrics
         headers: HTTP headers for API requests
         batch_size: Maximum batch size for IP enrichment
-    
+
     Example:
         >>> async with DShieldClient() as client:
         ...     rep = await client.get_ip_reputation("8.8.8.8")
@@ -70,15 +70,15 @@ class DShieldClient:
 
     """
 
-    def __init__(self, error_handler: Optional[MCPErrorHandler] = None) -> None:
+    def __init__(self, error_handler: MCPErrorHandler | None = None) -> None:
         """Initialize the DShield client.
-        
+
         Loads configuration, resolves secrets, sets up rate limiting,
         caching, and prepares HTTP headers for API requests.
-        
+
         Args:
             error_handler: Optional MCPErrorHandler for structured error responses
-        
+
         Raises:
             RuntimeError: If configuration or secret resolution fails
 
@@ -92,30 +92,32 @@ class DShieldClient:
             cache_ttl = secrets_config.get("cache_ttl_seconds", 300)
             batch_size = secrets_config.get("max_ip_enrichment_batch_size", 100)
         except Exception as e:
-            raise RuntimeError(f"Failed to load DShield config: {e}")
+            raise RuntimeError(f"Failed to load DShield config: {e}") from e
 
         # 1Password resolution if needed
         op = OnePasswordSecrets()
         self.api_key = op.resolve_environment_variable(dshield_api_key) if dshield_api_key else None
         self.base_url = dshield_api_url
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: aiohttp.ClientSession | None = None
 
         # Error handling
         self.error_handler = error_handler
 
         # Circuit breaker for external service protection
         if error_handler:
-            self.circuit_breaker = CircuitBreaker("dshield_api", error_handler.config.circuit_breaker)
+            self.circuit_breaker = CircuitBreaker(
+                "dshield_api", error_handler.config.circuit_breaker
+            )
         else:
             self.circuit_breaker = None
 
         # Rate limiting
         self.rate_limit_requests = int(rate_limit)
         self.rate_limit_window = 60  # seconds
-        self.request_times: List[float] = []
+        self.request_times: list[float] = []
 
         # Cache for IP reputation data
-        self.cache: Dict[str, Dict[str, Any]] = {}
+        self.cache: dict[str, dict[str, Any]] = {}
         self.cache_ttl = int(cache_ttl)
 
         # Load user configuration
@@ -123,7 +125,9 @@ class DShieldClient:
         self.enable_caching = user_config.get_setting("performance", "enable_caching")
         self.max_cache_size = user_config.get_setting("performance", "max_cache_size")
         self.request_timeout = user_config.get_setting("performance", "request_timeout_seconds")
-        self.enable_performance_logging = user_config.get_setting("logging", "enable_performance_logging")
+        self.enable_performance_logging = user_config.get_setting(
+            "logging", "enable_performance_logging"
+        )
 
         # Headers for API requests
         self.headers = {
@@ -139,10 +143,10 @@ class DShieldClient:
 
     def _check_circuit_breaker(self, operation: str) -> bool:
         """Check if circuit breaker allows execution.
-        
+
         Args:
             operation: Name of the operation being performed
-        
+
         Returns:
             True if execution is allowed, False if circuit breaker is open
 
@@ -151,8 +155,11 @@ class DShieldClient:
             return True
 
         if not self.circuit_breaker.can_execute():
-            logger.warning("Circuit breaker is open, blocking operation",
-                          operation=operation, service="dshield_api")
+            logger.warning(
+                "Circuit breaker is open, blocking operation",
+                operation=operation,
+                service="dshield_api",
+            )
             return False
 
         return True
@@ -164,7 +171,7 @@ class DShieldClient:
 
     def _record_circuit_breaker_failure(self, exception: Exception) -> None:
         """Record failed operation with circuit breaker.
-        
+
         Args:
             exception: The exception that occurred
 
@@ -172,9 +179,9 @@ class DShieldClient:
         if self.circuit_breaker:
             self.circuit_breaker.on_failure(exception)
 
-    def get_circuit_breaker_status(self) -> Optional[Dict[str, Any]]:
+    def get_circuit_breaker_status(self) -> dict[str, Any] | None:
         """Get the current status of the DShield API circuit breaker.
-        
+
         Returns:
             Circuit breaker status dictionary or None if not enabled
 
@@ -186,7 +193,7 @@ class DShieldClient:
 
     async def __aenter__(self) -> "DShieldClient":
         """Async context manager entry.
-        
+
         Returns:
             DShieldClient: The initialized client instance
 
@@ -196,14 +203,14 @@ class DShieldClient:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Async context manager exit.
-        
+
         Closes the HTTP session on exit.
         """
         await self.close()
 
     async def connect(self) -> None:
         """Initialize HTTP session.
-        
+
         Creates an aiohttp.ClientSession for making API requests.
         Logs session initialization.
         """
@@ -217,7 +224,7 @@ class DShieldClient:
 
     async def close(self) -> None:
         """Close HTTP session.
-        
+
         Closes the aiohttp.ClientSession and releases resources.
         Logs session closure.
         """
@@ -226,15 +233,15 @@ class DShieldClient:
             self.session = None
             logger.info("DShield client session closed")
 
-    async def get_ip_reputation(self, ip_address: str) -> Dict[str, Any]:
+    async def get_ip_reputation(self, ip_address: str) -> dict[str, Any]:
         """Get IP reputation from DShield.
-        
+
         Looks up the reputation of a given IP address using the DShield API.
         Utilizes caching and rate limiting for efficiency.
-        
+
         Args:
             ip_address: The IP address to look up
-        
+
         Returns:
             Dictionary containing reputation data for the IP
 
@@ -271,9 +278,11 @@ class DShieldClient:
                     # Cache the result
                     self._cache_data(cache_key, reputation_data)
 
-                    logger.info("IP reputation retrieved successfully",
-                               ip_address=ip_address,
-                               reputation_score=reputation_data.get("reputation_score"))
+                    logger.info(
+                        "IP reputation retrieved successfully",
+                        ip_address=ip_address,
+                        reputation_score=reputation_data.get("reputation_score"),
+                    )
 
                     # Record success with circuit breaker
                     self._record_circuit_breaker_success()
@@ -286,38 +295,50 @@ class DShieldClient:
                     self._cache_data(cache_key, reputation_data)
                     return reputation_data
 
-                logger.warning("DShield API returned non-200 status",
-                              ip_address=ip_address,
-                              status=response.status)
+                logger.warning(
+                    "DShield API returned non-200 status",
+                    ip_address=ip_address,
+                    status=response.status,
+                )
                 return self._create_default_reputation(ip_address)
 
         except aiohttp.ClientError as e:
-            logger.error("HTTP error during IP reputation lookup",
-                        ip_address=ip_address, error=str(e))
+            logger.error(
+                "HTTP error during IP reputation lookup", ip_address=ip_address, error=str(e)
+            )
             # Record failure with circuit breaker
             self._record_circuit_breaker_failure(e)
             if self.error_handler:
-                return {"error": self.error_handler.create_external_service_error("DShield API", f"HTTP error: {e!s}")}
+                return {
+                    "error": self.error_handler.create_external_service_error(
+                        "DShield API", f"HTTP error: {e!s}"
+                    )
+                }
             return self._create_default_reputation(ip_address)
 
         except Exception as e:
-            logger.error("Unexpected error during IP reputation lookup",
-                        ip_address=ip_address, error=str(e))
+            logger.error(
+                "Unexpected error during IP reputation lookup", ip_address=ip_address, error=str(e)
+            )
             # Record failure with circuit breaker
             self._record_circuit_breaker_failure(e)
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"IP reputation lookup failed: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"IP reputation lookup failed: {e!s}"
+                    )
+                }
             return self._create_default_reputation(ip_address)
 
-    async def get_ip_details(self, ip_address: str) -> Dict[str, Any]:
+    async def get_ip_details(self, ip_address: str) -> dict[str, Any]:
         """Get detailed IP information from DShield.
-        
+
         Retrieves detailed information for a given IP address from the DShield API.
         Utilizes caching and rate limiting for efficiency.
-        
+
         Args:
             ip_address: The IP address to look up
-        
+
         Returns:
             Dictionary containing detailed data for the IP
 
@@ -358,21 +379,26 @@ class DShieldClient:
 
                     return details_data
 
-                logger.warning("DShield details API returned non-200 status",
-                              ip_address=ip_address,
-                              status=response.status)
+                logger.warning(
+                    "DShield details API returned non-200 status",
+                    ip_address=ip_address,
+                    status=response.status,
+                )
                 return self._create_default_details(ip_address)
 
         except Exception as e:
-            logger.error("Error during IP details lookup",
-                        ip_address=ip_address, error=str(e))
+            logger.error("Error during IP details lookup", ip_address=ip_address, error=str(e))
             # Record failure with circuit breaker
             self._record_circuit_breaker_failure(e)
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"IP details lookup failed: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"IP details lookup failed: {e!s}"
+                    )
+                }
             return self._create_default_details(ip_address)
 
-    async def get_top_attackers(self, hours: int = 24) -> List[Dict[str, Any]]:
+    async def get_top_attackers(self, hours: int = 24) -> list[dict[str, Any]]:
         """Get top attackers from DShield."""
         # Circuit breaker check
         if not self._check_circuit_breaker("get_top_attackers"):
@@ -398,8 +424,9 @@ class DShieldClient:
                     self._record_circuit_breaker_success()
                     return self._parse_top_attackers(data)
 
-                logger.warning("DShield top attackers API returned non-200 status",
-                              status=response.status)
+                logger.warning(
+                    "DShield top attackers API returned non-200 status", status=response.status
+                )
                 return []
 
         except Exception as e:
@@ -407,10 +434,14 @@ class DShieldClient:
             # Record failure with circuit breaker
             self._record_circuit_breaker_failure(e)
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"Top attackers lookup failed: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"Top attackers lookup failed: {e!s}"
+                    )
+                }
             return []
 
-    async def get_attack_summary(self, hours: int = 24) -> Dict[str, Any]:
+    async def get_attack_summary(self, hours: int = 24) -> dict[str, Any]:
         """Get attack summary from DShield."""
         # Circuit breaker check
         if not self._check_circuit_breaker("get_attack_summary"):
@@ -436,8 +467,9 @@ class DShieldClient:
                     self._record_circuit_breaker_success()
                     return self._parse_attack_summary(data)
 
-                logger.warning("DShield summary API returned non-200 status",
-                              status=response.status)
+                logger.warning(
+                    "DShield summary API returned non-200 status", status=response.status
+                )
                 return self._create_default_summary()
 
         except Exception as e:
@@ -445,23 +477,27 @@ class DShieldClient:
             # Record failure with circuit breaker
             self._record_circuit_breaker_failure(e)
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"Attack summary lookup failed: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"Attack summary lookup failed: {e!s}"
+                    )
+                }
             return self._create_default_summary()
 
-    async def enrich_ips_batch(self, ip_addresses: List[str]) -> Dict[str, Dict[str, Any]]:
+    async def enrich_ips_batch(self, ip_addresses: list[str]) -> dict[str, dict[str, Any]]:
         """Enrich multiple IP addresses with threat intelligence."""
         results = {}
 
         batch_size = self.batch_size
         for i in range(0, len(ip_addresses), batch_size):
-            batch = ip_addresses[i:i + batch_size]
+            batch = ip_addresses[i : i + batch_size]
 
             # Process batch concurrently
             tasks = [self.get_ip_reputation(ip) for ip in batch]
             batch_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             # Store results
-            for ip, result in zip(batch, batch_results):
+            for ip, result in zip(batch, batch_results, strict=False):
                 if isinstance(result, Exception):
                     logger.warning("Failed to enrich IP", ip=ip, error=str(result))
                     results[ip] = self._create_default_reputation(ip)
@@ -480,7 +516,7 @@ class DShieldClient:
         await asyncio.sleep(0.01)
         return True
 
-    def _parse_ip_reputation(self, data: Dict[str, Any], ip_address: str) -> Dict[str, Any]:
+    def _parse_ip_reputation(self, data: dict[str, Any], ip_address: str) -> dict[str, Any]:
         """Parse DShield IP reputation response."""
         reputation_data = {
             "ip_address": ip_address,
@@ -537,12 +573,13 @@ class DShieldClient:
                 reputation_data["tags"] = data["tags"]
 
         except Exception as e:
-            logger.warning("Failed to parse IP reputation data",
-                          ip_address=ip_address, error=str(e))
+            logger.warning(
+                "Failed to parse IP reputation data", ip_address=ip_address, error=str(e)
+            )
 
         return reputation_data
 
-    def _parse_ip_details(self, data: Dict[str, Any], ip_address: str) -> Dict[str, Any]:
+    def _parse_ip_details(self, data: dict[str, Any], ip_address: str) -> dict[str, Any]:
         """Parse DShield IP details response."""
         details_data = {
             "ip_address": ip_address,
@@ -556,12 +593,11 @@ class DShieldClient:
                     details_data[key] = value
 
         except Exception as e:
-            logger.warning("Failed to parse IP details data",
-                          ip_address=ip_address, error=str(e))
+            logger.warning("Failed to parse IP details data", ip_address=ip_address, error=str(e))
 
         return details_data
 
-    def _parse_top_attackers(self, data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _parse_top_attackers(self, data: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Parse DShield top attackers response."""
         attackers = []
 
@@ -581,7 +617,7 @@ class DShieldClient:
 
         return attackers
 
-    def _parse_attack_summary(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_attack_summary(self, data: dict[str, Any]) -> dict[str, Any]:
         """Parse DShield attack summary response."""
         summary = {
             "total_attacks": 0,
@@ -610,7 +646,7 @@ class DShieldClient:
 
         return summary
 
-    def _create_default_reputation(self, ip_address: str) -> Dict[str, Any]:
+    def _create_default_reputation(self, ip_address: str) -> dict[str, Any]:
         """Create default reputation data for IP."""
         return {
             "ip_address": ip_address,
@@ -626,14 +662,14 @@ class DShieldClient:
             "raw_data": {},
         }
 
-    def _create_default_details(self, ip_address: str) -> Dict[str, Any]:
+    def _create_default_details(self, ip_address: str) -> dict[str, Any]:
         """Create default details data for IP."""
         return {
             "ip_address": ip_address,
             "raw_data": {},
         }
 
-    def _create_default_summary(self) -> Dict[str, Any]:
+    def _create_default_summary(self) -> dict[str, Any]:
         """Create default attack summary."""
         return {
             "total_attacks": 0,
@@ -643,7 +679,7 @@ class DShieldClient:
             "raw_data": {},
         }
 
-    def _get_cached_data(self, cache_key: str) -> Optional[Dict[str, Any]]:
+    def _get_cached_data(self, cache_key: str) -> dict[str, Any] | None:
         """Get data from cache if not expired."""
         if cache_key in self.cache:
             cached_item = self.cache[cache_key]
@@ -653,7 +689,7 @@ class DShieldClient:
             del self.cache[cache_key]
         return None
 
-    def _cache_data(self, cache_key: str, data: Dict[str, Any]):
+    def _cache_data(self, cache_key: str, data: dict[str, Any]):
         """Cache data with timestamp."""
         self.cache[cache_key] = {
             "data": data,
@@ -662,7 +698,7 @@ class DShieldClient:
 
     async def check_health(self) -> bool:
         """Check DShield API connectivity and authentication.
-        
+
         Returns:
             bool: True if DShield API is healthy and accessible, False otherwise
 
@@ -691,20 +727,29 @@ class DShieldClient:
                 test_url = self.base_url
 
                 async with self.session.get(test_url, timeout=10) as response:
-                    if response.status in [200, 401, 403, 404]:  # 404 means API is reachable but endpoint not found
-                        logger.debug("DShield API connectivity test passed",
-                                   status=response.status,
-                                   url=test_url)
+                    if response.status in [
+                        200,
+                        401,
+                        403,
+                        404,
+                    ]:  # 404 means API is reachable but endpoint not found
+                        logger.debug(
+                            "DShield API connectivity test passed",
+                            status=response.status,
+                            url=test_url,
+                        )
                         return True
-                    logger.warning("DShield API returned unexpected status",
-                                 status=response.status,
-                                 url=test_url)
+                    logger.warning(
+                        "DShield API returned unexpected status",
+                        status=response.status,
+                        url=test_url,
+                    )
                     return False
 
             except aiohttp.ClientError as e:
                 logger.error("DShield API connectivity test failed", error=str(e))
                 return False
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.error("DShield API connectivity test timed out")
                 return False
 
@@ -717,8 +762,9 @@ class DShieldClient:
         current_time = time.time()
 
         # Remove old request times outside the window
-        self.request_times = [t for t in self.request_times
-                            if current_time - t < self.rate_limit_window]
+        self.request_times = [
+            t for t in self.request_times if current_time - t < self.rate_limit_window
+        ]
 
         # Check if we're at the rate limit
         if len(self.request_times) >= self.rate_limit_requests:

@@ -6,7 +6,7 @@ lifecycle management, and coordination between different transport types.
 """
 
 import os
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 import psutil
 import structlog
@@ -20,11 +20,11 @@ logger = structlog.get_logger(__name__)
 
 class TransportManager:
     """Manages transport selection and lifecycle for the MCP server.
-    
+
     This class handles the selection of appropriate transport mechanisms
     based on configuration and execution context, managing the lifecycle
     of transport instances.
-    
+
     Attributes:
         server: The MCP server instance
         config: Transport configuration
@@ -33,9 +33,9 @@ class TransportManager:
 
     """
 
-    def __init__(self, server: Any, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, server: Any, config: dict[str, Any] | None = None) -> None:
         """Initialize the transport manager.
-        
+
         Args:
             server: The MCP server instance
             config: Transport configuration
@@ -43,10 +43,10 @@ class TransportManager:
         """
         self.server = server
         self.config = config or {}
-        self.current_transport: Optional[BaseTransport] = None
+        self.current_transport: BaseTransport | None = None
 
         # Registry of available transport types
-        self.transport_registry: Dict[str, Type[BaseTransport]] = {
+        self.transport_registry: dict[str, type[BaseTransport]] = {
             "stdio": STDIOTransport,
             "tcp": TCPTransport,
         }
@@ -55,12 +55,12 @@ class TransportManager:
 
     def detect_transport_mode(self) -> str:
         """Detect the appropriate transport mode based on execution context.
-        
+
         This method implements the transport detection logic:
         1. Check if TUI is the parent process (process parent detection)
         2. Fall back to command-line flag detection
         3. Default to STDIO mode for safety
-        
+
         Returns:
             Transport mode identifier ('stdio' or 'tcp')
 
@@ -93,13 +93,13 @@ class TransportManager:
 
     def _is_tui_parent(self) -> bool:
         """Check if TUI is the parent process using multiple detection strategies.
-        
+
         Detection order:
         1. Check environment variable DSHIELD_TUI_MODE
         2. Check parent process name/cmdline for TUI indicators
         3. Check for TUI-specific markers in command line
         4. Default to STDIO if uncertain
-        
+
         Returns:
             True if TUI appears to be the parent process
 
@@ -119,31 +119,41 @@ class TransportManager:
                 parent_name = parent_process.name().lower()
                 parent_cmdline = " ".join(parent_process.cmdline()).lower()
 
-                self.logger.debug("TUI detection: Parent process info",
-                                parent_pid=parent_pid,
-                                parent_name=parent_name,
-                                parent_cmdline=parent_cmdline)
+                self.logger.debug(
+                    "TUI detection: Parent process info",
+                    parent_pid=parent_pid,
+                    parent_name=parent_name,
+                    parent_cmdline=parent_cmdline,
+                )
 
                 # Strategy 3: Check for TUI-specific command line markers
                 tui_indicators = [
-                    "tui", "textual", "rich", "curses",
-                    "dshield-mcp-tui", "mcp-tui", "tui_launcher.py",
+                    "tui",
+                    "textual",
+                    "rich",
+                    "curses",
+                    "dshield-mcp-tui",
+                    "mcp-tui",
+                    "tui_launcher.py",
                 ]
 
                 for indicator in tui_indicators:
                     if indicator in parent_name or indicator in parent_cmdline:
-                        self.logger.debug("TUI detection: Found TUI indicator in parent",
-                                        indicator=indicator,
-                                        found_in_name=indicator in parent_name,
-                                        found_in_cmdline=indicator in parent_cmdline)
+                        self.logger.debug(
+                            "TUI detection: Found TUI indicator in parent",
+                            indicator=indicator,
+                            found_in_name=indicator in parent_name,
+                            found_in_cmdline=indicator in parent_cmdline,
+                        )
                         return True
 
                 # Strategy 4: Check if parent is running in a terminal multiplexer
                 terminal_multiplexers = ["tmux", "screen", "byobu"]
                 for mux in terminal_multiplexers:
                     if mux in parent_cmdline:
-                        self.logger.debug("TUI detection: Found terminal multiplexer",
-                                        multiplexer=mux)
+                        self.logger.debug(
+                            "TUI detection: Found terminal multiplexer", multiplexer=mux
+                        )
                         return True
 
                 self.logger.debug("TUI detection: No TUI indicators found in parent process")
@@ -163,8 +173,10 @@ class TransportManager:
             tui_launcher_indicators = ["tui_launcher.py", "src.tui_launcher", "-m src.tui_launcher"]
             for indicator in tui_launcher_indicators:
                 if indicator in current_cmdline:
-                    self.logger.debug("TUI detection: Found TUI launcher indicator in current process",
-                                    indicator=indicator)
+                    self.logger.debug(
+                        "TUI detection: Found TUI launcher indicator in current process",
+                        indicator=indicator,
+                    )
                     return True
         except Exception as e:
             self.logger.debug("TUI detection: Error checking current process", error=str(e))
@@ -174,7 +186,7 @@ class TransportManager:
 
     def _has_tcp_flag(self) -> bool:
         """Check for TCP-related command-line flags.
-        
+
         Returns:
             True if TCP flags are present
 
@@ -189,15 +201,15 @@ class TransportManager:
 
         return False
 
-    def create_transport(self, transport_type: Optional[str] = None) -> BaseTransport:
+    def create_transport(self, transport_type: str | None = None) -> BaseTransport:
         """Create a transport instance.
-        
+
         Args:
             transport_type: Type of transport to create (auto-detected if None)
-            
+
         Returns:
             Transport instance
-            
+
         Raises:
             TransportError: If transport type is not supported
 
@@ -213,17 +225,18 @@ class TransportManager:
         # Get transport-specific configuration
         transport_config = self._get_transport_config(transport_type)
 
-        self.logger.info("Creating transport",
-                        transport_type=transport_type, config=transport_config)
+        self.logger.info(
+            "Creating transport", transport_type=transport_type, config=transport_config
+        )
 
         return transport_class(self.server, transport_config)
 
-    def _get_transport_config(self, transport_type: str) -> Dict[str, Any]:
+    def _get_transport_config(self, transport_type: str) -> dict[str, Any]:
         """Get configuration for a specific transport type.
-        
+
         Args:
             transport_type: Type of transport
-            
+
         Returns:
             Transport-specific configuration
 
@@ -233,32 +246,36 @@ class TransportManager:
         if transport_type == "tcp":
             # Get TCP-specific configuration
             tcp_config = self.config.get("tcp_transport", {})
-            config.update({
-                "port": tcp_config.get("port", 3000),
-                "bind_address": tcp_config.get("bind_address", "127.0.0.1"),
-                "max_connections": tcp_config.get("max_connections", 10),
-                "connection_timeout_seconds": tcp_config.get("connection_timeout_seconds", 300),
-                "api_key_management": tcp_config.get("api_key_management", {}),
-                "permissions": tcp_config.get("permissions", {}),
-            })
+            config.update(
+                {
+                    "port": tcp_config.get("port", 3000),
+                    "bind_address": tcp_config.get("bind_address", "127.0.0.1"),
+                    "max_connections": tcp_config.get("max_connections", 10),
+                    "connection_timeout_seconds": tcp_config.get("connection_timeout_seconds", 300),
+                    "api_key_management": tcp_config.get("api_key_management", {}),
+                    "permissions": tcp_config.get("permissions", {}),
+                }
+            )
 
         elif transport_type == "stdio":
             # STDIO doesn't need much configuration
-            config.update({
-                "buffer_size": self.config.get("stdio", {}).get("buffer_size", 8192),
-            })
+            config.update(
+                {
+                    "buffer_size": self.config.get("stdio", {}).get("buffer_size", 8192),
+                }
+            )
 
         return config
 
-    async def start_transport(self, transport_type: Optional[str] = None) -> BaseTransport:
+    async def start_transport(self, transport_type: str | None = None) -> BaseTransport:
         """Start a transport instance.
-        
+
         Args:
             transport_type: Type of transport to start (auto-detected if None)
-            
+
         Returns:
             Started transport instance
-            
+
         Raises:
             TransportError: If transport fails to start
 
@@ -270,17 +287,19 @@ class TransportManager:
 
         try:
             await self.current_transport.start()
-            self.logger.info("Transport started successfully",
-                           transport_type=self.current_transport.transport_type)
+            self.logger.info(
+                "Transport started successfully",
+                transport_type=self.current_transport.transport_type,
+            )
             return self.current_transport
 
         except Exception as e:
             self.current_transport = None
-            raise TransportError(f"Failed to start transport: {e}")
+            raise TransportError(f"Failed to start transport: {e}") from e
 
     async def stop_transport(self) -> None:
         """Stop the current transport.
-        
+
         Raises:
             TransportError: If no transport is running
 
@@ -290,27 +309,31 @@ class TransportManager:
 
         try:
             await self.current_transport.stop()
-            self.logger.info("Transport stopped successfully",
-                           transport_type=self.current_transport.transport_type)
+            self.logger.info(
+                "Transport stopped successfully",
+                transport_type=self.current_transport.transport_type,
+            )
         finally:
             self.current_transport = None
 
-    async def restart_transport(self, transport_type: Optional[str] = None) -> BaseTransport:
+    async def restart_transport(self, transport_type: str | None = None) -> BaseTransport:
         """Restart the transport with optional type change.
-        
+
         Args:
             transport_type: New transport type (keeps current if None)
-            
+
         Returns:
             New transport instance
-            
+
         Raises:
             TransportError: If restart fails
 
         """
-        self.logger.info("Restarting transport",
-                        current_type=self.current_transport.transport_type if self.current_transport else None,
-                        new_type=transport_type)
+        self.logger.info(
+            "Restarting transport",
+            current_type=self.current_transport.transport_type if self.current_transport else None,
+            new_type=transport_type,
+        )
 
         # Stop current transport
         if self.current_transport is not None:
@@ -319,18 +342,18 @@ class TransportManager:
         # Start new transport
         return await self.start_transport(transport_type)
 
-    def get_current_transport(self) -> Optional[BaseTransport]:
+    def get_current_transport(self) -> BaseTransport | None:
         """Get the currently active transport.
-        
+
         Returns:
             Current transport instance or None
 
         """
         return self.current_transport
 
-    def get_transport_info(self) -> Dict[str, Any]:
+    def get_transport_info(self) -> dict[str, Any]:
         """Get information about the current transport.
-        
+
         Returns:
             Transport information dictionary
 
@@ -348,17 +371,21 @@ class TransportManager:
         if self.current_transport.transport_type == "tcp":
             tcp_transport = self.current_transport
             # Type check to ensure we have the right transport type
-            if hasattr(tcp_transport, "get_connection_count") and hasattr(tcp_transport, "get_connections_info"):
-                info.update({
-                    "connection_count": tcp_transport.get_connection_count(),
-                    "connections": tcp_transport.get_connections_info(),
-                })
+            if hasattr(tcp_transport, "get_connection_count") and hasattr(
+                tcp_transport, "get_connections_info"
+            ):
+                info.update(
+                    {
+                        "connection_count": tcp_transport.get_connection_count(),
+                        "connections": tcp_transport.get_connections_info(),
+                    }
+                )
 
         return info
 
     async def __aenter__(self) -> "TransportManager":
         """Async context manager entry.
-        
+
         Returns:
             Self for use in async with statements
 
@@ -368,7 +395,7 @@ class TransportManager:
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit.
-        
+
         Args:
             exc_type: Exception type
             exc_val: Exception value

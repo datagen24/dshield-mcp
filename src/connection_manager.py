@@ -7,7 +7,7 @@ handling connection lifecycle, authentication, and monitoring.
 
 import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import structlog
 
@@ -18,7 +18,7 @@ logger = structlog.get_logger(__name__)
 
 class APIKey:
     """Represents an API key with associated permissions and metadata.
-    
+
     Attributes:
         key_id: Unique identifier for the API key
         key_value: The actual API key value
@@ -31,10 +31,11 @@ class APIKey:
 
     """
 
-    def __init__(self, key_id: str, key_value: str, permissions: Dict[str, Any],
-                 expires_days: int = 90) -> None:
+    def __init__(
+        self, key_id: str, key_value: str, permissions: dict[str, Any], expires_days: int = 90
+    ) -> None:
         """Initialize an API key.
-        
+
         Args:
             key_id: Unique identifier for the API key
             key_value: The actual API key value
@@ -47,13 +48,13 @@ class APIKey:
         self.permissions = permissions
         self.created_at = datetime.utcnow()
         self.expires_at = self.created_at + timedelta(days=expires_days)
-        self.last_used = None
+        self.last_used: datetime | None = None
         self.usage_count = 0
         self.is_active = True
 
     def is_expired(self) -> bool:
         """Check if the API key has expired.
-        
+
         Returns:
             True if the key has expired, False otherwise
 
@@ -62,7 +63,7 @@ class APIKey:
 
     def is_valid(self) -> bool:
         """Check if the API key is valid (active and not expired).
-        
+
         Returns:
             True if the key is valid, False otherwise
 
@@ -74,16 +75,18 @@ class APIKey:
         self.last_used = datetime.utcnow()
         self.usage_count += 1
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert the API key to a dictionary.
-        
+
         Returns:
             Dictionary representation of the API key
 
         """
         return {
             "key_id": self.key_id,
-            "key_value": self.key_value[:8] + "..." if self.key_value else None,  # Masked for security
+            "key_value": self.key_value[:8] + "..."
+            if self.key_value
+            else None,  # Masked for security
             "permissions": self.permissions,
             "created_at": self.created_at.isoformat(),
             "expires_at": self.expires_at.isoformat(),
@@ -97,10 +100,10 @@ class APIKey:
 
 class ConnectionManager:
     """Manages TCP connections and API keys for the MCP server.
-    
+
     This class handles the lifecycle of TCP connections, API key management,
     authentication, and connection monitoring.
-    
+
     Attributes:
         op_secrets: OnePassword secrets manager
         api_keys: Dictionary of API keys by key value
@@ -109,9 +112,9 @@ class ConnectionManager:
 
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         """Initialize the connection manager.
-        
+
         Args:
             config: Connection management configuration
 
@@ -121,8 +124,8 @@ class ConnectionManager:
         self.api_key_manager = OnePasswordAPIKeyManager(
             vault=config.get("vault", "DShield-MCP") if config else "DShield-MCP",
         )
-        self.api_keys: Dict[str, APIKey] = {}
-        self.connections: Set[Any] = set()  # Will store TCPConnection objects
+        self.api_keys: dict[str, APIKey] = {}
+        self.connections: set[Any] = set()  # Will store TCPConnection objects
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
         # Load existing API keys from 1Password
@@ -130,7 +133,7 @@ class ConnectionManager:
 
     async def _load_api_keys(self) -> None:
         """Load existing API keys from 1Password.
-        
+
         This method loads API keys that were previously stored in 1Password
         and restores them to the in-memory cache.
         """
@@ -160,16 +163,21 @@ class ConnectionManager:
         except Exception as e:
             self.logger.error("Failed to load API keys from 1Password", error=str(e))
 
-    async def generate_api_key(self, name: str, permissions: Optional[Dict[str, Any]] = None,
-                              expiration_days: Optional[int] = None, rate_limit: Optional[int] = None) -> Optional[APIKey]:
+    async def generate_api_key(
+        self,
+        name: str,
+        permissions: dict[str, Any] | None = None,
+        expiration_days: int | None = None,
+        rate_limit: int | None = None,
+    ) -> APIKey | None:
         """Generate a new API key and store it in 1Password.
-        
+
         Args:
             name: Human-readable name for the API key
             permissions: Permissions for the new API key
             expiration_days: Number of days until expiration
             rate_limit: Rate limit in requests per minute
-            
+
         Returns:
             New API key instance if successful, None otherwise
 
@@ -214,29 +222,33 @@ class ConnectionManager:
 
     async def _store_api_key_in_1password(self, api_key: APIKey) -> None:
         """Store an API key in 1Password.
-        
+
         Args:
             api_key: The API key to store
 
         """
         try:
-            vault_path = self.config.get("api_key_management", {}).get("vault", "op://vault/item/field")
+            vault_path = self.config.get("api_key_management", {}).get(
+                "vault", "op://vault/item/field"
+            )
 
             # This is a placeholder - actual implementation would store the API key
             # in 1Password using the op_secrets manager
-            self.logger.info("Storing API key in 1Password",
-                           key_id=api_key.key_id, vault_path=vault_path)
+            self.logger.info(
+                "Storing API key in 1Password", key_id=api_key.key_id, vault_path=vault_path
+            )
 
         except Exception as e:
-            self.logger.error("Failed to store API key in 1Password",
-                            key_id=api_key.key_id, error=str(e))
+            self.logger.error(
+                "Failed to store API key in 1Password", key_id=api_key.key_id, error=str(e)
+            )
 
-    async def validate_api_key(self, key_value: str) -> Optional[APIKey]:
+    async def validate_api_key(self, key_value: str) -> APIKey | None:
         """Validate an API key.
-        
+
         Args:
             key_value: The API key value to validate
-            
+
         Returns:
             APIKey instance if valid, None if invalid
 
@@ -268,10 +280,12 @@ class ConnectionManager:
                 return None
 
         if not api_key.is_valid():
-            self.logger.warning("API key is invalid",
-                              key_id=api_key.key_id,
-                              is_active=api_key.is_active,
-                              is_expired=api_key.is_expired())
+            self.logger.warning(
+                "API key is invalid",
+                key_id=api_key.key_id,
+                is_active=api_key.is_active,
+                is_expired=api_key.is_expired(),
+            )
             return None
 
         # Update usage statistics
@@ -281,10 +295,10 @@ class ConnectionManager:
 
     async def delete_api_key(self, key_id: str) -> bool:
         """Delete an API key from 1Password and memory cache.
-        
+
         Args:
             key_id: The unique identifier of the API key to delete
-            
+
         Returns:
             True if the key was deleted successfully, False otherwise
 
@@ -306,7 +320,7 @@ class ConnectionManager:
                         connections_to_close.append(connection)
 
                 for connection in connections_to_close:
-                    await self.close_connection(connection)
+                    self.remove_connection(connection)
 
                 self.logger.info("Deleted API key and disconnected sessions", key_id=key_id)
                 return True
@@ -319,10 +333,10 @@ class ConnectionManager:
 
     def revoke_api_key(self, key_value: str) -> bool:
         """Revoke an API key.
-        
+
         Args:
             key_value: The API key value to revoke
-            
+
         Returns:
             True if key was revoked, False if not found
 
@@ -342,57 +356,63 @@ class ConnectionManager:
 
     async def _remove_api_key_from_1password(self, api_key: APIKey) -> None:
         """Remove an API key from 1Password.
-        
+
         Args:
             api_key: The API key to remove
 
         """
         try:
-            vault_path = self.config.get("api_key_management", {}).get("vault", "op://vault/item/field")
+            vault_path = self.config.get("api_key_management", {}).get(
+                "vault", "op://vault/item/field"
+            )
 
             # This is a placeholder - actual implementation would remove the API key
             # from 1Password using the op_secrets manager
-            self.logger.info("Removing API key from 1Password",
-                           key_id=api_key.key_id, vault_path=vault_path)
+            self.logger.info(
+                "Removing API key from 1Password", key_id=api_key.key_id, vault_path=vault_path
+            )
 
         except Exception as e:
-            self.logger.error("Failed to remove API key from 1Password",
-                            key_id=api_key.key_id, error=str(e))
+            self.logger.error(
+                "Failed to remove API key from 1Password", key_id=api_key.key_id, error=str(e)
+            )
 
     def add_connection(self, connection: Any) -> None:
         """Add a connection to the manager.
-        
+
         Args:
             connection: The connection to add
 
         """
         self.connections.add(connection)
-        self.logger.info("Connection added",
-                        client_address=getattr(connection, "client_address", "unknown"))
+        self.logger.info(
+            "Connection added", client_address=getattr(connection, "client_address", "unknown")
+        )
 
     def remove_connection(self, connection: Any) -> None:
         """Remove a connection from the manager.
-        
+
         Args:
             connection: The connection to remove
 
         """
         self.connections.discard(connection)
-        self.logger.info("Connection removed",
-                        client_address=getattr(connection, "client_address", "unknown"))
+        self.logger.info(
+            "Connection removed", client_address=getattr(connection, "client_address", "unknown")
+        )
 
     def get_connection_count(self) -> int:
         """Get the number of active connections.
-        
+
         Returns:
             Number of active connections
 
         """
         return len(self.connections)
 
-    def get_connections_info(self) -> List[Dict[str, Any]]:
+    def get_connections_info(self) -> list[dict[str, Any]]:
         """Get information about active connections.
-        
+
         Returns:
             List of connection information dictionaries
 
@@ -419,9 +439,9 @@ class ConnectionManager:
 
         return connections_info
 
-    def get_api_keys_info(self) -> List[Dict[str, Any]]:
+    def get_api_keys_info(self) -> list[dict[str, Any]]:
         """Get information about all API keys.
-        
+
         Returns:
             List of API key information dictionaries
 
@@ -430,7 +450,7 @@ class ConnectionManager:
 
     def get_active_api_keys_count(self) -> int:
         """Get the number of active API keys.
-        
+
         Returns:
             Number of active API keys
 
@@ -439,14 +459,13 @@ class ConnectionManager:
 
     def cleanup_expired_keys(self) -> int:
         """Clean up expired API keys.
-        
+
         Returns:
             Number of keys cleaned up
 
         """
         expired_keys = [
-            key_value for key_value, api_key in self.api_keys.items()
-            if api_key.is_expired()
+            key_value for key_value, api_key in self.api_keys.items() if api_key.is_expired()
         ]
 
         for key_value in expired_keys:
@@ -457,9 +476,9 @@ class ConnectionManager:
 
         return len(expired_keys)
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get connection manager statistics.
-        
+
         Returns:
             Dictionary of statistics
 

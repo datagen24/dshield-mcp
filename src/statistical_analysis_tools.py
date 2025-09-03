@@ -5,8 +5,8 @@ MCP tools for statistical analysis, anomaly detection, and pattern recognition
 in DShield SIEM data.
 """
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 
@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 class StatisticalAnalysisTools:
     """MCP tools for statistical analysis and anomaly detection."""
 
-    def __init__(self, es_client: Optional[ElasticsearchClient] = None):
+    def __init__(self, es_client: ElasticsearchClient | None = None):
         """Initialize StatisticalAnalysisTools.
 
         Args:
@@ -32,14 +32,14 @@ class StatisticalAnalysisTools:
     async def detect_statistical_anomalies(
         self,
         time_range_hours: int = 24,
-        anomaly_methods: Optional[List[str]] = None,
+        anomaly_methods: list[str] | None = None,
         sensitivity: float = 2.5,
-        dimensions: Optional[List[str]] = None,
+        dimensions: list[str] | None = None,
         return_summary_only: bool = True,
         max_anomalies: int = 50,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Detect statistical anomalies in DShield events without returning all raw data.
-        
+
         Args:
             time_range_hours: Time range in hours to analyze (default: 24)
             anomaly_methods: List of anomaly detection methods to use
@@ -47,16 +47,18 @@ class StatisticalAnalysisTools:
             dimensions: Dimensions to analyze for anomalies
             return_summary_only: Whether to return only summary data (default: True)
             max_anomalies: Maximum number of anomalies to return (default: 50)
-        
+
         Returns:
             Dictionary containing anomaly detection results and analysis
 
         """
-        logger.info("Starting statistical anomaly detection",
-                   time_range_hours=time_range_hours,
-                   anomaly_methods=anomaly_methods,
-                   sensitivity=sensitivity,
-                   dimensions=dimensions)
+        logger.info(
+            "Starting statistical anomaly detection",
+            time_range_hours=time_range_hours,
+            anomaly_methods=anomaly_methods,
+            sensitivity=sensitivity,
+            dimensions=dimensions,
+        )
 
         try:
             # Set default values
@@ -67,17 +69,25 @@ class StatisticalAnalysisTools:
 
             # Get anomaly aggregations using existing aggregation tool
             anomaly_data = await self._get_anomaly_aggregations(
-                time_range_hours, dimensions, anomaly_methods, sensitivity,
+                time_range_hours,
+                dimensions,
+                anomaly_methods,
+                sensitivity,
             )
 
             # Apply statistical methods server-side
             anomalies = await self._apply_anomaly_detection_methods(
-                anomaly_data, anomaly_methods, sensitivity, max_anomalies,
+                anomaly_data,
+                anomaly_methods,
+                sensitivity,
+                max_anomalies,
             )
 
             # Generate risk assessment and recommendations
             anomalies["risk_assessment"] = await self._assess_anomaly_risk(anomalies)
-            anomalies["recommended_actions"] = await self._generate_anomaly_recommendations(anomalies)
+            anomalies["recommended_actions"] = await self._generate_anomaly_recommendations(
+                anomalies
+            )
 
             return {
                 "success": True,
@@ -87,7 +97,7 @@ class StatisticalAnalysisTools:
                     "methods_used": anomaly_methods,
                     "sensitivity": sensitivity,
                     "dimensions_analyzed": dimensions,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 },
             }
 
@@ -102,18 +112,18 @@ class StatisticalAnalysisTools:
     async def _get_anomaly_aggregations(
         self,
         time_range_hours: int,
-        dimensions: List[str],
-        methods: List[str],
+        dimensions: list[str],
+        methods: list[str],
         sensitivity: float,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get aggregated data for anomaly detection without raw events.
-        
+
         Args:
             time_range_hours: Time range in hours to query
             dimensions: Dimensions to analyze for anomalies
             methods: Anomaly detection methods to use
             sensitivity: Sensitivity threshold for anomaly detection
-            
+
         Returns:
             Dictionary containing aggregated data for anomaly analysis
 
@@ -162,23 +172,23 @@ class StatisticalAnalysisTools:
 
         except Exception as e:
             logger.error("Failed to get anomaly aggregations", error=str(e))
-            raise RuntimeError(f"Failed to retrieve aggregation data: {e!s}")
+            raise RuntimeError(f"Failed to retrieve aggregation data: {e!s}") from e
 
     async def _apply_anomaly_detection_methods(
         self,
-        anomaly_data: Dict[str, Any],
-        methods: List[str],
+        anomaly_data: dict[str, Any],
+        methods: list[str],
         sensitivity: float,
         max_anomalies: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Apply statistical anomaly detection methods to aggregated data.
-        
+
         Args:
             anomaly_data: Aggregated data from Elasticsearch
             methods: List of anomaly detection methods to apply
             sensitivity: Sensitivity threshold for anomaly detection
             max_anomalies: Maximum number of anomalies to return
-            
+
         Returns:
             Dictionary containing anomaly detection results
 
@@ -197,7 +207,9 @@ class StatisticalAnalysisTools:
         # Apply Z-score analysis for numerical fields
         if "zscore" in methods:
             zscore_anomalies = await self._apply_zscore_analysis(
-                anomaly_data, sensitivity, max_anomalies,
+                anomaly_data,
+                sensitivity,
+                max_anomalies,
             )
             anomalies["anomalies_by_method"]["zscore"] = zscore_anomalies
             anomalies["summary"]["total_anomalies_detected"] += zscore_anomalies.get("count", 0)
@@ -205,7 +217,9 @@ class StatisticalAnalysisTools:
         # Apply IQR-based outlier detection
         if "iqr" in methods:
             iqr_anomalies = await self._apply_iqr_analysis(
-                anomaly_data, sensitivity, max_anomalies,
+                anomaly_data,
+                sensitivity,
+                max_anomalies,
             )
             anomalies["anomalies_by_method"]["iqr"] = iqr_anomalies
             anomalies["summary"]["total_anomalies_detected"] += iqr_anomalies.get("count", 0)
@@ -213,18 +227,26 @@ class StatisticalAnalysisTools:
         # Apply Isolation Forest for multivariate anomalies
         if "isolation_forest" in methods:
             isolation_forest_anomalies = await self._apply_isolation_forest_analysis(
-                anomaly_data, sensitivity, max_anomalies,
+                anomaly_data,
+                sensitivity,
+                max_anomalies,
             )
             anomalies["anomalies_by_method"]["isolation_forest"] = isolation_forest_anomalies
-            anomalies["summary"]["total_anomalies_detected"] += isolation_forest_anomalies.get("count", 0)
+            anomalies["summary"]["total_anomalies_detected"] += isolation_forest_anomalies.get(
+                "count", 0
+            )
 
         # Apply time series anomaly detection
         if "time_series" in methods:
             time_series_anomalies = await self._apply_time_series_analysis(
-                anomaly_data, sensitivity, max_anomalies,
+                anomaly_data,
+                sensitivity,
+                max_anomalies,
             )
             anomalies["anomalies_by_method"]["time_series"] = time_series_anomalies
-            anomalies["summary"]["total_anomalies_detected"] += time_series_anomalies.get("count", 0)
+            anomalies["summary"]["total_anomalies_detected"] += time_series_anomalies.get(
+                "count", 0
+            )
 
         # Generate pattern analysis
         anomalies["patterns"] = await self._detect_anomaly_patterns(anomalies)
@@ -233,17 +255,17 @@ class StatisticalAnalysisTools:
 
     async def _apply_zscore_analysis(
         self,
-        anomaly_data: Dict[str, Any],
+        anomaly_data: dict[str, Any],
         sensitivity: float,
         max_anomalies: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Apply Z-score analysis for numerical fields.
-        
+
         Args:
             anomaly_data: Aggregated data from Elasticsearch
             sensitivity: Z-score threshold for anomaly detection
             max_anomalies: Maximum number of anomalies to return
-            
+
         Returns:
             Dictionary containing Z-score analysis results
 
@@ -277,14 +299,16 @@ class StatisticalAnalysisTools:
                             lower_bound = mean - (sensitivity * std)
                             upper_bound = mean + (sensitivity * std)
 
-                            zscore_results["anomalies"].append({
-                                "field": field_name.replace("_stats", ""),
-                                "mean": mean,
-                                "std_deviation": std,
-                                "lower_bound": lower_bound,
-                                "upper_bound": upper_bound,
-                                "anomaly_threshold": sensitivity,
-                            })
+                            zscore_results["anomalies"].append(
+                                {
+                                    "field": field_name.replace("_stats", ""),
+                                    "mean": mean,
+                                    "std_deviation": std,
+                                    "lower_bound": lower_bound,
+                                    "upper_bound": upper_bound,
+                                    "anomaly_threshold": sensitivity,
+                                }
+                            )
 
             zscore_results["count"] = len(zscore_results["anomalies"])
             return zscore_results
@@ -308,17 +332,17 @@ class StatisticalAnalysisTools:
 
     async def _apply_iqr_analysis(
         self,
-        anomaly_data: Dict[str, Any],
+        anomaly_data: dict[str, Any],
         sensitivity: float,
         max_anomalies: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Apply IQR-based outlier detection.
-        
+
         Args:
             anomaly_data: Aggregated data from Elasticsearch
             sensitivity: IQR multiplier for outlier detection
             max_anomalies: Maximum number of anomalies to return
-            
+
         Returns:
             Dictionary containing IQR analysis results
 
@@ -350,14 +374,16 @@ class StatisticalAnalysisTools:
                         # Simple range-based anomaly detection as fallback
                         range_val = max_val - min_val
                         if range_val > 0:
-                            iqr_results["anomalies"].append({
-                                "field": field_name.replace("_stats", ""),
-                                "mean": mean,
-                                "range": range_val,
-                                "min": min_val,
-                                "max": max_val,
-                                "anomaly_threshold": sensitivity,
-                            })
+                            iqr_results["anomalies"].append(
+                                {
+                                    "field": field_name.replace("_stats", ""),
+                                    "mean": mean,
+                                    "range": range_val,
+                                    "min": min_val,
+                                    "max": max_val,
+                                    "anomaly_threshold": sensitivity,
+                                }
+                            )
 
             iqr_results["count"] = len(iqr_results["anomalies"])
             return iqr_results
@@ -381,17 +407,17 @@ class StatisticalAnalysisTools:
 
     async def _apply_isolation_forest_analysis(
         self,
-        anomaly_data: Dict[str, Any],
+        anomaly_data: dict[str, Any],
         sensitivity: float,
         max_anomalies: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Apply Isolation Forest for multivariate anomaly detection.
-        
+
         Args:
             anomaly_data: Aggregated data from Elasticsearch
             sensitivity: Contamination factor for anomaly detection
             max_anomalies: Maximum number of anomalies to return
-            
+
         Returns:
             Dictionary containing Isolation Forest analysis results
 
@@ -416,12 +442,14 @@ class StatisticalAnalysisTools:
                 if field_name.endswith("_stats") and "stats" in field_data:
                     stats_data = field_data["stats"]
                     if "count" in stats_data and stats_data["count"] > 0:
-                        features.append([
-                            stats_data.get("avg", 0),
-                            stats_data.get("min", 0),
-                            stats_data.get("max", 0),
-                            stats_data.get("std_deviation", 0),
-                        ])
+                        features.append(
+                            [
+                                stats_data.get("avg", 0),
+                                stats_data.get("min", 0),
+                                stats_data.get("max", 0),
+                                stats_data.get("std_deviation", 0),
+                            ]
+                        )
                         feature_names.append(field_name.replace("_stats", ""))
 
             if features:
@@ -451,7 +479,9 @@ class StatisticalAnalysisTools:
             return isolation_results
 
         except ImportError as e:
-            logger.warning("Required libraries not available for Isolation Forest analysis", error=str(e))
+            logger.warning(
+                "Required libraries not available for Isolation Forest analysis", error=str(e)
+            )
             return {
                 "count": 0,
                 "anomalies": [],
@@ -469,17 +499,17 @@ class StatisticalAnalysisTools:
 
     async def _apply_time_series_analysis(
         self,
-        anomaly_data: Dict[str, Any],
+        anomaly_data: dict[str, Any],
         sensitivity: float,
         max_anomalies: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Apply time series anomaly detection.
-        
+
         Args:
             anomaly_data: Aggregated data from Elasticsearch
             sensitivity: Sensitivity threshold for anomaly detection
             max_anomalies: Maximum number of anomalies to return
-            
+
         Returns:
             Dictionary containing time series analysis results
 
@@ -509,28 +539,32 @@ class StatisticalAnalysisTools:
                             if avg_volume > 0:
                                 deviation = abs(volume - avg_volume) / avg_volume
                                 if deviation > (sensitivity / 10):  # Scale sensitivity
-                                    time_series_results["anomalies"].append({
-                                        "timestamp": buckets[i].get("key_as_string", f"bucket_{i}"),
-                                        "volume": volume,
-                                        "average_volume": avg_volume,
-                                        "deviation": deviation,
-                                        "anomaly_threshold": sensitivity / 10,
-                                    })
+                                    time_series_results["anomalies"].append(
+                                        {
+                                            "timestamp": buckets[i].get(
+                                                "key_as_string", f"bucket_{i}"
+                                            ),
+                                            "volume": volume,
+                                            "average_volume": avg_volume,
+                                            "deviation": deviation,
+                                            "anomaly_threshold": sensitivity / 10,
+                                        }
+                                    )
 
         time_series_results["count"] = len(time_series_results["anomalies"])
         return time_series_results
 
-    async def _detect_anomaly_patterns(self, anomalies: Dict[str, Any]) -> Dict[str, Any]:
+    async def _detect_anomaly_patterns(self, anomalies: dict[str, Any]) -> dict[str, Any]:
         """Detect patterns in detected anomalies.
-        
+
         Args:
             anomalies: Anomaly detection results
-            
+
         Returns:
             Dictionary containing pattern analysis
 
         """
-        patterns = {
+        patterns: dict[str, Any] = {
             "temporal_clustering": {},
             "field_concentration": {},
             "method_agreement": {},
@@ -545,30 +579,36 @@ class StatisticalAnalysisTools:
                 patterns["method_agreement"] = {
                     "total_methods": len(method_results),
                     "total_anomalies": total_anomalies,
-                    "agreement_level": "high" if total_anomalies > 10 else "medium" if total_anomalies > 5 else "low",
+                    "agreement_level": "high"
+                    if total_anomalies > 10
+                    else "medium"
+                    if total_anomalies > 5
+                    else "low",
                 }
 
         # Analyze field concentration (which fields have most anomalies)
-        field_counts = {}
-        for method_name, method_data in method_results.items():
+        field_counts: dict[str, int] = {}
+        for _method_name, method_data in method_results.items():
             for anomaly in method_data.get("anomalies", []):
                 field = anomaly.get("field", "unknown")
                 field_counts[field] = field_counts.get(field, 0) + 1
 
         if field_counts:
             patterns["field_concentration"] = {
-                "most_anomalous_fields": sorted(field_counts.items(), key=lambda x: x[1], reverse=True)[:5],
+                "most_anomalous_fields": sorted(
+                    field_counts.items(), key=lambda x: x[1], reverse=True
+                )[:5],
                 "total_fields_with_anomalies": len(field_counts),
             }
 
         return patterns
 
-    async def _assess_anomaly_risk(self, anomalies: Dict[str, Any]) -> Dict[str, Any]:
+    async def _assess_anomaly_risk(self, anomalies: dict[str, Any]) -> dict[str, Any]:
         """Assess the overall risk level of detected anomalies.
-        
+
         Args:
             anomalies: Anomaly detection results
-            
+
         Returns:
             Dictionary containing risk assessment
 
@@ -592,17 +632,21 @@ class StatisticalAnalysisTools:
             "total_anomalies": total_anomalies,
             "risk_factors": [
                 "high_anomaly_count" if total_anomalies > 20 else None,
-                "multiple_methods_agree" if len(anomalies.get("anomalies_by_method", {})) > 1 else None,
-                "time_series_anomalies" if "time_series" in anomalies.get("anomalies_by_method", {}) else None,
+                "multiple_methods_agree"
+                if len(anomalies.get("anomalies_by_method", {})) > 1
+                else None,
+                "time_series_anomalies"
+                if "time_series" in anomalies.get("anomalies_by_method", {})
+                else None,
             ],
         }
 
-    async def _generate_anomaly_recommendations(self, anomalies: Dict[str, Any]) -> List[str]:
+    async def _generate_anomaly_recommendations(self, anomalies: dict[str, Any]) -> list[str]:
         """Generate actionable recommendations based on anomaly analysis.
-        
+
         Args:
             anomalies: Anomaly detection results
-            
+
         Returns:
             List of actionable recommendations
 
@@ -616,11 +660,15 @@ class StatisticalAnalysisTools:
             return recommendations
 
         if total_anomalies > 20:
-            recommendations.append("High number of anomalies detected - consider immediate investigation")
+            recommendations.append(
+                "High number of anomalies detected - consider immediate investigation"
+            )
             recommendations.append("Review security controls and monitoring thresholds")
 
         if total_anomalies > 10:
-            recommendations.append("Moderate anomalies detected - schedule investigation within 24 hours")
+            recommendations.append(
+                "Moderate anomalies detected - schedule investigation within 24 hours"
+            )
             recommendations.append("Check for correlation with recent security events")
 
         # Method-specific recommendations
@@ -630,10 +678,14 @@ class StatisticalAnalysisTools:
             recommendations.append("Time series anomalies detected - investigate temporal patterns")
 
         if "isolation_forest" in method_results:
-            recommendations.append("Multivariate anomalies detected - investigate complex attack patterns")
+            recommendations.append(
+                "Multivariate anomalies detected - investigate complex attack patterns"
+            )
 
         if len(method_results) > 1:
-            recommendations.append("Multiple detection methods agree - high confidence in anomaly detection")
+            recommendations.append(
+                "Multiple detection methods agree - high confidence in anomaly detection"
+            )
 
         # Field-specific recommendations
         field_concentration = anomalies.get("patterns", {}).get("field_concentration", {})

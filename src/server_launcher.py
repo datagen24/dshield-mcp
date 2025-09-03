@@ -8,7 +8,7 @@ supporting both STDIO and TCP transport modes with automatic detection.
 import asyncio
 import os
 import sys
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 
@@ -21,14 +21,14 @@ logger = structlog.get_logger(__name__)
 
 class DShieldServerLauncher:
     """Launcher for the DShield MCP server with transport selection.
-    
+
     This class handles the initialization and startup of the MCP server
     with automatic transport mode detection and configuration.
     """
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
+    def __init__(self, config_path: str | None = None) -> None:
         """Initialize the server launcher.
-        
+
         Args:
             config_path: Optional path to configuration file
 
@@ -44,7 +44,7 @@ class DShieldServerLauncher:
 
     async def initialize_server(self) -> Any:
         """Initialize the MCP server.
-        
+
         Returns:
             Initialized MCP server instance
 
@@ -65,7 +65,7 @@ class DShieldServerLauncher:
 
     async def start_stdio_mode(self) -> None:
         """Start the server in STDIO mode.
-        
+
         This is the traditional MCP server mode using stdin/stdout.
         """
         from mcp.server import NotificationOptions
@@ -98,7 +98,7 @@ class DShieldServerLauncher:
 
     async def start_tcp_mode(self) -> None:
         """Start the server in TCP mode.
-        
+
         This mode provides network-based access with authentication and security.
         """
         self.logger.info("Starting server in TCP mode")
@@ -116,7 +116,9 @@ class DShieldServerLauncher:
             "security": {
                 "global_rate_limit": 1000,
                 "global_burst_limit": 100,
-                "client_rate_limit": self.user_config.tcp_transport_settings.api_key_management.get("rate_limit_per_key", 60),
+                "client_rate_limit": self.user_config.tcp_transport_settings.api_key_management.get(
+                    "rate_limit_per_key", 60
+                ),
                 "client_burst_limit": 10,
                 "abuse_threshold": 10,
                 "block_duration_seconds": 3600,
@@ -126,8 +128,14 @@ class DShieldServerLauncher:
                     "max_message_size": 1048576,  # 1MB
                     "max_field_length": 10000,
                     "allowed_methods": [
-                        "initialize", "initialized", "tools/list", "tools/call",
-                        "resources/list", "resources/read", "prompts/list", "prompts/get",
+                        "initialize",
+                        "initialized",
+                        "tools/list",
+                        "tools/call",
+                        "resources/list",
+                        "resources/read",
+                        "prompts/list",
+                        "prompts/get",
                         "authenticate",
                     ],
                 },
@@ -142,9 +150,11 @@ class DShieldServerLauncher:
         self.tcp_server = EnhancedTCPServer(self.mcp_server, tcp_config)
         await self.tcp_server.start()
 
-        self.logger.info("TCP server started successfully",
-                        port=tcp_config["port"],
-                        bind_address=tcp_config["bind_address"])
+        self.logger.info(
+            "TCP server started successfully",
+            port=tcp_config["port"],
+            bind_address=tcp_config["bind_address"],
+        )
 
         # Keep the server running
         try:
@@ -155,7 +165,7 @@ class DShieldServerLauncher:
 
     async def run(self) -> None:
         """Run the server with automatic transport detection.
-        
+
         This method detects the appropriate transport mode and starts the server.
         """
         try:
@@ -196,7 +206,7 @@ class DShieldServerLauncher:
 
     async def cleanup(self) -> None:
         """Clean up server resources.
-        
+
         Performs graceful shutdown and cleanup of all server components.
         """
         try:
@@ -218,7 +228,7 @@ class DShieldServerLauncher:
 
 async def main() -> None:
     """Main entry point for the DShield MCP server.
-    
+
     This function serves as the main entry point, handling command-line
     arguments and starting the server with appropriate configuration.
     """

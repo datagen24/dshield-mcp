@@ -9,7 +9,7 @@ import json
 import re
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import structlog
 
@@ -18,7 +18,7 @@ logger = structlog.get_logger(__name__)
 
 class SecurityViolation(Exception):
     """Exception raised for security violations.
-    
+
     Attributes:
         violation_type: Type of security violation
         message: Violation message
@@ -26,9 +26,11 @@ class SecurityViolation(Exception):
 
     """
 
-    def __init__(self, violation_type: str, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self, violation_type: str, message: str, details: dict[str, Any] | None = None
+    ) -> None:
         """Initialize security violation.
-        
+
         Args:
             violation_type: Type of security violation
             message: Violation message
@@ -43,15 +45,20 @@ class SecurityViolation(Exception):
 
 class RateLimiter:
     """Advanced rate limiter with multiple strategies.
-    
+
     Implements token bucket, sliding window, and adaptive rate limiting
     for different types of operations and clients.
     """
 
-    def __init__(self, requests_per_minute: int = 60, burst_limit: int = 10,
-                 window_size: int = 60, adaptive: bool = True) -> None:
+    def __init__(
+        self,
+        requests_per_minute: int = 60,
+        burst_limit: int = 10,
+        window_size: int = 60,
+        adaptive: bool = True,
+    ) -> None:
         """Initialize the rate limiter.
-        
+
         Args:
             requests_per_minute: Maximum requests per minute
             burst_limit: Maximum burst requests
@@ -69,19 +76,19 @@ class RateLimiter:
         self.last_refill = datetime.utcnow()
 
         # Sliding window parameters
-        self.request_times: deque = deque()
+        self.request_times: deque[datetime] = deque()
 
         # Adaptive parameters
         self.current_limit = requests_per_minute
         self.violation_count = 0
-        self.last_violation = None
+        self.last_violation: datetime | None = None
 
     def is_allowed(self, client_id: str = "default") -> bool:
         """Check if a request is allowed.
-        
+
         Args:
             client_id: Client identifier for tracking
-            
+
         Returns:
             True if request is allowed, False if rate limited
 
@@ -104,10 +111,10 @@ class RateLimiter:
 
     def _check_token_bucket(self, now: datetime) -> bool:
         """Check token bucket rate limiting.
-        
+
         Args:
             now: Current timestamp
-            
+
         Returns:
             True if tokens available, False otherwise
 
@@ -127,10 +134,10 @@ class RateLimiter:
 
     def _check_sliding_window(self, now: datetime) -> bool:
         """Check sliding window rate limiting.
-        
+
         Args:
             now: Current timestamp
-            
+
         Returns:
             True if within window limits, False otherwise
 
@@ -150,7 +157,7 @@ class RateLimiter:
 
     def _update_adaptive_limits(self, now: datetime) -> None:
         """Update adaptive rate limits based on recent violations.
-        
+
         Args:
             now: Current timestamp
 
@@ -166,21 +173,23 @@ class RateLimiter:
         """Record a rate limit violation."""
         self.violation_count += 1
         self.last_violation = datetime.utcnow()
-        logger.warning("Rate limit violation recorded",
-                      violation_count=self.violation_count,
-                      current_limit=self.current_limit)
+        logger.warning(
+            "Rate limit violation recorded",
+            violation_count=self.violation_count,
+            current_limit=self.current_limit,
+        )
 
 
 class InputValidator:
     """Validates and sanitizes input for TCP connections.
-    
+
     Provides comprehensive input validation for MCP messages,
     preventing injection attacks and malformed requests.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         """Initialize the input validator.
-        
+
         Args:
             config: Validation configuration
 
@@ -188,24 +197,33 @@ class InputValidator:
         self.config = config or {}
         self.max_message_size = self.config.get("max_message_size", 1048576)  # 1MB
         self.max_field_length = self.config.get("max_field_length", 10000)
-        self.allowed_methods = self.config.get("allowed_methods", [
-            "initialize", "initialized", "tools/list", "tools/call",
-            "resources/list", "resources/read", "prompts/list", "prompts/get",
-        ])
+        self.allowed_methods = self.config.get(
+            "allowed_methods",
+            [
+                "initialize",
+                "initialized",
+                "tools/list",
+                "tools/call",
+                "resources/list",
+                "resources/read",
+                "prompts/list",
+                "prompts/get",
+            ],
+        )
 
         # Compile regex patterns for validation
         self.safe_string_pattern = re.compile(r"^[a-zA-Z0-9_\-\.\s]+$")
         self.json_rpc_id_pattern = re.compile(r"^[a-zA-Z0-9_\-]+$")
 
-    def validate_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_message(self, message: dict[str, Any]) -> dict[str, Any]:
         """Validate an MCP message.
-        
+
         Args:
             message: Message to validate
-            
+
         Returns:
             Validated and sanitized message
-            
+
         Raises:
             SecurityViolation: If message validation fails
 
@@ -244,14 +262,14 @@ class InputValidator:
                 "VALIDATION_ERROR",
                 f"Message validation failed: {e}",
                 {"error": str(e)},
-            )
+            ) from e
 
-    def _validate_json_rpc_structure(self, message: Dict[str, Any]) -> None:
+    def _validate_json_rpc_structure(self, message: dict[str, Any]) -> None:
         """Validate JSON-RPC 2.0 structure.
-        
+
         Args:
             message: Message to validate
-            
+
         Raises:
             SecurityViolation: If structure is invalid
 
@@ -297,10 +315,10 @@ class InputValidator:
 
     def _validate_method(self, method: str) -> None:
         """Validate method name.
-        
+
         Args:
             method: Method name to validate
-            
+
         Raises:
             SecurityViolation: If method is invalid
 
@@ -328,10 +346,10 @@ class InputValidator:
 
     def _validate_params(self, params: Any) -> None:
         """Validate parameters.
-        
+
         Args:
             params: Parameters to validate
-            
+
         Raises:
             SecurityViolation: If parameters are invalid
 
@@ -339,7 +357,7 @@ class InputValidator:
         if params is None:
             return
 
-        if not isinstance(params, (dict, list)):
+        if not isinstance(params, dict | list):
             raise SecurityViolation(
                 "INVALID_PARAMS_TYPE",
                 "Parameters must be an object or array",
@@ -352,12 +370,12 @@ class InputValidator:
         elif isinstance(params, list):
             self._validate_array_params(params)
 
-    def _validate_object_params(self, params: Dict[str, Any]) -> None:
+    def _validate_object_params(self, params: dict[str, Any]) -> None:
         """Validate object parameters.
-        
+
         Args:
             params: Object parameters to validate
-            
+
         Raises:
             SecurityViolation: If parameters are invalid
 
@@ -381,12 +399,12 @@ class InputValidator:
             # Validate value
             self._validate_param_value(value)
 
-    def _validate_array_params(self, params: List[Any]) -> None:
+    def _validate_array_params(self, params: list[Any]) -> None:
         """Validate array parameters.
-        
+
         Args:
             params: Array parameters to validate
-            
+
         Raises:
             SecurityViolation: If parameters are invalid
 
@@ -403,11 +421,11 @@ class InputValidator:
 
     def _validate_param_value(self, value: Any, path: str = "params") -> None:
         """Validate a parameter value.
-        
+
         Args:
             value: Value to validate
             path: Path to the value for error reporting
-            
+
         Raises:
             SecurityViolation: If value is invalid
 
@@ -419,13 +437,13 @@ class InputValidator:
                     f"Parameter value at '{path}' exceeds maximum length of {self.max_field_length}",
                     {"path": path, "value_length": len(value)},
                 )
-        elif isinstance(value, (dict, list)):
+        elif isinstance(value, dict | list):
             # Recursively validate nested structures
             if isinstance(value, dict):
                 self._validate_object_params(value)
             else:
                 self._validate_array_params(value)
-        elif not isinstance(value, (int, float, bool, type(None))):
+        elif not isinstance(value, int | float | bool | type(None)):
             raise SecurityViolation(
                 "INVALID_PARAM_VALUE_TYPE",
                 f"Parameter value at '{path}' has invalid type",
@@ -434,10 +452,10 @@ class InputValidator:
 
     def _validate_id(self, id_value: Any) -> None:
         """Validate JSON-RPC ID.
-        
+
         Args:
             id_value: ID value to validate
-            
+
         Raises:
             SecurityViolation: If ID is invalid
 
@@ -445,7 +463,7 @@ class InputValidator:
         if id_value is None:
             return  # Null ID is allowed for notifications
 
-        if not isinstance(id_value, (str, int, float)):
+        if not isinstance(id_value, str | int | float):
             raise SecurityViolation(
                 "INVALID_ID_TYPE",
                 "ID must be a string, number, or null",
@@ -463,14 +481,14 @@ class InputValidator:
 
 class TCPSecurityManager:
     """Manages security for TCP connections.
-    
+
     Provides comprehensive security measures including rate limiting,
     input validation, abuse detection, and connection monitoring.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         """Initialize the TCP security manager.
-        
+
         Args:
             config: Security configuration
 
@@ -486,30 +504,30 @@ class TCPSecurityManager:
         )
 
         # Per-client rate limiters
-        self.client_rate_limiters: Dict[str, RateLimiter] = {}
+        self.client_rate_limiters: dict[str, RateLimiter] = {}
 
         # Abuse detection
-        self.violation_counts: Dict[str, int] = defaultdict(int)
-        self.blocked_clients: Set[str] = set()
+        self.violation_counts: dict[str, int] = defaultdict(int)
+        self.blocked_clients: set[str] = set()
         self.abuse_threshold = self.config.get("abuse_threshold", 10)
         self.block_duration = self.config.get("block_duration_seconds", 3600)  # 1 hour
-        self.client_block_times: Dict[str, datetime] = {}
+        self.client_block_times: dict[str, datetime] = {}
 
         # Connection monitoring
-        self.connection_attempts: Dict[str, List[datetime]] = defaultdict(list)
+        self.connection_attempts: dict[str, list[datetime]] = defaultdict(list)
         self.max_connection_attempts = self.config.get("max_connection_attempts", 5)
         self.connection_window = self.config.get("connection_window_seconds", 300)  # 5 minutes
 
-    def validate_message(self, message: Dict[str, Any], client_id: str) -> Dict[str, Any]:
+    def validate_message(self, message: dict[str, Any], client_id: str) -> dict[str, Any]:
         """Validate a message from a client.
-        
+
         Args:
             message: Message to validate
             client_id: Client identifier
-            
+
         Returns:
             Validated message
-            
+
         Raises:
             SecurityViolation: If validation fails
 
@@ -538,10 +556,10 @@ class TCPSecurityManager:
 
     def _is_client_blocked(self, client_id: str) -> bool:
         """Check if a client is currently blocked.
-        
+
         Args:
             client_id: Client identifier
-            
+
         Returns:
             True if client is blocked, False otherwise
 
@@ -562,10 +580,10 @@ class TCPSecurityManager:
 
     def _check_rate_limits(self, client_id: str) -> bool:
         """Check rate limits for a client.
-        
+
         Args:
             client_id: Client identifier
-            
+
         Returns:
             True if within rate limits, False otherwise
 
@@ -586,7 +604,7 @@ class TCPSecurityManager:
 
     def _record_violation(self, client_id: str, violation_type: str) -> None:
         """Record a security violation for a client.
-        
+
         Args:
             client_id: Client identifier
             violation_type: Type of violation
@@ -594,10 +612,12 @@ class TCPSecurityManager:
         """
         self.violation_counts[client_id] += 1
 
-        self.logger.warning("Security violation recorded",
-                          client_id=client_id,
-                          violation_type=violation_type,
-                          violation_count=self.violation_counts[client_id])
+        self.logger.warning(
+            "Security violation recorded",
+            client_id=client_id,
+            violation_type=violation_type,
+            violation_count=self.violation_counts[client_id],
+        )
 
         # Check if client should be blocked
         if self.violation_counts[client_id] >= self.abuse_threshold:
@@ -605,7 +625,7 @@ class TCPSecurityManager:
 
     def _block_client(self, client_id: str, violation_type: str) -> None:
         """Block a client due to security violations.
-        
+
         Args:
             client_id: Client identifier
             violation_type: Type of violation that triggered the block
@@ -614,15 +634,17 @@ class TCPSecurityManager:
         self.blocked_clients.add(client_id)
         self.client_block_times[client_id] = datetime.utcnow()
 
-        self.logger.warning("Client blocked due to security violations",
-                          client_id=client_id,
-                          violation_type=violation_type,
-                          violation_count=self.violation_counts[client_id],
-                          block_duration=self.block_duration)
+        self.logger.warning(
+            "Client blocked due to security violations",
+            client_id=client_id,
+            violation_type=violation_type,
+            violation_count=self.violation_counts[client_id],
+            block_duration=self.block_duration,
+        )
 
     def _unblock_client(self, client_id: str) -> None:
         """Unblock a client after block period expires.
-        
+
         Args:
             client_id: Client identifier
 
@@ -635,10 +657,10 @@ class TCPSecurityManager:
 
     def record_connection_attempt(self, client_id: str) -> bool:
         """Record a connection attempt and check if it should be allowed.
-        
+
         Args:
             client_id: Client identifier
-            
+
         Returns:
             True if connection should be allowed, False otherwise
 
@@ -648,8 +670,7 @@ class TCPSecurityManager:
         # Clean old attempts
         cutoff_time = now - timedelta(seconds=self.connection_window)
         self.connection_attempts[client_id] = [
-            attempt for attempt in self.connection_attempts[client_id]
-            if attempt > cutoff_time
+            attempt for attempt in self.connection_attempts[client_id] if attempt > cutoff_time
         ]
 
         # Check if too many attempts
@@ -661,9 +682,9 @@ class TCPSecurityManager:
         self.connection_attempts[client_id].append(now)
         return True
 
-    def get_security_statistics(self) -> Dict[str, Any]:
+    def get_security_statistics(self) -> dict[str, Any]:
         """Get security statistics.
-        
+
         Returns:
             Dictionary of security statistics
 
@@ -694,7 +715,7 @@ class TCPSecurityManager:
 
     def cleanup_expired_data(self) -> int:
         """Clean up expired security data.
-        
+
         Returns:
             Number of items cleaned up
 
@@ -704,7 +725,8 @@ class TCPSecurityManager:
 
         # Clean up expired blocks
         expired_blocks = [
-            client_id for client_id, block_time in self.client_block_times.items()
+            client_id
+            for client_id, block_time in self.client_block_times.items()
             if now > block_time + timedelta(seconds=self.block_duration)
         ]
 
@@ -717,8 +739,7 @@ class TCPSecurityManager:
         for client_id in list(self.connection_attempts.keys()):
             old_count = len(self.connection_attempts[client_id])
             self.connection_attempts[client_id] = [
-                attempt for attempt in self.connection_attempts[client_id]
-                if attempt > cutoff_time
+                attempt for attempt in self.connection_attempts[client_id] if attempt > cutoff_time
             ]
             new_count = len(self.connection_attempts[client_id])
             if new_count == 0:

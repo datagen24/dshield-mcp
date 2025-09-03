@@ -6,7 +6,7 @@ including starting/stopping the server, viewing server status, and configuration
 """
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
 from textual.app import ComposeResult  # type: ignore
@@ -22,23 +22,20 @@ class ServerStart(Message):  # type: ignore
     """Message sent when server should be started."""
 
 
-
 class ServerStop(Message):  # type: ignore
     """Message sent when server should be stopped."""
-
 
 
 class ServerRestart(Message):  # type: ignore
     """Message sent when server should be restarted."""
 
 
-
 class ServerConfigUpdate(Message):  # type: ignore
     """Message sent when server configuration should be updated."""
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: dict[str, Any]) -> None:
         """Initialize server config update message.
-        
+
         Args:
             config: New server configuration
 
@@ -49,14 +46,14 @@ class ServerConfigUpdate(Message):  # type: ignore
 
 class ServerPanel(Container):  # type: ignore
     """Panel for managing the MCP server.
-    
+
     This panel provides controls for starting/stopping the server,
     viewing server status, and managing server configuration.
     """
 
     def __init__(self, id: str = "server-panel") -> None:
         """Initialize the server panel.
-        
+
         Args:
             id: Panel ID
 
@@ -66,13 +63,13 @@ class ServerPanel(Container):  # type: ignore
 
         # State
         self.server_running = reactive(False)
-        self.server_status: Dict[str, Any] = {}
-        self.server_config: Dict[str, Any] = {}
-        self.uptime_start: Optional[datetime] = None
+        self.server_status: dict[str, Any] = {}
+        self.server_config: dict[str, Any] = {}
+        self.uptime_start: datetime | None = None
 
     def compose(self) -> ComposeResult:
         """Compose the server panel layout.
-        
+
         Returns:
             ComposeResult: The composed UI elements
 
@@ -136,7 +133,7 @@ class ServerPanel(Container):  # type: ignore
 
     def update_server_status(self, running: bool) -> None:
         """Update server running status.
-        
+
         Args:
             running: Whether the server is running
 
@@ -152,11 +149,13 @@ class ServerPanel(Container):  # type: ignore
         stop_btn.disabled = not running
         restart_btn.disabled = not running
 
-        self.logger.debug("Updated server button states",
-                         running=running,
-                         start_disabled=start_btn.disabled,
-                         stop_disabled=stop_btn.disabled,
-                         restart_disabled=restart_btn.disabled)
+        self.logger.debug(
+            "Updated server button states",
+            running=running,
+            start_disabled=start_btn.disabled,
+            stop_disabled=stop_btn.disabled,
+            restart_disabled=restart_btn.disabled,
+        )
 
         # Update status text
         status_text = self.query_one("#server-status-text", Static)
@@ -170,9 +169,9 @@ class ServerPanel(Container):  # type: ignore
 
         self.logger.debug("Updated server status", running=running)
 
-    def update_server_statistics(self, stats: Dict[str, Any]) -> None:
+    def update_server_statistics(self, stats: dict[str, Any]) -> None:
         """Update server statistics display.
-        
+
         Args:
             stats: Server statistics dictionary
 
@@ -212,7 +211,7 @@ class ServerPanel(Container):  # type: ignore
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events.
-        
+
         Args:
             event: Button press event
 
@@ -235,7 +234,7 @@ class ServerPanel(Container):  # type: ignore
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle input field changes.
-        
+
         Args:
             event: Input change event
 
@@ -270,7 +269,9 @@ class ServerPanel(Container):  # type: ignore
             config = {
                 "port": int(port_input.value) if port_input.value else 3000,
                 "bind_address": address_input.value or "127.0.0.1",
-                "max_connections": int(max_connections_input.value) if max_connections_input.value else 10,
+                "max_connections": int(max_connections_input.value)
+                if max_connections_input.value
+                else 10,
             }
 
             # Validate configuration
@@ -322,9 +323,9 @@ class ServerPanel(Container):  # type: ignore
         apply_btn = self.query_one("#apply-config-btn", Button)
         apply_btn.disabled = True
 
-    def get_server_configuration(self) -> Dict[str, Any]:
+    def get_server_configuration(self) -> dict[str, Any]:
         """Get current server configuration from inputs.
-        
+
         Returns:
             Dictionary of server configuration
 
@@ -336,12 +337,14 @@ class ServerPanel(Container):  # type: ignore
         return {
             "port": int(port_input.value) if port_input.value else 3000,
             "bind_address": address_input.value or "127.0.0.1",
-            "max_connections": int(max_connections_input.value) if max_connections_input.value else 10,
+            "max_connections": int(max_connections_input.value)
+            if max_connections_input.value
+            else 10,
         }
 
-    def set_server_configuration(self, config: Dict[str, Any]) -> None:
+    def set_server_configuration(self, config: dict[str, Any]) -> None:
         """Set server configuration in inputs.
-        
+
         Args:
             config: Server configuration dictionary
 
@@ -358,16 +361,18 @@ class ServerPanel(Container):  # type: ignore
         apply_btn = self.query_one("#apply-config-btn", Button)
         apply_btn.disabled = True
 
-    def get_server_health(self) -> Dict[str, Any]:
+    def get_server_health(self) -> dict[str, Any]:
         """Get server health information.
-        
+
         Returns:
             Dictionary of server health information
 
         """
         return {
             "running": self.server_running,
-            "uptime_seconds": (datetime.now() - self.uptime_start).total_seconds() if self.uptime_start else 0,
+            "uptime_seconds": (datetime.now() - self.uptime_start).total_seconds()
+            if self.uptime_start
+            else 0,
             "status": self.server_status,
             "configuration": self.get_server_configuration(),
         }

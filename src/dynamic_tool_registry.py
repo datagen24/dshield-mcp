@@ -1,5 +1,6 @@
 """Dynamic tool registry for DShield MCP server."""
-from typing import Any, Dict, List, Optional
+
+from typing import Any
 
 import structlog
 
@@ -23,24 +24,20 @@ TOOL_FEATURE_MAPPING = {
     "query_events_by_ip": "elasticsearch_queries",
     "get_security_summary": "elasticsearch_queries",
     "test_elasticsearch_connection": "elasticsearch_queries",
-
     # DShield API-based tools
     "query_dshield_reputation": "dshield_enrichment",
     "enrich_ip_with_dshield": "dshield_enrichment",
-
     # LaTeX-based tools
     "generate_attack_report": "latex_reports",
     "generate_latex_document": "latex_reports",
     "list_latex_templates": "latex_reports",
     "get_latex_template_schema": "latex_reports",
     "validate_latex_document_data": "latex_reports",
-
     # Threat intelligence tools
     "enrich_ip_comprehensive": "threat_intelligence",
     "enrich_domain_comprehensive": "threat_intelligence",
     "correlate_threat_indicators": "threat_intelligence",
     "get_threat_intelligence_summary": "threat_intelligence",
-
     # Campaign analysis tools
     "analyze_campaign": "campaign_analysis",
     "expand_campaign_indicators": "campaign_analysis",
@@ -49,17 +46,13 @@ TOOL_FEATURE_MAPPING = {
     "detect_ongoing_campaigns": "campaign_analysis",
     "search_campaigns": "campaign_analysis",
     "get_campaign_details": "campaign_analysis",
-
     # Statistical analysis tools
     "detect_statistical_anomalies": "statistical_analysis",
-
     # Data dictionary tools (no dependencies)
     "get_data_dictionary": "data_dictionary",
-
     # Health monitoring tools (no dependencies)
     "get_health_status": "health_monitoring",
     "get_feature_status": "health_monitoring",
-
     # Configuration tools (no dependencies)
     "get_configuration": "configuration_management",
     "update_configuration": "configuration_management",
@@ -112,22 +105,22 @@ class DynamicToolRegistry:
 
     def __init__(self, feature_manager: FeatureManager) -> None:
         """Initialize the dynamic tool registry.
-        
+
         Args:
             feature_manager: Feature manager instance
 
         """
         self.feature_manager = feature_manager
-        self.available_tools: List[str] = []
-        self.tool_details: Dict[str, Dict[str, Any]] = {}
+        self.available_tools: list[str] = []
+        self.tool_details: dict[str, dict[str, Any]] = {}
         self._initialized = False
 
-    def register_tools(self, all_tools: List[str]) -> List[str]:
+    def register_tools(self, all_tools: list[str]) -> list[str]:
         """Register tools based on available features.
-        
+
         Args:
             all_tools: List of all available tool names
-            
+
         Returns:
             List[str]: List of available tool names
 
@@ -164,7 +157,9 @@ class DynamicToolRegistry:
                     "feature_status": feature_status,
                     "reason": reason,
                     "description": TOOL_DESCRIPTIONS.get(tool_name, "No description available"),
-                    "dependencies": self.feature_manager.get_feature_dependencies(feature) if feature != "unknown" else [],
+                    "dependencies": self.feature_manager.get_feature_dependencies(feature)
+                    if feature != "unknown"
+                    else [],
                 }
 
                 if is_available:
@@ -176,10 +171,12 @@ class DynamicToolRegistry:
             available_count = len(self.available_tools)
             total_count = len(all_tools)
 
-            logger.info("Tool registration completed",
-                       available_tools=available_count,
-                       total_tools=total_count,
-                       availability_percentage=round(available_count/total_count*100, 1))
+            logger.info(
+                "Tool registration completed",
+                available_tools=available_count,
+                total_tools=total_count,
+                availability_percentage=round(available_count / total_count * 100, 1),
+            )
 
             return self.available_tools
 
@@ -188,9 +185,9 @@ class DynamicToolRegistry:
             # Return empty list if registration fails
             return []
 
-    def get_tool_availability(self) -> Dict[str, bool]:
+    def get_tool_availability(self) -> dict[str, bool]:
         """Get availability status for all tools.
-        
+
         Returns:
             Dict[str, bool]: Dictionary mapping tool names to availability status
 
@@ -200,12 +197,12 @@ class DynamicToolRegistry:
 
         return {tool: (tool in self.available_tools) for tool in self.tool_details.keys()}
 
-    def get_disabled_tools_info(self, all_tools: List[str]) -> List[Dict[str, str]]:
+    def get_disabled_tools_info(self, all_tools: list[str]) -> list[dict[str, str]]:
         """Get information about disabled tools and reasons.
-        
+
         Args:
             all_tools: List of all tool names
-            
+
         Returns:
             List[Dict[str, str]]: List of disabled tool information
 
@@ -218,39 +215,41 @@ class DynamicToolRegistry:
         for tool_name in all_tools:
             if tool_name not in self.available_tools:
                 tool_detail = self.tool_details.get(tool_name, {})
-                disabled_tools.append({
-                    "tool": tool_name,
-                    "reason": tool_detail.get("reason", "Unknown reason"),
-                    "feature": tool_detail.get("feature", "unknown"),
-                    "description": tool_detail.get("description", "No description available"),
-                })
+                disabled_tools.append(
+                    {
+                        "tool": tool_name,
+                        "reason": tool_detail.get("reason", "Unknown reason"),
+                        "feature": tool_detail.get("feature", "unknown"),
+                        "description": tool_detail.get("description", "No description available"),
+                    }
+                )
 
         return disabled_tools
 
-    def get_tool_details(self, tool_name: str) -> Optional[Dict[str, Any]]:
+    def get_tool_details(self, tool_name: str) -> dict[str, Any] | None:
         """Get detailed information about a specific tool.
-        
+
         Args:
             tool_name: Name of the tool
-            
+
         Returns:
             Optional[Dict[str, Any]]: Tool details or None if not found
 
         """
         return self.tool_details.get(tool_name)
 
-    def get_all_tool_details(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_tool_details(self) -> dict[str, dict[str, Any]]:
         """Get details for all tools.
-        
+
         Returns:
             Dict[str, Dict[str, Any]]: Dictionary of all tool details
 
         """
         return self.tool_details.copy()
 
-    def get_tool_summary(self) -> Dict[str, Any]:
+    def get_tool_summary(self) -> dict[str, Any]:
         """Get a summary of tool availability.
-        
+
         Returns:
             Dict[str, Any]: Tool availability summary
 
@@ -266,7 +265,7 @@ class DynamicToolRegistry:
 
         available_count = len(self.available_tools)
         total_count = len(self.tool_details)
-        availability_percentage = round(available_count/total_count*100, 1)
+        availability_percentage = round(available_count / total_count * 100, 1)
 
         # Determine overall status
         if availability_percentage == 100:
@@ -285,15 +284,17 @@ class DynamicToolRegistry:
             "availability_percentage": availability_percentage,
             "status": status,
             "available_tools": self.available_tools.copy(),
-            "unavailable_tools": [tool for tool in self.tool_details.keys() if tool not in self.available_tools],
+            "unavailable_tools": [
+                tool for tool in self.tool_details.keys() if tool not in self.available_tools
+            ],
         }
 
     def is_tool_available(self, tool_name: str) -> bool:
         """Check if a specific tool is available.
-        
+
         Args:
             tool_name: Name of the tool to check
-            
+
         Returns:
             bool: True if tool is available, False otherwise
 
@@ -305,7 +306,7 @@ class DynamicToolRegistry:
 
     def refresh_tool_status(self) -> None:
         """Refresh tool status based on current feature availability.
-        
+
         This method can be called to update tool availability
         without re-registering all tools.
         """
@@ -317,7 +318,9 @@ class DynamicToolRegistry:
                     is_available = self.feature_manager.is_feature_available(feature)
                     tool_detail["available"] = is_available
                     tool_detail["feature_status"] = "healthy" if is_available else "unhealthy"
-                    tool_detail["reason"] = f"Feature '{feature}' is {'available' if is_available else 'unavailable'}"
+                    tool_detail["reason"] = (
+                        f"Feature '{feature}' is {'available' if is_available else 'unavailable'}"
+                    )
 
                     if is_available and tool_name not in self.available_tools:
                         self.available_tools.append(tool_name)
@@ -326,7 +329,7 @@ class DynamicToolRegistry:
 
     def is_initialized(self) -> bool:
         """Check if the tool registry has been initialized.
-        
+
         Returns:
             bool: True if initialized, False otherwise
 

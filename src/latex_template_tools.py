@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import structlog
 
@@ -25,11 +25,16 @@ logger = structlog.get_logger(__name__)
 
 class LaTeXTemplateTools:
     """MCP tools for LaTeX template automation and document generation.
-    
+
     Output files are always written to the user-configured output directory (default: ~/dshield-mcp-output).
     """
 
-    def __init__(self, template_base_path: Optional[str] = None, output_directory: Optional[str] = None, error_handler: Optional[MCPErrorHandler] = None):
+    def __init__(
+        self,
+        template_base_path: str | None = None,
+        output_directory: str | None = None,
+        error_handler: MCPErrorHandler | None = None,
+    ):
         """Initialize LaTeXTemplateTools.
 
         Args:
@@ -50,7 +55,9 @@ class LaTeXTemplateTools:
 
         # Output directory (from config or argument)
         if output_directory:
-            self.output_directory = Path(os.path.expandvars(os.path.expanduser(output_directory))).absolute()
+            self.output_directory = Path(
+                os.path.expandvars(os.path.expanduser(output_directory))
+            ).absolute()
         else:
             self.output_directory = Path(self.user_config.output_directory).absolute()
         self.output_directory.mkdir(parents=True, exist_ok=True)
@@ -64,16 +71,18 @@ class LaTeXTemplateTools:
 
         # Circuit breaker for LaTeX compilation failures
         if error_handler:
-            self.circuit_breaker = CircuitBreaker("latex_compilation", error_handler.config.circuit_breaker)
+            self.circuit_breaker = CircuitBreaker(
+                "latex_compilation", error_handler.config.circuit_breaker
+            )
         else:
             self.circuit_breaker = None
 
     def _find_project_root(self) -> Path:
         """Find the project root directory by looking for setup.py or pyproject.toml.
-        
+
         Returns:
             Path to the project root directory.
-            
+
         Raises:
             FileNotFoundError: If project root cannot be found.
 
@@ -103,14 +112,16 @@ class LaTeXTemplateTools:
         if (src_path / "setup.py").exists() or (src_path / "pyproject.toml").exists():
             return src_path
 
-        raise FileNotFoundError("Could not find project root directory. Please ensure setup.py or pyproject.toml exists in the project root.")
+        raise FileNotFoundError(
+            "Could not find project root directory. Please ensure setup.py or pyproject.toml exists in the project root."
+        )
 
     def _check_circuit_breaker(self, operation: str) -> bool:
         """Check if circuit breaker allows execution.
-        
+
         Args:
             operation: Name of the operation being performed
-        
+
         Returns:
             True if execution is allowed, False if circuit breaker is open
 
@@ -119,8 +130,11 @@ class LaTeXTemplateTools:
             return True
 
         if not self.circuit_breaker.can_execute():
-            logger.warning("Circuit breaker is open, blocking operation",
-                          operation=operation, service="latex_compilation")
+            logger.warning(
+                "Circuit breaker is open, blocking operation",
+                operation=operation,
+                service="latex_compilation",
+            )
             return False
 
         return True
@@ -132,7 +146,7 @@ class LaTeXTemplateTools:
 
     def _record_circuit_breaker_failure(self, exception: Exception) -> None:
         """Record failed operation with circuit breaker.
-        
+
         Args:
             exception: The exception that occurred
 
@@ -140,9 +154,9 @@ class LaTeXTemplateTools:
         if self.circuit_breaker:
             self.circuit_breaker.on_failure(exception)
 
-    def get_circuit_breaker_status(self) -> Optional[Dict[str, Any]]:
+    def get_circuit_breaker_status(self) -> dict[str, Any] | None:
         """Get the current status of the LaTeX compilation circuit breaker.
-        
+
         Returns:
             Circuit breaker status dictionary or None if not enabled
 
@@ -155,30 +169,32 @@ class LaTeXTemplateTools:
     async def generate_document(
         self,
         template_name: str,
-        document_data: Dict[str, Any],
+        document_data: dict[str, Any],
         output_format: str = "pdf",
         include_assets: bool = True,
-        compile_options: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        compile_options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Generate a complete document from a LaTeX template.
-        
+
         Args:
             template_name: Name of the template to use (e.g., "Attack_Report")
             document_data: Data to populate the template with
             output_format: Output format (pdf, tex, html)
             include_assets: Whether to include template assets
             compile_options: Additional compilation options
-        
+
         Returns:
             Document generation results with file paths and metadata
 
         Output files are always written to the configured output directory.
 
         """
-        logger.info("Starting document generation",
-                   template_name=template_name,
-                   output_format=output_format,
-                   include_assets=include_assets)
+        logger.info(
+            "Starting document generation",
+            template_name=template_name,
+            output_format=output_format,
+            include_assets=include_assets,
+        )
 
         # Circuit breaker check
         if not self._check_circuit_breaker("generate_document"):
@@ -195,7 +211,11 @@ class LaTeXTemplateTools:
             template_path = self._get_template_path(template_name)
             if not template_path.exists():
                 if self.error_handler:
-                    return {"error": self.error_handler.create_resource_error_not_found(f"Template not found: {template_name}")}
+                    return {
+                        "error": self.error_handler.create_resource_error_not_found(
+                            f"Template not found: {template_name}"
+                        )
+                    }
                 return {
                     "success": False,
                     "error": f"Template not found: {template_name}",
@@ -209,7 +229,11 @@ class LaTeXTemplateTools:
             validation_result = self._validate_document_data(document_data, template_config)
             if not validation_result["valid"]:
                 if self.error_handler:
-                    return {"error": self.error_handler.create_validation_error("document_data", f"Invalid document data: {validation_result['errors']}")}
+                    return {
+                        "error": self.error_handler.create_validation_error(
+                            "document_data", f"Invalid document data: {validation_result['errors']}"
+                        )
+                    }
                 return {
                     "success": False,
                     "error": f"Invalid document data: {validation_result['errors']}",
@@ -225,7 +249,9 @@ class LaTeXTemplateTools:
 
                 # Generate document content
                 generated_files = await self._generate_document_content(
-                    temp_path, document_data, template_config,
+                    temp_path,
+                    document_data,
+                    template_config,
                 )
 
                 # Compile document
@@ -233,7 +259,11 @@ class LaTeXTemplateTools:
                     compile_result = await self._compile_latex_document(temp_path, compile_options)
                     if not compile_result["success"]:
                         if self.error_handler:
-                            return {"error": self.error_handler.create_internal_error(f"LaTeX compilation failed: {compile_result['error']}")}
+                            return {
+                                "error": self.error_handler.create_internal_error(
+                                    f"LaTeX compilation failed: {compile_result['error']}"
+                                )
+                            }
                         return {
                             "success": False,
                             "error": f"LaTeX compilation failed: {compile_result['error']}",
@@ -287,16 +317,20 @@ class LaTeXTemplateTools:
             # Record failure with circuit breaker
             self._record_circuit_breaker_failure(e)
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"Document generation failed: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"Document generation failed: {e!s}"
+                    )
+                }
             return {
                 "success": False,
                 "error": f"Document generation failed: {e!s}",
                 "document": None,
             }
 
-    async def list_available_templates(self) -> Dict[str, Any]:
+    async def list_available_templates(self) -> dict[str, Any]:
         """List all available LaTeX templates.
-        
+
         Returns:
             List of available templates with metadata
 
@@ -315,16 +349,18 @@ class LaTeXTemplateTools:
                             with open(template_config_path) as f:
                                 config = json.load(f)
 
-                            templates.append({
-                                "name": item.name,
-                                "display_name": config.get("template_name", item.name),
-                                "version": config.get("version", "1.0"),
-                                "description": config.get("description", ""),
-                                "sections": config.get("sections", []),
-                                "required_variables": config.get("required_variables", {}),
-                                "created_date": config.get("created_date", ""),
-                                "path": str(item),
-                            })
+                            templates.append(
+                                {
+                                    "name": item.name,
+                                    "display_name": config.get("template_name", item.name),
+                                    "version": config.get("version", "1.0"),
+                                    "description": config.get("description", ""),
+                                    "sections": config.get("sections", []),
+                                    "required_variables": config.get("required_variables", {}),
+                                    "created_date": config.get("created_date", ""),
+                                    "path": str(item),
+                                }
+                            )
                         except Exception as e:
                             logger.warning(f"Failed to load template config for {item.name}: {e}")
 
@@ -335,16 +371,20 @@ class LaTeXTemplateTools:
                     with open(current_config_path) as f:
                         config = json.load(f)
 
-                    templates.append({
-                        "name": self.template_base_path.name,
-                        "display_name": config.get("template_name", self.template_base_path.name),
-                        "version": config.get("version", "1.0"),
-                        "description": config.get("description", ""),
-                        "sections": config.get("sections", []),
-                        "required_variables": config.get("required_variables", {}),
-                        "created_date": config.get("created_date", ""),
-                        "path": str(self.template_base_path),
-                    })
+                    templates.append(
+                        {
+                            "name": self.template_base_path.name,
+                            "display_name": config.get(
+                                "template_name", self.template_base_path.name
+                            ),
+                            "version": config.get("version", "1.0"),
+                            "description": config.get("description", ""),
+                            "sections": config.get("sections", []),
+                            "required_variables": config.get("required_variables", {}),
+                            "created_date": config.get("created_date", ""),
+                            "path": str(self.template_base_path),
+                        }
+                    )
                 except Exception as e:
                     logger.warning(f"Failed to load current template config: {e}")
 
@@ -357,19 +397,23 @@ class LaTeXTemplateTools:
         except Exception as e:
             logger.error("Failed to list templates", error=str(e))
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"Failed to list templates: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"Failed to list templates: {e!s}"
+                    )
+                }
             return {
                 "success": False,
                 "error": f"Failed to list templates: {e!s}",
                 "templates": [],
             }
 
-    async def get_template_schema(self, template_name: str) -> Dict[str, Any]:
+    async def get_template_schema(self, template_name: str) -> dict[str, Any]:
         """Get the schema and requirements for a specific template.
-        
+
         Args:
             template_name: Name of the template to get schema for
-        
+
         Returns:
             Template schema with required variables and structure
 
@@ -380,7 +424,11 @@ class LaTeXTemplateTools:
             template_path = self._get_template_path(template_name)
             if not template_path.exists():
                 if self.error_handler:
-                    return {"error": self.error_handler.create_resource_error_not_found(f"Template not found: {template_name}")}
+                    return {
+                        "error": self.error_handler.create_resource_error_not_found(
+                            f"Template not found: {template_name}"
+                        )
+                    }
                 return {
                     "success": False,
                     "error": f"Template not found: {template_name}",
@@ -409,7 +457,11 @@ class LaTeXTemplateTools:
         except Exception as e:
             logger.error("Failed to get template schema", error=str(e))
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"Failed to get template schema: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"Failed to get template schema: {e!s}"
+                    )
+                }
             return {
                 "success": False,
                 "error": f"Failed to get template schema: {e!s}",
@@ -419,14 +471,14 @@ class LaTeXTemplateTools:
     async def validate_document_data(
         self,
         template_name: str,
-        document_data: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        document_data: dict[str, Any],
+    ) -> dict[str, Any]:
         """Validate document data against template requirements.
-        
+
         Args:
             template_name: Name of the template to validate against
             document_data: Document data to validate
-        
+
         Returns:
             Validation results with errors and warnings
 
@@ -437,7 +489,11 @@ class LaTeXTemplateTools:
             template_path = self._get_template_path(template_name)
             if not template_path.exists():
                 if self.error_handler:
-                    return {"error": self.error_handler.create_resource_error_not_found(f"Template not found: {template_name}")}
+                    return {
+                        "error": self.error_handler.create_resource_error_not_found(
+                            f"Template not found: {template_name}"
+                        )
+                    }
                 return {
                     "success": False,
                     "error": f"Template not found: {template_name}",
@@ -455,7 +511,11 @@ class LaTeXTemplateTools:
         except Exception as e:
             logger.error("Failed to validate document data", error=str(e))
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"Failed to validate document data: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"Failed to validate document data: {e!s}"
+                    )
+                }
             return {
                 "success": False,
                 "error": f"Failed to validate document data: {e!s}",
@@ -464,10 +524,10 @@ class LaTeXTemplateTools:
 
     def _get_template_path(self, template_name: str) -> Path:
         """Get the path to a specific template.
-        
+
         Args:
             template_name: Name of the template
-        
+
         Returns:
             Path to the template directory
 
@@ -476,12 +536,12 @@ class LaTeXTemplateTools:
             return self.template_base_path
         return self.template_base_path.parent / template_name
 
-    def _load_template_config(self, template_path: Path) -> Dict[str, Any]:
+    def _load_template_config(self, template_path: Path) -> dict[str, Any]:
         """Load template configuration from template_info.json.
-        
+
         Args:
             template_path: Path to the template directory
-        
+
         Returns:
             Template configuration dictionary
 
@@ -495,15 +555,15 @@ class LaTeXTemplateTools:
 
     def _validate_document_data(
         self,
-        document_data: Dict[str, Any],
-        template_config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        document_data: dict[str, Any],
+        template_config: dict[str, Any],
+    ) -> dict[str, Any]:
         """Validate document data against template requirements.
-        
+
         Args:
             document_data: Document data to validate
             template_config: Template configuration
-        
+
         Returns:
             Validation results
 
@@ -515,7 +575,7 @@ class LaTeXTemplateTools:
         required_vars = template_config.get("required_variables", {})
 
         # Check required variables
-        for category, variables in required_vars.items():
+        for _category, variables in required_vars.items():
             for var in variables:
                 if var not in document_data:
                     missing_vars.append(var)
@@ -543,16 +603,16 @@ class LaTeXTemplateTools:
     async def _generate_document_content(
         self,
         temp_path: Path,
-        document_data: Dict[str, Any],
-        template_config: Dict[str, Any],
-    ) -> List[str]:
+        document_data: dict[str, Any],
+        template_config: dict[str, Any],
+    ) -> list[str]:
         """Generate document content by processing template files.
-        
+
         Args:
             temp_path: Temporary working directory
             document_data: Data to populate template with
             template_config: Template configuration
-        
+
         Returns:
             List of generated file paths
 
@@ -579,10 +639,10 @@ class LaTeXTemplateTools:
     async def _process_template_file(
         self,
         file_path: Path,
-        document_data: Dict[str, Any],
+        document_data: dict[str, Any],
     ) -> None:
         """Process a single template file with variable substitution.
-        
+
         Args:
             file_path: Path to the template file
             document_data: Data to substitute
@@ -602,13 +662,13 @@ class LaTeXTemplateTools:
             logger.error(f"Failed to process template file {file_path}: {e}")
             raise
 
-    def _substitute_variables(self, content: str, document_data: Dict[str, Any]) -> str:
+    def _substitute_variables(self, content: str, document_data: dict[str, Any]) -> str:
         """Substitute variables in template content.
-        
+
         Args:
             content: Template content
             document_data: Data to substitute
-        
+
         Returns:
             Processed content with variables substituted
 
@@ -630,7 +690,7 @@ class LaTeXTemplateTools:
         include_assets: bool,
     ) -> None:
         """Copy template files to temporary directory.
-        
+
         Args:
             template_path: Source template directory
             temp_path: Destination temporary directory
@@ -659,14 +719,14 @@ class LaTeXTemplateTools:
     async def _compile_latex_document(
         self,
         temp_path: Path,
-        compile_options: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        compile_options: dict[str, Any] | None,
+    ) -> dict[str, Any]:
         """Compile LaTeX document to PDF.
-        
+
         Args:
             temp_path: Directory containing LaTeX files
             compile_options: Additional compilation options
-        
+
         Returns:
             Compilation results
 
@@ -674,7 +734,11 @@ class LaTeXTemplateTools:
         # Circuit breaker check
         if not self._check_circuit_breaker("_compile_latex_document"):
             if self.error_handler:
-                return {"error": self.error_handler.create_circuit_breaker_open_error("LaTeX Compilation")}
+                return {
+                    "error": self.error_handler.create_circuit_breaker_open_error(
+                        "LaTeX Compilation"
+                    )
+                }
             return {
                 "success": False,
                 "error": "LaTeX compilation service is temporarily unavailable due to repeated failures",
@@ -685,7 +749,8 @@ class LaTeXTemplateTools:
             # Check if pdflatex is available
             result = subprocess.run(
                 ["which", "pdflatex"],
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
             )
 
@@ -709,7 +774,8 @@ class LaTeXTemplateTools:
 
             result = subprocess.run(
                 cmd,
-                check=False, cwd=temp_path,
+                check=False,
+                cwd=temp_path,
                 capture_output=True,
                 text=True,
                 timeout=60,  # 60 second timeout
@@ -746,14 +812,18 @@ class LaTeXTemplateTools:
             # Record failure with circuit breaker
             self._record_circuit_breaker_failure(e)
             if self.error_handler:
-                return {"error": self.error_handler.create_internal_error(f"LaTeX compilation failed: {e!s}")}
+                return {
+                    "error": self.error_handler.create_internal_error(
+                        f"LaTeX compilation failed: {e!s}"
+                    )
+                }
             return {
                 "success": False,
                 "error": f"LaTeX compilation failed: {e!s}",
                 "log": None,
             }
 
-    def _copy_output_files(self, temp_path: Path, template_name: str) -> Dict[str, str]:
+    def _copy_output_files(self, temp_path: Path, template_name: str) -> dict[str, str]:
         """Copy output files from temp_path to the configured output directory."""
         output_files = {}
         for ext in ["pdf", "tex", "log"]:
@@ -763,12 +833,12 @@ class LaTeXTemplateTools:
                 output_files[ext] = str(dest)
         return output_files
 
-    def _infer_variable_types(self, template_config: Dict[str, Any]) -> Dict[str, str]:
+    def _infer_variable_types(self, template_config: dict[str, Any]) -> dict[str, str]:
         """Infer variable types from template configuration.
-        
+
         Args:
             template_config: Template configuration
-        
+
         Returns:
             Dictionary mapping variable names to inferred types
 
@@ -776,7 +846,7 @@ class LaTeXTemplateTools:
         variable_types = {}
         required_vars = template_config.get("required_variables", {})
 
-        for category, variables in required_vars.items():
+        for _category, variables in required_vars.items():
             for var in variables:
                 # Simple type inference based on variable name
                 var_lower = var.lower()
@@ -791,12 +861,12 @@ class LaTeXTemplateTools:
 
         return variable_types
 
-    def _get_section_descriptions(self, template_path: Path) -> Dict[str, str]:
+    def _get_section_descriptions(self, template_path: Path) -> dict[str, str]:
         """Get descriptions for template sections.
-        
+
         Args:
             template_path: Path to template directory
-        
+
         Returns:
             Dictionary mapping section names to descriptions
 
@@ -818,12 +888,12 @@ class LaTeXTemplateTools:
 
         return descriptions
 
-    def _generate_example_data(self, template_config: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_example_data(self, template_config: dict[str, Any]) -> dict[str, Any]:
         """Generate example data for template.
-        
+
         Args:
             template_config: Template configuration
-        
+
         Returns:
             Example data dictionary
 
@@ -831,7 +901,7 @@ class LaTeXTemplateTools:
         example_data = {}
         required_vars = template_config.get("required_variables", {})
 
-        for category, variables in required_vars.items():
+        for _category, variables in required_vars.items():
             for var in variables:
                 var_lower = var.lower()
                 if "date" in var_lower:

@@ -5,7 +5,7 @@ This module provides a terminal UI panel for managing TCP connections,
 including viewing active connections, disconnecting clients, and managing API keys.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import structlog
 from textual.app import ComposeResult  # type: ignore
@@ -21,7 +21,7 @@ class ConnectionDisconnect(Message):  # type: ignore
 
     def __init__(self, client_address: str) -> None:
         """Initialize connection disconnect message.
-        
+
         Args:
             client_address: Address of the client to disconnect
 
@@ -33,9 +33,9 @@ class ConnectionDisconnect(Message):  # type: ignore
 class APIKeyGenerate(Message):  # type: ignore
     """Message sent when a new API key should be generated."""
 
-    def __init__(self, permissions: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, permissions: dict[str, Any] | None = None) -> None:
         """Initialize API key generation message.
-        
+
         Args:
             permissions: Optional permissions for the new API key
 
@@ -49,7 +49,7 @@ class APIKeyRevoke(Message):  # type: ignore
 
     def __init__(self, api_key_id: str) -> None:
         """Initialize API key revocation message.
-        
+
         Args:
             api_key_id: ID of the API key to revoke
 
@@ -60,14 +60,14 @@ class APIKeyRevoke(Message):  # type: ignore
 
 class ConnectionPanel(Container):  # type: ignore
     """Panel for managing TCP connections and API keys.
-    
+
     This panel displays active connections, allows disconnecting clients,
     and provides API key management functionality.
     """
 
     def __init__(self, id: str = "connection-panel") -> None:
         """Initialize the connection panel.
-        
+
         Args:
             id: Panel ID
 
@@ -76,13 +76,13 @@ class ConnectionPanel(Container):  # type: ignore
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
         # State
-        self.connections: List[Dict[str, Any]] = []
-        self.api_keys: List[Dict[str, Any]] = []
-        self.selected_connection: Optional[str] = None
+        self.connections: list[dict[str, Any]] = []
+        self.api_keys: list[dict[str, Any]] = []
+        self.selected_connection: str | None = None
 
     def compose(self) -> ComposeResult:
         """Compose the connection panel layout.
-        
+
         Returns:
             ComposeResult: The composed UI elements
 
@@ -134,9 +134,9 @@ class ConnectionPanel(Container):  # type: ignore
             "Active Sessions",
         )
 
-    def update_connections(self, connections: List[Dict[str, Any]]) -> None:
+    def update_connections(self, connections: list[dict[str, Any]]) -> None:
         """Update the connections display.
-        
+
         Args:
             connections: List of connection information
 
@@ -159,9 +159,9 @@ class ConnectionPanel(Container):  # type: ignore
 
         self.logger.debug("Updated connections display", count=len(connections))
 
-    def update_api_keys(self, api_keys: List[Dict[str, Any]]) -> None:
+    def update_api_keys(self, api_keys: list[dict[str, Any]]) -> None:
         """Update the API keys display.
-        
+
         Args:
             api_keys: List of API key information
 
@@ -180,9 +180,7 @@ class ConnectionPanel(Container):  # type: ignore
             # Add API key data
             for key in api_keys:
                 permissions = key.get("permissions", {})
-                permissions_str = ", ".join([
-                    f"{k}: {v}" for k, v in permissions.items() if v
-                ])
+                permissions_str = ", ".join([f"{k}: {v}" for k, v in permissions.items() if v])
 
                 api_keys_table.add_row(
                     key.get("key_id", "Unknown"),
@@ -200,7 +198,7 @@ class ConnectionPanel(Container):  # type: ignore
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events.
-        
+
         Args:
             event: Button press event
 
@@ -222,7 +220,7 @@ class ConnectionPanel(Container):  # type: ignore
 
     def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
         """Handle data table row selection.
-        
+
         Args:
             event: Row selection event
 
@@ -239,8 +237,9 @@ class ConnectionPanel(Container):  # type: ignore
         if not self.selected_connection:
             return
 
-        self.logger.info("Disconnecting selected connection",
-                        client_address=self.selected_connection)
+        self.logger.info(
+            "Disconnecting selected connection", client_address=self.selected_connection
+        )
 
         # Post disconnect message
         self.post_message(ConnectionDisconnect(self.selected_connection))
@@ -284,7 +283,7 @@ class ConnectionPanel(Container):  # type: ignore
 
     def _select_connection(self, row_key: Any) -> None:
         """Select a connection.
-        
+
         Args:
             row_key: Row key of the selected connection
 
@@ -296,12 +295,11 @@ class ConnectionPanel(Container):  # type: ignore
             # Enable disconnect button
             self.query_one("#disconnect-btn", Button).disabled = False
 
-            self.logger.debug("Selected connection",
-                            client_address=self.selected_connection)
+            self.logger.debug("Selected connection", client_address=self.selected_connection)
 
     def _select_api_key(self, row_key: Any) -> None:
         """Select an API key.
-        
+
         Args:
             row_key: Row key of the selected API key
 
@@ -315,22 +313,20 @@ class ConnectionPanel(Container):  # type: ignore
 
             self.logger.debug("Selected API key", key_id=key_id)
 
-    def get_connection_statistics(self) -> Dict[str, Any]:
+    def get_connection_statistics(self) -> dict[str, Any]:
         """Get connection statistics.
-        
+
         Returns:
             Dictionary of connection statistics
 
         """
         total_connections = len(self.connections)
-        authenticated_connections = len([
-            conn for conn in self.connections
-            if conn.get("is_authenticated", False)
-        ])
-        initialized_connections = len([
-            conn for conn in self.connections
-            if conn.get("is_initialized", False)
-        ])
+        authenticated_connections = len(
+            [conn for conn in self.connections if conn.get("is_authenticated", False)]
+        )
+        initialized_connections = len(
+            [conn for conn in self.connections if conn.get("is_initialized", False)]
+        )
 
         return {
             "total_connections": total_connections,
@@ -340,18 +336,15 @@ class ConnectionPanel(Container):  # type: ignore
             "uninitialized_connections": total_connections - initialized_connections,
         }
 
-    def get_api_key_statistics(self) -> Dict[str, Any]:
+    def get_api_key_statistics(self) -> dict[str, Any]:
         """Get API key statistics.
-        
+
         Returns:
             Dictionary of API key statistics
 
         """
         total_keys = len(self.api_keys)
-        active_keys = len([
-            key for key in self.api_keys
-            if key.get("active_sessions", 0) > 0
-        ])
+        active_keys = len([key for key in self.api_keys if key.get("active_sessions", 0) > 0])
 
         return {
             "total_api_keys": total_keys,

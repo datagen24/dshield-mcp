@@ -5,7 +5,7 @@ MCP tools for campaign analysis and correlation.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import structlog
 
@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 class CampaignMCPTools:
     """MCP tools for campaign analysis and correlation."""
 
-    def __init__(self, es_client: Optional[ElasticsearchClient] = None):
+    def __init__(self, es_client: ElasticsearchClient | None = None):
         """Initialize CampaignMCPTools.
 
         Args:
@@ -32,15 +32,15 @@ class CampaignMCPTools:
 
     async def analyze_campaign(
         self,
-        seed_indicators: List[str],
+        seed_indicators: list[str],
         time_range_hours: int = 168,  # 1 week default
-        correlation_methods: Optional[List[str]] = None,
+        correlation_methods: list[str] | None = None,
         min_confidence: float = 0.7,
         include_timeline: bool = True,
         include_relationships: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Analyze attack campaigns from seed indicators.
-        
+
         Args:
             seed_indicators: List of seed indicators (IPs, domains, etc.)
             time_range_hours: Time range to analyze (default: 168 hours = 1 week)
@@ -48,16 +48,18 @@ class CampaignMCPTools:
             min_confidence: Minimum confidence threshold for campaign inclusion
             include_timeline: Whether to include detailed timeline
             include_relationships: Whether to include indicator relationships
-        
+
         Returns:
             Campaign analysis results with metadata
 
         """
-        logger.info("Starting campaign analysis",
-                   seed_indicators=seed_indicators,
-                   time_range_hours=time_range_hours,
-                   correlation_methods=correlation_methods,
-                   min_confidence=min_confidence)
+        logger.info(
+            "Starting campaign analysis",
+            seed_indicators=seed_indicators,
+            time_range_hours=time_range_hours,
+            correlation_methods=correlation_methods,
+            min_confidence=min_confidence,
+        )
 
         try:
             # Convert correlation methods to enum
@@ -142,10 +144,12 @@ class CampaignMCPTools:
                     for rel in campaign.relationships
                 ]
 
-            logger.info("Campaign analysis completed",
-                       campaign_id=campaign.campaign_id,
-                       total_events=campaign.total_events,
-                       confidence_score=campaign.confidence_score)
+            logger.info(
+                "Campaign analysis completed",
+                campaign_id=campaign.campaign_id,
+                total_events=campaign.total_events,
+                confidence_score=campaign.confidence_score,
+            )
 
             return result
 
@@ -164,24 +168,26 @@ class CampaignMCPTools:
         expansion_strategy: str = "comprehensive",
         include_passive_dns: bool = True,
         include_threat_intel: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Expand IOCs to find related indicators.
-        
+
         Args:
             campaign_id: Campaign ID to expand
             expansion_depth: Maximum expansion depth
             expansion_strategy: Expansion strategy (comprehensive, infrastructure, temporal)
             include_passive_dns: Whether to include passive DNS data
             include_threat_intel: Whether to include threat intelligence data
-        
+
         Returns:
             Expanded indicators and relationships
 
         """
-        logger.info("Expanding campaign indicators",
-                   campaign_id=campaign_id,
-                   expansion_depth=expansion_depth,
-                   expansion_strategy=expansion_strategy)
+        logger.info(
+            "Expanding campaign indicators",
+            campaign_id=campaign_id,
+            expansion_depth=expansion_depth,
+            expansion_strategy=expansion_strategy,
+        )
 
         try:
             # Get campaign events
@@ -231,10 +237,12 @@ class CampaignMCPTools:
 
                 expanded_indicators.append(indicator_info)
 
-            logger.info("Campaign indicator expansion completed",
-                       campaign_id=campaign_id,
-                       original_iocs=len(iocs),
-                       expanded_indicators=len(expanded_indicators))
+            logger.info(
+                "Campaign indicator expansion completed",
+                campaign_id=campaign_id,
+                original_iocs=len(iocs),
+                expanded_indicators=len(expanded_indicators),
+            )
 
             return {
                 "success": True,
@@ -258,22 +266,22 @@ class CampaignMCPTools:
         timeline_granularity: str = "hourly",
         include_event_details: bool = True,
         include_ttp_analysis: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build detailed attack timelines.
-        
+
         Args:
             campaign_id: Campaign ID to analyze
             timeline_granularity: Timeline granularity (minute, hourly, daily)
             include_event_details: Whether to include detailed event information
             include_ttp_analysis: Whether to include TTP analysis
-        
+
         Returns:
             Detailed campaign timeline
 
         """
-        logger.info("Building campaign timeline",
-                   campaign_id=campaign_id,
-                   granularity=timeline_granularity)
+        logger.info(
+            "Building campaign timeline", campaign_id=campaign_id, granularity=timeline_granularity
+        )
 
         try:
             # Get campaign events
@@ -315,10 +323,12 @@ class CampaignMCPTools:
                     for event in campaign_events
                 ]
 
-            logger.info("Campaign timeline built",
-                       campaign_id=campaign_id,
-                       timeline_periods=timeline_data["total_periods"],
-                       total_events=timeline_data["total_events"])
+            logger.info(
+                "Campaign timeline built",
+                campaign_id=campaign_id,
+                timeline_periods=timeline_data["total_periods"],
+                total_events=timeline_data["total_events"],
+            )
 
             return {
                 "success": True,
@@ -336,24 +346,24 @@ class CampaignMCPTools:
 
     async def compare_campaigns(
         self,
-        campaign_ids: List[str],
-        comparison_metrics: Optional[List[str]] = None,
+        campaign_ids: list[str],
+        comparison_metrics: list[str] | None = None,
         include_visualization_data: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Compare multiple campaigns for similarities.
-        
+
         Args:
             campaign_ids: List of campaign IDs to compare
             comparison_metrics: Metrics to compare (ttps, infrastructure, timing, etc.)
             include_visualization_data: Whether to include visualization data
-        
+
         Returns:
             Campaign comparison results
 
         """
-        logger.info("Comparing campaigns",
-                   campaign_ids=campaign_ids,
-                   comparison_metrics=comparison_metrics)
+        logger.info(
+            "Comparing campaigns", campaign_ids=campaign_ids, comparison_metrics=comparison_metrics
+        )
 
         try:
             # Get campaign data
@@ -373,7 +383,11 @@ class CampaignMCPTools:
             # Default comparison metrics
             if not comparison_metrics:
                 comparison_metrics = [
-                    "ttps", "infrastructure", "timing", "geography", "sophistication",
+                    "ttps",
+                    "infrastructure",
+                    "timing",
+                    "geography",
+                    "sophistication",
                 ]
 
             # Perform comparisons
@@ -383,16 +397,22 @@ class CampaignMCPTools:
                 comparison_results["ttp_similarity"] = self._compare_campaign_ttps(campaigns)
 
             if "infrastructure" in comparison_metrics:
-                comparison_results["infrastructure_similarity"] = self._compare_campaign_infrastructure(campaigns)
+                comparison_results["infrastructure_similarity"] = (
+                    self._compare_campaign_infrastructure(campaigns)
+                )
 
             if "timing" in comparison_metrics:
                 comparison_results["timing_similarity"] = self._compare_campaign_timing(campaigns)
 
             if "geography" in comparison_metrics:
-                comparison_results["geographic_similarity"] = self._compare_campaign_geography(campaigns)
+                comparison_results["geographic_similarity"] = self._compare_campaign_geography(
+                    campaigns
+                )
 
             if "sophistication" in comparison_metrics:
-                comparison_results["sophistication_comparison"] = self._compare_campaign_sophistication(campaigns)
+                comparison_results["sophistication_comparison"] = (
+                    self._compare_campaign_sophistication(campaigns)
+                )
 
             # Calculate overall similarity scores
             similarity_matrix = self._calculate_similarity_matrix(campaigns, comparison_results)
@@ -408,12 +428,15 @@ class CampaignMCPTools:
             # Add visualization data if requested
             if include_visualization_data:
                 result["visualization_data"] = self._generate_comparison_visualization_data(
-                    campaigns, comparison_results,
+                    campaigns,
+                    comparison_results,
                 )
 
-            logger.info("Campaign comparison completed",
-                       campaign_count=len(campaigns),
-                       comparison_metrics=comparison_metrics)
+            logger.info(
+                "Campaign comparison completed",
+                campaign_count=len(campaigns),
+                comparison_metrics=comparison_metrics,
+            )
 
             return result
 
@@ -431,23 +454,25 @@ class CampaignMCPTools:
         min_event_threshold: int = 15,
         correlation_threshold: float = 0.8,
         include_alert_data: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Real-time detection of active campaigns.
-        
+
         Args:
             time_window_hours: Time window for detection (default: 24 hours)
             min_event_threshold: Minimum events for campaign detection
             correlation_threshold: Minimum correlation threshold
             include_alert_data: Whether to include alert data
-        
+
         Returns:
             Detected ongoing campaigns
 
         """
-        logger.info("Detecting ongoing campaigns",
-                   time_window_hours=time_window_hours,
-                   min_event_threshold=min_event_threshold,
-                   correlation_threshold=correlation_threshold)
+        logger.info(
+            "Detecting ongoing campaigns",
+            time_window_hours=time_window_hours,
+            min_event_threshold=min_event_threshold,
+            correlation_threshold=correlation_threshold,
+        )
 
         try:
             # Query recent events
@@ -472,7 +497,9 @@ class CampaignMCPTools:
             for group_id, events in campaign_groups.items():
                 if len(events) >= min_event_threshold:
                     campaign_analysis = await self._analyze_campaign_group(
-                        group_id, events, include_alert_data,
+                        group_id,
+                        events,
+                        include_alert_data,
                     )
                     if campaign_analysis:
                         ongoing_campaigns.append(campaign_analysis)
@@ -480,10 +507,12 @@ class CampaignMCPTools:
             # Sort by threat level
             ongoing_campaigns.sort(key=lambda x: x.get("threat_level_score", 0), reverse=True)
 
-            logger.info("Ongoing campaign detection completed",
-                       total_events=len(recent_events),
-                       campaign_groups=len(campaign_groups),
-                       ongoing_campaigns=len(ongoing_campaigns))
+            logger.info(
+                "Ongoing campaign detection completed",
+                total_events=len(recent_events),
+                campaign_groups=len(campaign_groups),
+                ongoing_campaigns=len(ongoing_campaigns),
+            )
 
             return {
                 "success": True,
@@ -503,27 +532,29 @@ class CampaignMCPTools:
 
     async def search_campaigns(
         self,
-        search_criteria: Dict[str, Any],
+        search_criteria: dict[str, Any],
         time_range_hours: int = 168,  # 1 week
         max_results: int = 50,
         include_summaries: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Search existing campaigns by criteria.
-        
+
         Args:
             search_criteria: Search criteria (indicators, time_range, confidence, etc.)
             time_range_hours: Time range for search
             max_results: Maximum results to return
             include_summaries: Whether to include campaign summaries
-        
+
         Returns:
             Matching campaigns
 
         """
-        logger.info("Searching campaigns",
-                   search_criteria=search_criteria,
-                   time_range_hours=time_range_hours,
-                   max_results=max_results)
+        logger.info(
+            "Searching campaigns",
+            search_criteria=search_criteria,
+            time_range_hours=time_range_hours,
+            max_results=max_results,
+        )
 
         try:
             # Build search query
@@ -537,9 +568,11 @@ class CampaignMCPTools:
                 for campaign in matching_campaigns:
                     campaign["summary"] = self._generate_campaign_summary(campaign)
 
-            logger.info("Campaign search completed",
-                       search_criteria=search_criteria,
-                       matching_campaigns=len(matching_campaigns))
+            logger.info(
+                "Campaign search completed",
+                search_criteria=search_criteria,
+                matching_campaigns=len(matching_campaigns),
+            )
 
             return {
                 "success": True,
@@ -563,22 +596,24 @@ class CampaignMCPTools:
         include_full_timeline: bool = False,
         include_relationships: bool = True,
         include_threat_intel: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Comprehensive campaign information.
-        
+
         Args:
             campaign_id: Campaign ID to retrieve
             include_full_timeline: Whether to include full timeline
             include_relationships: Whether to include indicator relationships
             include_threat_intel: Whether to include threat intelligence
-        
+
         Returns:
             Comprehensive campaign details
 
         """
-        logger.info("Getting campaign details",
-                   campaign_id=campaign_id,
-                   include_full_timeline=include_full_timeline)
+        logger.info(
+            "Getting campaign details",
+            campaign_id=campaign_id,
+            include_full_timeline=include_full_timeline,
+        )
 
         try:
             # Get campaign data
@@ -647,9 +682,11 @@ class CampaignMCPTools:
                 if threat_intel:
                     details["threat_intelligence"] = threat_intel
 
-            logger.info("Campaign details retrieved",
-                       campaign_id=campaign_id,
-                       include_full_timeline=include_full_timeline)
+            logger.info(
+                "Campaign details retrieved",
+                campaign_id=campaign_id,
+                include_full_timeline=include_full_timeline,
+            )
 
             return {
                 "success": True,
@@ -666,13 +703,18 @@ class CampaignMCPTools:
 
     # Helper methods
 
-    async def _get_seed_events(self, indicators: List[str], time_range_hours: int) -> List[Dict[str, Any]]:
+    async def _get_seed_events(
+        self, indicators: list[str], time_range_hours: int
+    ) -> list[dict[str, Any]]:
         """Get seed events from indicators."""
         all_events = []
         # Dynamically get all possible IP fields from the ElasticsearchClient field mappings
         ip_fields = []
         try:
-            ip_fields = ElasticsearchClient().dshield_field_mappings["source_ip"] + ElasticsearchClient().dshield_field_mappings["destination_ip"]
+            ip_fields = (
+                ElasticsearchClient().dshield_field_mappings["source_ip"]
+                + ElasticsearchClient().dshield_field_mappings["destination_ip"]
+            )
         except Exception as e:
             logger.warning(f"Could not load IP field mappings: {e}")
             ip_fields = ["source.ip", "destination.ip", "related.ip"]
@@ -687,7 +729,10 @@ class CampaignMCPTools:
 
                         # DEBUG: Log the filters being sent
                         import json
-                        logger.debug(f"_get_seed_events: Querying with simple filter for indicator {indicator}, field {field}: {json.dumps(filters, indent=2)}")
+
+                        logger.debug(
+                            f"_get_seed_events: Querying with simple filter for indicator {indicator}, field {field}: {json.dumps(filters, indent=2)}"
+                        )
 
                         events, _, _ = await self.es_client.query_dshield_events(
                             time_range_hours=time_range_hours,
@@ -696,18 +741,29 @@ class CampaignMCPTools:
                         )
 
                         if events:
-                            logger.debug(f"_get_seed_events: Found {len(events)} events for indicator {indicator} in field {field}")
+                            logger.debug(
+                                f"_get_seed_events: Found {len(events)} events for indicator {indicator} in field {field}"
+                            )
                             all_events.extend(events)
                             # If we found events for this field, no need to try other fields for this indicator
                             break
-                        logger.debug(f"_get_seed_events: No events found for indicator {indicator} in field {field}")
+                        logger.debug(
+                            f"_get_seed_events: No events found for indicator {indicator} in field {field}"
+                        )
 
                     except Exception as field_error:
-                        logger.warning(f"Failed to query field {field} for indicator {indicator}: {field_error}")
+                        logger.warning(
+                            f"Failed to query field {field} for indicator {indicator}: {field_error}"
+                        )
                         continue
 
                 # Also try URL and user agent wildcards if no IP events found
-                if not any(event for event in all_events if event.get("source_ip") == indicator or event.get("destination_ip") == indicator):
+                if not any(
+                    event
+                    for event in all_events
+                    if event.get("source_ip") == indicator
+                    or event.get("destination_ip") == indicator
+                ):
                     try:
                         # Try URL wildcard
                         url_filters = {"url.original": f"*{indicator}*"}
@@ -720,7 +776,9 @@ class CampaignMCPTools:
                             all_events.extend(events)
                             continue
                     except Exception as url_error:
-                        logger.warning(f"Failed to query URL for indicator {indicator}: {url_error}")
+                        logger.warning(
+                            f"Failed to query URL for indicator {indicator}: {url_error}"
+                        )
 
                     try:
                         # Try user agent wildcard
@@ -733,7 +791,9 @@ class CampaignMCPTools:
                         if events:
                             all_events.extend(events)
                     except Exception as ua_error:
-                        logger.warning(f"Failed to query user agent for indicator {indicator}: {ua_error}")
+                        logger.warning(
+                            f"Failed to query user agent for indicator {indicator}: {ua_error}"
+                        )
 
             except Exception as e:
                 logger.warning(f"Failed to get events for indicator {indicator}: {e}")
@@ -741,7 +801,7 @@ class CampaignMCPTools:
         logger.info(f"_get_seed_events: Total events found for all indicators: {len(all_events)}")
         return all_events
 
-    def _extract_iocs_from_campaign(self, campaign_events: List[CampaignEvent]) -> List[str]:
+    def _extract_iocs_from_campaign(self, campaign_events: list[CampaignEvent]) -> list[str]:
         """Extract IOCs from campaign events."""
         iocs = set()
 
@@ -758,17 +818,18 @@ class CampaignMCPTools:
 
         return list(iocs)
 
-    def _extract_domain_from_url(self, url: str) -> Optional[str]:
+    def _extract_domain_from_url(self, url: str) -> str | None:
         """Extract domain from URL."""
         try:
             import re
+
             domain_pattern = r"https?://([^/]+)"
             match = re.search(domain_pattern, url)
             return match.group(1) if match else None
         except Exception:
             return None
 
-    async def _get_campaign_events(self, campaign_id: str) -> List[CampaignEvent]:
+    async def _get_campaign_events(self, campaign_id: str) -> list[CampaignEvent]:
         """Get campaign events by campaign ID."""
         # This is a simplified implementation
         # In a real system, you'd query a campaign database
@@ -780,7 +841,7 @@ class CampaignMCPTools:
             logger.error(f"Failed to get campaign events for {campaign_id}: {e}")
             return []
 
-    async def _get_campaign_data(self, campaign_id: str) -> Optional[Dict[str, Any]]:
+    async def _get_campaign_data(self, campaign_id: str) -> dict[str, Any] | None:
         """Get campaign data by campaign ID."""
         # This is a simplified implementation
         # In a real system, you'd query a campaign database
@@ -792,22 +853,22 @@ class CampaignMCPTools:
             logger.error(f"Failed to get campaign data for {campaign_id}: {e}")
             return None
 
-    async def _get_passive_dns_data(self, indicator: str) -> Optional[Dict[str, Any]]:
+    async def _get_passive_dns_data(self, indicator: str) -> dict[str, Any] | None:
         """Get passive DNS data for an indicator."""
         # This is a simplified implementation
         # In a real system, you'd integrate with passive DNS services
         return None
 
-    async def _get_threat_intel_data(self, indicator: str) -> Optional[Dict[str, Any]]:
+    async def _get_threat_intel_data(self, indicator: str) -> dict[str, Any] | None:
         """Get threat intelligence data for an indicator."""
         # This is a simplified implementation
         # In a real system, you'd integrate with threat intelligence feeds
         return None
 
-    def _analyze_campaign_ttps(self, campaign_events: List[CampaignEvent]) -> Dict[str, Any]:
+    def _analyze_campaign_ttps(self, campaign_events: list[CampaignEvent]) -> dict[str, Any]:
         """Analyze TTPs in campaign events."""
-        ttp_counts = {}
-        tactic_counts = {}
+        ttp_counts: dict[str, int] = {}
+        tactic_counts: dict[str, int] = {}
 
         for event in campaign_events:
             if event.ttp_technique:
@@ -822,47 +883,55 @@ class CampaignMCPTools:
             "total_tactics": len(tactic_counts),
         }
 
-    def _compare_campaign_ttps(self, campaigns: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _compare_campaign_ttps(self, campaigns: list[dict[str, Any]]) -> dict[str, Any]:
         """Compare TTPs across campaigns."""
         # Simplified implementation
         return {"similarity_score": 0.5}
 
-    def _compare_campaign_infrastructure(self, campaigns: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _compare_campaign_infrastructure(self, campaigns: list[dict[str, Any]]) -> dict[str, Any]:
         """Compare infrastructure across campaigns."""
         # Simplified implementation
         return {"similarity_score": 0.5}
 
-    def _compare_campaign_timing(self, campaigns: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _compare_campaign_timing(self, campaigns: list[dict[str, Any]]) -> dict[str, Any]:
         """Compare timing patterns across campaigns."""
         # Simplified implementation
         return {"similarity_score": 0.5}
 
-    def _compare_campaign_geography(self, campaigns: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _compare_campaign_geography(self, campaigns: list[dict[str, Any]]) -> dict[str, Any]:
         """Compare geographic patterns across campaigns."""
         # Simplified implementation
         return {"similarity_score": 0.5}
 
-    def _compare_campaign_sophistication(self, campaigns: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _compare_campaign_sophistication(self, campaigns: list[dict[str, Any]]) -> dict[str, Any]:
         """Compare sophistication levels across campaigns."""
         # Simplified implementation
         return {"similarity_score": 0.5}
 
-    def _calculate_similarity_matrix(self, campaigns: List[Dict[str, Any]], comparison_results: Dict[str, Any]) -> List[List[float]]:
+    def _calculate_similarity_matrix(
+        self, campaigns: list[dict[str, Any]], comparison_results: dict[str, Any]
+    ) -> list[list[float]]:
         """Calculate similarity matrix for campaigns."""
         # Simplified implementation
         return [[1.0, 0.5], [0.5, 1.0]]
 
-    def _generate_comparison_visualization_data(self, campaigns: List[Dict[str, Any]], comparison_results: Dict[str, Any]) -> Dict[str, Any]:
+    def _generate_comparison_visualization_data(
+        self, campaigns: list[dict[str, Any]], comparison_results: dict[str, Any]
+    ) -> dict[str, Any]:
         """Generate visualization data for campaign comparison."""
         # Simplified implementation
         return {"visualization_type": "similarity_matrix"}
 
-    def _group_events_by_campaigns(self, events: List[Dict[str, Any]], correlation_threshold: float) -> Dict[str, List[Dict[str, Any]]]:
+    def _group_events_by_campaigns(
+        self, events: list[dict[str, Any]], correlation_threshold: float
+    ) -> dict[str, list[dict[str, Any]]]:
         """Group events by potential campaigns."""
         # Simplified implementation
-        return {"group_1": events[:len(events)//2], "group_2": events[len(events)//2:]}
+        return {"group_1": events[: len(events) // 2], "group_2": events[len(events) // 2 :]}
 
-    async def _analyze_campaign_group(self, group_id: str, events: List[Dict[str, Any]], include_alert_data: bool) -> Optional[Dict[str, Any]]:
+    async def _analyze_campaign_group(
+        self, group_id: str, events: list[dict[str, Any]], include_alert_data: bool
+    ) -> dict[str, Any] | None:
         """Analyze a group of events as a potential campaign."""
         # Simplified implementation
         return {
@@ -871,26 +940,30 @@ class CampaignMCPTools:
             "event_count": len(events),
         }
 
-    def _build_campaign_search_query(self, search_criteria: Dict[str, Any], time_range_hours: int) -> Dict[str, Any]:
+    def _build_campaign_search_query(
+        self, search_criteria: dict[str, Any], time_range_hours: int
+    ) -> dict[str, Any]:
         """Build search query for campaigns."""
         # Simplified implementation
         return {"query": "search"}
 
-    async def _search_campaign_database(self, search_query: Dict[str, Any], max_results: int) -> List[Dict[str, Any]]:
+    async def _search_campaign_database(
+        self, search_query: dict[str, Any], max_results: int
+    ) -> list[dict[str, Any]]:
         """Search campaign database."""
         # Simplified implementation
         return []
 
-    def _generate_campaign_summary(self, campaign: Dict[str, Any]) -> str:
+    def _generate_campaign_summary(self, campaign: dict[str, Any]) -> str:
         """Generate campaign summary."""
         return f"Campaign with {campaign.get('total_events', 0)} events"
 
-    def _calculate_sophistication_score(self, campaign_data: Dict[str, Any]) -> float:
+    def _calculate_sophistication_score(self, campaign_data: dict[str, Any]) -> float:
         """Calculate sophistication score for campaign."""
         # Simplified implementation
         return 0.7
 
-    async def _get_campaign_threat_intel(self, campaign_id: str) -> Optional[Dict[str, Any]]:
+    async def _get_campaign_threat_intel(self, campaign_id: str) -> dict[str, Any] | None:
         """Get threat intelligence for campaign."""
         # Simplified implementation
         return None

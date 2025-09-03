@@ -8,7 +8,7 @@ including layout management, event handling, and integration with the TCP server
 import asyncio
 import subprocess
 import threading
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import structlog
 from textual.app import App, ComposeResult  # type: ignore
@@ -27,19 +27,21 @@ from .status_bar import StatusBar
 
 logger = structlog.get_logger(__name__)
 
+
 # Late import to avoid circular dependencies
 def _get_dshield_mcp_server() -> Any:
     """Get DShieldMCPServer class with late import to avoid circular dependencies."""
     from mcp_server import DShieldMCPServer
+
     return DShieldMCPServer
 
 
 class ServerStatusUpdate(Message):  # type: ignore
     """Message sent when server status is updated."""
 
-    def __init__(self, status: Dict[str, Any]) -> None:
+    def __init__(self, status: dict[str, Any]) -> None:
         """Initialize server status update message.
-        
+
         Args:
             status: Server status information
 
@@ -51,9 +53,9 @@ class ServerStatusUpdate(Message):  # type: ignore
 class ConnectionUpdate(Message):  # type: ignore
     """Message sent when connection information is updated."""
 
-    def __init__(self, connections: List[Dict[str, Any]]) -> None:
+    def __init__(self, connections: list[dict[str, Any]]) -> None:
         """Initialize connection update message.
-        
+
         Args:
             connections: List of connection information
 
@@ -65,9 +67,9 @@ class ConnectionUpdate(Message):  # type: ignore
 class LogUpdate(Message):  # type: ignore
     """Message sent when new log entries are available."""
 
-    def __init__(self, log_entries: List[Dict[str, Any]]) -> None:
+    def __init__(self, log_entries: list[dict[str, Any]]) -> None:
         """Initialize log update message.
-        
+
         Args:
             log_entries: List of log entries
 
@@ -78,7 +80,7 @@ class LogUpdate(Message):  # type: ignore
 
 class DShieldTUIApp(App):  # type: ignore
     """Main TUI application for DShield MCP Server.
-    
+
     This class provides the main terminal user interface with panels for
     connection management, server control, and log monitoring.
     """
@@ -149,9 +151,9 @@ class DShieldTUIApp(App):  # type: ignore
         Binding("tab", "switch_panel", "Switch Panel"),
     ]
 
-    def __init__(self, config_path: Optional[str] = None) -> None:
+    def __init__(self, config_path: str | None = None) -> None:
         """Initialize the TUI application.
-        
+
         Args:
             config_path: Optional path to configuration file
 
@@ -162,9 +164,9 @@ class DShieldTUIApp(App):  # type: ignore
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
         # Server components
-        self.tcp_server: Optional[EnhancedTCPServer] = None
-        self.server_process: Optional[subprocess.Popen[bytes]] = None
-        self.server_thread: Optional[threading.Thread] = None
+        self.tcp_server: EnhancedTCPServer | None = None
+        self.server_process: subprocess.Popen[bytes] | None = None
+        self.server_thread: threading.Thread | None = None
         self.server_running = reactive(False)
         self.server_port = reactive(self.user_config.tcp_transport_settings.port)
 
@@ -172,16 +174,16 @@ class DShieldTUIApp(App):  # type: ignore
         self._mounted = False
         self.server_address = reactive(self.user_config.tcp_transport_settings.bind_address)
         self.current_panel = 0
-        self.log_entries: List[Dict[str, Any]] = []
-        self.connections: List[Dict[str, Any]] = []
-        self.server_status: Dict[str, Any] = {}
+        self.log_entries: list[dict[str, Any]] = []
+        self.connections: list[dict[str, Any]] = []
+        self.server_status: dict[str, Any] = {}
 
         # Update tasks
-        self._update_task: Optional[Union[asyncio.Task[Any], threading.Thread]] = None
+        self._update_task: asyncio.Task[Any] | threading.Thread | None = None
 
     def compose(self) -> ComposeResult:
         """Compose the TUI layout.
-        
+
         Returns:
             ComposeResult: The composed UI elements
 
@@ -224,7 +226,11 @@ class DShieldTUIApp(App):  # type: ignore
         self.logger.info("TUI application unmounting")
 
         # Stop update task
-        if self._update_task and hasattr(self._update_task, "is_alive") and self._update_task.is_alive():
+        if (
+            self._update_task
+            and hasattr(self._update_task, "is_alive")
+            and self._update_task.is_alive()
+        ):
             # The thread will stop when the daemon process exits
             pass
 
@@ -235,6 +241,7 @@ class DShieldTUIApp(App):  # type: ignore
     def _periodic_update(self) -> None:
         """Periodic update task for refreshing UI data."""
         import time
+
         while True:
             try:
                 time.sleep(self.user_config.tui_settings.refresh_interval_ms / 1000.0)
@@ -276,7 +283,9 @@ class DShieldTUIApp(App):  # type: ignore
         try:
             # Debug: List all available panels
             all_panels = self.query(ServerPanel)
-            self.logger.debug("Available server panels", count=len(all_panels), panels=[p.id for p in all_panels])
+            self.logger.debug(
+                "Available server panels", count=len(all_panels), panels=[p.id for p in all_panels]
+            )
 
             # Get the server panel - try multiple ways to find it
             server_panel = None
@@ -329,15 +338,19 @@ class DShieldTUIApp(App):  # type: ignore
             if connection_panel:
                 # Update API keys
                 api_keys = getattr(self, "generated_api_keys", [])
-                self.logger.debug("Updating connection panel", api_keys_count=len(api_keys), api_keys=api_keys)
+                self.logger.debug(
+                    "Updating connection panel", api_keys_count=len(api_keys), api_keys=api_keys
+                )
                 connection_panel.update_api_keys(api_keys)
                 self.logger.debug("Connection panel update_api_keys called")
 
                 # Update connections (empty for now in simulation)
-                connections: List[Dict[str, Any]] = []
+                connections: list[dict[str, Any]] = []
                 connection_panel.update_connections(connections)
 
-                self.logger.debug("Updated connection panel successfully", api_keys_count=len(api_keys))
+                self.logger.debug(
+                    "Updated connection panel successfully", api_keys_count=len(api_keys)
+                )
 
         except Exception as e:
             self.logger.error("Error updating connection panel", error=str(e))
@@ -347,7 +360,11 @@ class DShieldTUIApp(App):  # type: ignore
         try:
             # Debug: List all available log panels
             all_log_panels = self.query(LogPanel)
-            self.logger.debug("Available log panels", count=len(all_log_panels), panels=[p.id for p in all_log_panels])
+            self.logger.debug(
+                "Available log panels",
+                count=len(all_log_panels),
+                panels=[p.id for p in all_log_panels],
+            )
 
             # Get the log panel - try multiple ways to find it
             log_panel = None
@@ -368,6 +385,7 @@ class DShieldTUIApp(App):  # type: ignore
             if log_panel:
                 # Create log entry
                 from datetime import datetime
+
                 log_entry = {
                     "timestamp": datetime.now().isoformat(),
                     "level": level,
@@ -376,7 +394,9 @@ class DShieldTUIApp(App):  # type: ignore
                 }
 
                 # Add the log entry
-                self.logger.debug("Adding log entry to panel", level=level, message=message, log_entry=log_entry)
+                self.logger.debug(
+                    "Adding log entry to panel", level=level, message=message, log_entry=log_entry
+                )
                 log_panel.add_log_entries([log_entry])
 
                 # Force update the display to bypass any filtering issues
@@ -464,7 +484,9 @@ class DShieldTUIApp(App):  # type: ignore
             print("DEBUG: Attempting to start TCP server...")
 
             # Check if auto_start is enabled
-            print(f"DEBUG: auto_start_server = {self.user_config.tui_settings.server_management.get('auto_start_server', False)}")
+            print(
+                f"DEBUG: auto_start_server = {self.user_config.tui_settings.server_management.get('auto_start_server', False)}"
+            )
 
             self.logger.info("Starting TCP server")
 
@@ -481,7 +503,9 @@ class DShieldTUIApp(App):  # type: ignore
                 "security": {
                     "global_rate_limit": 1000,
                     "global_burst_limit": 100,
-                    "client_rate_limit": self.user_config.tcp_transport_settings.api_key_management.get("rate_limit_per_key", 60),
+                    "client_rate_limit": self.user_config.tcp_transport_settings.api_key_management.get(
+                        "rate_limit_per_key", 60
+                    ),
                     "client_burst_limit": 10,
                     "abuse_threshold": 10,
                     "block_duration_seconds": 3600,
@@ -491,8 +515,14 @@ class DShieldTUIApp(App):  # type: ignore
                         "max_message_size": 1048576,
                         "max_field_length": 10000,
                         "allowed_methods": [
-                            "initialize", "initialized", "tools/list", "tools/call",
-                            "resources/list", "resources/read", "prompts/list", "prompts/get",
+                            "initialize",
+                            "initialized",
+                            "tools/list",
+                            "tools/call",
+                            "resources/list",
+                            "resources/read",
+                            "prompts/list",
+                            "prompts/get",
                             "authenticate",
                         ],
                     },
@@ -539,6 +569,7 @@ class DShieldTUIApp(App):  # type: ignore
 
             # Give the server a moment to start
             import time
+
             time.sleep(0.5)
 
             self.server_running = True
@@ -605,7 +636,7 @@ class DShieldTUIApp(App):  # type: ignore
 
     def _create_mcp_server(self) -> Any:
         """Create and initialize DShieldMCPServer instance.
-        
+
         Returns:
             Initialized DShieldMCPServer instance
 
@@ -637,13 +668,14 @@ class DShieldTUIApp(App):  # type: ignore
 
             # Open the API key generation screen
             from .screens.api_key_screen import APIKeyGenerationScreen
+
             self.push_screen(APIKeyGenerationScreen(), self._on_api_key_generated)
 
         except Exception as e:
             self.logger.error("Failed to open API key generation screen", error=str(e))
             self.notify(f"Failed to open API key generation screen: {e}", timeout=5)
 
-    async def _on_api_key_generated(self, key_config: Dict[str, Any]) -> None:
+    async def _on_api_key_generated(self, key_config: dict[str, Any]) -> None:
         """Handle API key generation completion."""
         try:
             if not self.server_running:
@@ -665,11 +697,17 @@ class DShieldTUIApp(App):  # type: ignore
             )
 
             if api_key:
-                self.logger.info("Generated new API key", key_id=api_key.key_id, name=key_config["name"])
-                self.notify(f"API Key generated: {key_config['name']} ({api_key.key_id})", timeout=5)
+                self.logger.info(
+                    "Generated new API key", key_id=api_key.key_id, name=key_config["name"]
+                )
+                self.notify(
+                    f"API Key generated: {key_config['name']} ({api_key.key_id})", timeout=5
+                )
 
                 # Add log entry for API key generation
-                self._add_log_entry("info", f"API Key generated: {key_config['name']} ({api_key.key_id})")
+                self._add_log_entry(
+                    "info", f"API Key generated: {key_config['name']} ({api_key.key_id})"
+                )
 
                 # Update connection panel
                 self._update_connection_panel()
@@ -723,9 +761,9 @@ class DShieldTUIApp(App):  # type: ignore
         self.sub_title = f"Port: {self.server_port} | Address: {address}"
 
 
-def run_tui(config_path: Optional[str] = None) -> None:
+def run_tui(config_path: str | None = None) -> None:
     """Run the TUI application.
-    
+
     Args:
         config_path: Optional path to configuration file
 

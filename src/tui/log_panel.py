@@ -6,7 +6,7 @@ including filtering, searching, and log level management.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 import structlog
 from textual.app import ComposeResult  # type: ignore
@@ -20,9 +20,9 @@ logger = structlog.get_logger(__name__)
 class LogFilterUpdate(Message):  # type: ignore
     """Message sent when log filter is updated."""
 
-    def __init__(self, filter_config: Dict[str, Any]) -> None:
+    def __init__(self, filter_config: dict[str, Any]) -> None:
         """Initialize log filter update message.
-        
+
         Args:
             filter_config: Log filter configuration
 
@@ -35,13 +35,12 @@ class LogClear(Message):  # type: ignore
     """Message sent when logs should be cleared."""
 
 
-
 class LogExport(Message):  # type: ignore
     """Message sent when logs should be exported."""
 
     def __init__(self, export_path: str) -> None:
         """Initialize log export message.
-        
+
         Args:
             export_path: Path to export logs to
 
@@ -52,14 +51,14 @@ class LogExport(Message):  # type: ignore
 
 class LogPanel(Container):  # type: ignore
     """Panel for displaying and managing logs.
-    
+
     This panel provides real-time log display with filtering, searching,
     and export capabilities.
     """
 
     def __init__(self, id: str = "log-panel") -> None:
         """Initialize the log panel.
-        
+
         Args:
             id: Panel ID
 
@@ -68,10 +67,10 @@ class LogPanel(Container):  # type: ignore
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
         # State
-        self.log_entries: List[Dict[str, Any]] = []
-        self.filtered_entries: List[Dict[str, Any]] = []
+        self.log_entries: list[dict[str, Any]] = []
+        self.filtered_entries: list[dict[str, Any]] = []
         self.max_entries = 1000  # Maximum number of log entries to keep
-        self.filter_config: Dict[str, Any] = {
+        self.filter_config: dict[str, Any] = {
             "levels": {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
             "search_text": "",
             "show_timestamps": True,
@@ -81,7 +80,7 @@ class LogPanel(Container):  # type: ignore
 
     def compose(self) -> ComposeResult:
         """Compose the log panel layout.
-        
+
         Returns:
             ComposeResult: The composed UI elements
 
@@ -128,9 +127,9 @@ class LogPanel(Container):  # type: ignore
         log_display = self.query_one("#log-display", TextArea)
         log_display.text = "Log monitor ready. Waiting for log entries...\n"
 
-    def add_log_entries(self, entries: List[Dict[str, Any]]) -> None:
+    def add_log_entries(self, entries: list[dict[str, Any]]) -> None:
         """Add new log entries to the display.
-        
+
         Args:
             entries: List of log entries to add
 
@@ -142,15 +141,22 @@ class LogPanel(Container):  # type: ignore
 
         # Limit the number of entries
         if len(self.log_entries) > self.max_entries:
-            self.log_entries = self.log_entries[-self.max_entries:]
+            self.log_entries = self.log_entries[-self.max_entries :]
 
-        self.logger.debug("Applied filters and updating display", total_entries=len(self.log_entries))
+        self.logger.debug(
+            "Applied filters and updating display", total_entries=len(self.log_entries)
+        )
 
         # Apply filters and update display
         self._apply_filters()
         self._update_display()
 
-        self.logger.debug("Added log entries", count=len(entries), total=len(self.log_entries), filtered=len(self.filtered_entries))
+        self.logger.debug(
+            "Added log entries",
+            count=len(entries),
+            total=len(self.log_entries),
+            filtered=len(self.filtered_entries),
+        )
 
     def clear_logs(self) -> None:
         """Clear all log entries."""
@@ -207,12 +213,12 @@ class LogPanel(Container):  # type: ignore
         if auto_scroll_btn.variant == "primary":
             log_display.scroll_end()
 
-    def _format_log_entry(self, entry: Dict[str, Any]) -> str:
+    def _format_log_entry(self, entry: dict[str, Any]) -> str:
         """Format a log entry for display.
-        
+
         Args:
             entry: Log entry dictionary
-            
+
         Returns:
             Formatted log entry string
 
@@ -250,7 +256,7 @@ class LogPanel(Container):  # type: ignore
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press events.
-        
+
         Args:
             event: Button press event
 
@@ -270,7 +276,7 @@ class LogPanel(Container):  # type: ignore
 
     def on_checkbox_changed(self, event: Checkbox.Changed) -> None:
         """Handle checkbox change events.
-        
+
         Args:
             event: Checkbox change event
 
@@ -301,7 +307,7 @@ class LogPanel(Container):  # type: ignore
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle input field changes.
-        
+
         Args:
             event: Input change event
 
@@ -357,9 +363,9 @@ class LogPanel(Container):  # type: ignore
         self._apply_filters()
         self._update_display()
 
-    def get_log_statistics(self) -> Dict[str, Any]:
+    def get_log_statistics(self) -> dict[str, Any]:
         """Get log statistics.
-        
+
         Returns:
             Dictionary of log statistics
 
@@ -368,7 +374,7 @@ class LogPanel(Container):  # type: ignore
         filtered_entries = len(self.filtered_entries)
 
         # Count by level
-        level_counts: Dict[str, int] = {}
+        level_counts: dict[str, int] = {}
         for entry in self.log_entries:
             level = entry.get("level", "INFO")
             level_counts[level] = level_counts.get(level, 0) + 1
@@ -383,7 +389,7 @@ class LogPanel(Container):  # type: ignore
 
     def set_max_entries(self, max_entries: int) -> None:
         """Set maximum number of log entries to keep.
-        
+
         Args:
             max_entries: Maximum number of entries
 

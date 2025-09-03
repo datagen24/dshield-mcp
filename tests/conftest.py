@@ -10,6 +10,13 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+# Register custom pytest marks
+def pytest_configure(config):
+    """Configure custom pytest marks."""
+    config.addinivalue_line("markers", "integration: mark test as integration test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "security: mark test as security-related")
+    config.addinivalue_line("markers", "tui: mark test as TUI-related")
 
 
 @pytest.fixture

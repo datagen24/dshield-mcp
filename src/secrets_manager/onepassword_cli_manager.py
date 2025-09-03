@@ -8,24 +8,24 @@ import json
 import logging
 import subprocess
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base_secrets_manager import APIKey, BaseSecretsManager
 
 
 class OnePasswordCLIManager(BaseSecretsManager):
     """1Password secrets manager using op CLI exclusively.
-    
+
     This implementation uses the 1Password CLI tool to store and retrieve
     API keys and other secrets from a 1Password vault.
     """
 
     def __init__(self, vault: str) -> None:
         """Initialize the 1Password CLI manager.
-        
+
         Args:
             vault: The name of the 1Password vault to use
-            
+
         Raises:
             RuntimeError: If op CLI is not installed or not authenticated
 
@@ -36,7 +36,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     def _verify_op_cli(self) -> None:
         """Verify op CLI is installed and authenticated.
-        
+
         Raises:
             RuntimeError: If op CLI is not available or not authenticated
 
@@ -45,7 +45,8 @@ class OnePasswordCLIManager(BaseSecretsManager):
             # Check if op CLI is installed
             result = subprocess.run(
                 ["op", "--version"],
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=10,
             )
@@ -55,7 +56,8 @@ class OnePasswordCLIManager(BaseSecretsManager):
             # Check if user is authenticated
             result = subprocess.run(
                 ["op", "account", "list"],
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=10,
             )
@@ -69,19 +71,19 @@ class OnePasswordCLIManager(BaseSecretsManager):
         except FileNotFoundError:
             raise RuntimeError(
                 "op CLI not found. Install from https://1password.com/downloads/command-line",
-            )
+            ) from None
         except subprocess.TimeoutExpired:
-            raise RuntimeError("op CLI command timed out")
+            raise RuntimeError("op CLI command timed out") from None
 
-    def _run_op_command(self, args: List[str]) -> Dict[str, Any]:
+    def _run_op_command(self, args: list[str]) -> Any:
         """Run op CLI command and return JSON output.
-        
+
         Args:
             args: List of arguments to pass to op CLI
-            
+
         Returns:
             Parsed JSON output from the command
-            
+
         Raises:
             RuntimeError: If the op command fails
 
@@ -91,7 +93,8 @@ class OnePasswordCLIManager(BaseSecretsManager):
         try:
             result = subprocess.run(
                 cmd,
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=30,
             )
@@ -106,16 +109,16 @@ class OnePasswordCLIManager(BaseSecretsManager):
             return json.loads(result.stdout)
 
         except json.JSONDecodeError as e:
-            raise RuntimeError(f"Failed to parse op CLI JSON output: {e}")
+            raise RuntimeError(f"Failed to parse op CLI JSON output: {e}") from e
         except subprocess.TimeoutExpired:
-            raise RuntimeError("op CLI command timed out")
+            raise RuntimeError("op CLI command timed out") from None
 
     async def store_api_key(self, api_key: APIKey) -> bool:
         """Store API key as a structured item in 1Password.
-        
+
         Args:
             api_key: The API key object to store
-            
+
         Returns:
             True if the key was stored successfully, False otherwise
 
@@ -169,8 +172,10 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
             # Create the item using op CLI
             args = [
-                "item", "create",
-                "--vault", self.vault,
+                "item",
+                "create",
+                "--vault",
+                self.vault,
                 json.dumps(item_data),
             ]
 
@@ -186,12 +191,12 @@ class OnePasswordCLIManager(BaseSecretsManager):
             self.logger.error(f"Error storing API key {api_key.key_id}: {e}")
             return False
 
-    async def retrieve_api_key(self, key_id: str) -> Optional[APIKey]:
+    async def retrieve_api_key(self, key_id: str) -> APIKey | None:
         """Retrieve an API key by ID.
-        
+
         Args:
             key_id: The unique identifier of the API key
-            
+
         Returns:
             The API key object if found, None otherwise
 
@@ -199,9 +204,11 @@ class OnePasswordCLIManager(BaseSecretsManager):
         try:
             # Search for the item by title
             args = [
-                "item", "get",
+                "item",
+                "get",
                 f"dshield-mcp-key-{key_id}",
-                "--vault", self.vault,
+                "--vault",
+                self.vault,
             ]
 
             result = self._run_op_command(args)
@@ -235,9 +242,9 @@ class OnePasswordCLIManager(BaseSecretsManager):
             self.logger.error(f"Error retrieving API key {key_id}: {e}")
             return None
 
-    async def list_api_keys(self) -> List[APIKey]:
+    async def list_api_keys(self) -> list[APIKey]:
         """List all API keys stored in 1Password.
-        
+
         Returns:
             List of all API key objects
 
@@ -245,9 +252,12 @@ class OnePasswordCLIManager(BaseSecretsManager):
         try:
             # List all items with the dshield-mcp-api-key tag
             args = [
-                "item", "list",
-                "--vault", self.vault,
-                "--tags", "dshield-mcp-api-key",
+                "item",
+                "list",
+                "--vault",
+                self.vault,
+                "--tags",
+                "dshield-mcp-api-key",
             ]
 
             items = self._run_op_command(args)
@@ -271,10 +281,10 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     async def delete_api_key(self, key_id: str) -> bool:
         """Delete an API key from 1Password.
-        
+
         Args:
             key_id: The unique identifier of the API key to delete
-            
+
         Returns:
             True if the key was deleted successfully, False otherwise
 
@@ -282,9 +292,11 @@ class OnePasswordCLIManager(BaseSecretsManager):
         try:
             # Delete the item by title
             args = [
-                "item", "delete",
+                "item",
+                "delete",
                 f"dshield-mcp-key-{key_id}",
-                "--vault", self.vault,
+                "--vault",
+                self.vault,
             ]
 
             result = self._run_op_command(args)
@@ -301,10 +313,10 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     async def update_api_key(self, api_key: APIKey) -> bool:
         """Update an existing API key in 1Password.
-        
+
         Args:
             api_key: The updated API key object
-            
+
         Returns:
             True if the key was updated successfully, False otherwise
 
@@ -321,7 +333,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     async def health_check(self) -> bool:
         """Check if the 1Password CLI is available and properly configured.
-        
+
         Returns:
             True if the secrets manager is healthy, False otherwise
 

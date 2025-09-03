@@ -1,6 +1,7 @@
 """Feature manager for DShield MCP server."""
+
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import structlog
 
@@ -48,21 +49,21 @@ FEATURE_DESCRIPTIONS = {
 
 # Feature criticality levels
 FEATURE_CRITICALITY = {
-    "elasticsearch_queries": "critical",      # Core functionality
-    "dshield_enrichment": "important",       # Enhanced functionality
-    "latex_reports": "optional",             # Nice to have
-    "threat_intelligence": "important",      # Enhanced functionality
-    "campaign_analysis": "important",        # Enhanced functionality
-    "data_dictionary": "optional",           # Documentation
-    "statistical_analysis": "important",     # Enhanced functionality
-    "streaming_queries": "important",        # Performance feature
-    "aggregation_queries": "important",      # Performance feature
-    "report_generation": "optional",         # Nice to have
-    "threat_enrichment": "important",        # Enhanced functionality
-    "campaign_correlation": "important",     # Enhanced functionality
-    "data_export": "optional",               # Nice to have
-    "health_monitoring": "optional",         # Operational
-    "configuration_management": "optional",   # Operational
+    "elasticsearch_queries": "critical",  # Core functionality
+    "dshield_enrichment": "important",  # Enhanced functionality
+    "latex_reports": "optional",  # Nice to have
+    "threat_intelligence": "important",  # Enhanced functionality
+    "campaign_analysis": "important",  # Enhanced functionality
+    "data_dictionary": "optional",  # Documentation
+    "statistical_analysis": "important",  # Enhanced functionality
+    "streaming_queries": "important",  # Performance feature
+    "aggregation_queries": "important",  # Performance feature
+    "report_generation": "optional",  # Nice to have
+    "threat_enrichment": "important",  # Enhanced functionality
+    "campaign_correlation": "important",  # Enhanced functionality
+    "data_export": "optional",  # Nice to have
+    "health_monitoring": "optional",  # Operational
+    "configuration_management": "optional",  # Operational
 }
 
 
@@ -71,19 +72,19 @@ class FeatureManager:
 
     def __init__(self, health_manager: HealthCheckManager) -> None:
         """Initialize the feature manager.
-        
+
         Args:
             health_manager: Health check manager instance
 
         """
         self.health_manager = health_manager
-        self.features: Dict[str, bool] = {}
-        self.feature_details: Dict[str, Dict[str, Any]] = {}
+        self.features: dict[str, bool] = {}
+        self.feature_details: dict[str, dict[str, Any]] = {}
         self._initialized = False
 
     async def initialize_features(self) -> None:
         """Initialize feature availability based on health checks.
-        
+
         This method runs health checks and determines which features
         are available based on dependency health.
         """
@@ -126,7 +127,9 @@ class FeatureManager:
                             "description": FEATURE_DESCRIPTIONS.get(feature, "Unknown feature"),
                         }
                     else:
-                        unhealthy_deps = [dep for dep, healthy in dependency_status.items() if not healthy]
+                        unhealthy_deps = [
+                            dep for dep, healthy in dependency_status.items() if not healthy
+                        ]
                         self.feature_details[feature] = {
                             "available": False,
                             "reason": f"Unhealthy dependencies: {', '.join(unhealthy_deps)}",
@@ -142,20 +145,24 @@ class FeatureManager:
             available_count = sum(self.features.values())
             total_count = len(self.features)
 
-            logger.info("Feature initialization completed",
-                       available_features=available_count,
-                       total_features=total_count,
-                       availability_percentage=round(available_count/total_count*100, 1))
+            logger.info(
+                "Feature initialization completed",
+                available_features=available_count,
+                total_features=total_count,
+                availability_percentage=round(available_count / total_count * 100, 1),
+            )
 
             # Log critical features that are unavailable
             critical_unavailable = [
-                feature for feature, available in self.features.items()
+                feature
+                for feature, available in self.features.items()
                 if not available and FEATURE_CRITICALITY.get(feature) == "critical"
             ]
 
             if critical_unavailable:
-                logger.warning("Critical features unavailable",
-                             critical_unavailable=critical_unavailable)
+                logger.warning(
+                    "Critical features unavailable", critical_unavailable=critical_unavailable
+                )
 
         except Exception as e:
             logger.error("Feature initialization failed", error=str(e))
@@ -171,10 +178,10 @@ class FeatureManager:
 
     def is_feature_available(self, feature: str) -> bool:
         """Check if a feature is available.
-        
+
         Args:
             feature: Name of the feature to check
-            
+
         Returns:
             bool: True if feature is available, False otherwise
 
@@ -185,9 +192,9 @@ class FeatureManager:
 
         return self.features.get(feature, False)
 
-    def get_available_features(self) -> List[str]:
+    def get_available_features(self) -> list[str]:
         """Get list of available features.
-        
+
         Returns:
             List[str]: List of available feature names
 
@@ -197,9 +204,9 @@ class FeatureManager:
 
         return [feature for feature, available in self.features.items() if available]
 
-    def get_unavailable_features(self) -> List[str]:
+    def get_unavailable_features(self) -> list[str]:
         """Get list of unavailable features.
-        
+
         Returns:
             List[str]: List of unavailable feature names
 
@@ -209,42 +216,42 @@ class FeatureManager:
 
         return [feature for feature, available in self.features.items() if not available]
 
-    def get_feature_dependencies(self, feature: str) -> List[str]:
+    def get_feature_dependencies(self, feature: str) -> list[str]:
         """Get dependencies required for a feature.
-        
+
         Args:
             feature: Name of the feature
-            
+
         Returns:
             List[str]: List of dependency names
 
         """
         return FEATURE_DEPENDENCIES.get(feature, [])
 
-    def get_feature_details(self, feature: str) -> Optional[Dict[str, Any]]:
+    def get_feature_details(self, feature: str) -> dict[str, Any] | None:
         """Get detailed information about a feature.
-        
+
         Args:
             feature: Name of the feature
-            
+
         Returns:
             Optional[Dict[str, Any]]: Feature details or None if not found
 
         """
         return self.feature_details.get(feature)
 
-    def get_all_feature_details(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_feature_details(self) -> dict[str, dict[str, Any]]:
         """Get details for all features.
-        
+
         Returns:
             Dict[str, Dict[str, Any]]: Dictionary of all feature details
 
         """
         return self.feature_details.copy()
 
-    def get_feature_summary(self) -> Dict[str, Any]:
+    def get_feature_summary(self) -> dict[str, Any]:
         """Get a summary of feature availability.
-        
+
         Returns:
             Dict[str, Any]: Feature availability summary
 
@@ -261,17 +268,16 @@ class FeatureManager:
 
         available_count = sum(self.features.values())
         total_count = len(self.features)
-        availability_percentage = round(available_count/total_count*100, 1)
+        availability_percentage = round(available_count / total_count * 100, 1)
 
         # Check if critical features are available
         critical_features = [
-            feature for feature, criticality in FEATURE_CRITICALITY.items()
+            feature
+            for feature, criticality in FEATURE_CRITICALITY.items()
             if criticality == "critical"
         ]
 
-        critical_available = all(
-            self.features.get(feature, False) for feature in critical_features
-        )
+        critical_available = all(self.features.get(feature, False) for feature in critical_features)
 
         # Determine overall status
         if availability_percentage == 100:
@@ -299,7 +305,7 @@ class FeatureManager:
 
     def refresh_feature_status(self) -> None:
         """Refresh feature status based on current health checks.
-        
+
         This method can be called to update feature availability
         without re-initializing the entire manager.
         """
@@ -309,7 +315,7 @@ class FeatureManager:
 
     def is_initialized(self) -> bool:
         """Check if the feature manager has been initialized.
-        
+
         Returns:
             bool: True if initialized, False otherwise
 

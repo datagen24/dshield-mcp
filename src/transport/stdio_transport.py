@@ -6,7 +6,7 @@ default transport mechanism for MCP servers using stdin/stdout for communication
 """
 
 import sys
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
 import structlog
 from mcp.server.stdio import stdio_server  # type: ignore
@@ -18,10 +18,10 @@ logger = structlog.get_logger(__name__)
 
 class STDIOTransport(BaseTransport):
     """STDIO-based transport implementation.
-    
+
     This transport uses stdin/stdout for MCP protocol communication,
     which is the standard transport mechanism for MCP servers.
-    
+
     Attributes:
         server: The MCP server instance
         config: STDIO-specific configuration
@@ -30,9 +30,9 @@ class STDIOTransport(BaseTransport):
 
     """
 
-    def __init__(self, server: Any, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, server: Any, config: dict[str, Any] | None = None) -> None:
         """Initialize the STDIO transport.
-        
+
         Args:
             server: The MCP server instance
             config: STDIO-specific configuration
@@ -45,7 +45,7 @@ class STDIOTransport(BaseTransport):
     @property
     def transport_type(self) -> str:
         """Get the transport type identifier.
-        
+
         Returns:
             'stdio' for STDIO transport
 
@@ -54,9 +54,9 @@ class STDIOTransport(BaseTransport):
 
     async def start(self) -> None:
         """Start the STDIO transport.
-        
+
         Initializes the STDIO server and sets up the read/write streams.
-        
+
         Raises:
             TransportError: If the STDIO transport fails to start
 
@@ -73,11 +73,11 @@ class STDIOTransport(BaseTransport):
 
         except Exception as e:
             self.logger.error("Failed to start STDIO transport", error=str(e))
-            raise TransportError(f"Failed to start STDIO transport: {e}", "stdio")
+            raise TransportError(f"Failed to start STDIO transport: {e}", "stdio") from e
 
     async def stop(self) -> None:
         """Stop the STDIO transport.
-        
+
         Closes the STDIO streams and cleans up resources.
         """
         try:
@@ -97,10 +97,10 @@ class STDIOTransport(BaseTransport):
 
     async def run(self) -> None:
         """Run the STDIO transport main loop.
-        
+
         Executes the MCP server with STDIO streams, handling the complete
         MCP protocol lifecycle including initialization and message processing.
-        
+
         Raises:
             TransportError: If the transport fails during execution
 
@@ -120,11 +120,11 @@ class STDIOTransport(BaseTransport):
 
         except Exception as e:
             self.logger.error("STDIO transport main loop failed", error=str(e))
-            raise TransportError(f"STDIO transport main loop failed: {e}", "stdio")
+            raise TransportError(f"STDIO transport main loop failed: {e}", "stdio") from e
 
-    def get_streams(self) -> Tuple[Any, Any]:
+    def get_streams(self) -> tuple[Any, Any]:
         """Get the read and write streams.
-        
+
         Returns:
             Tuple of (read_stream, write_stream)
 
@@ -133,16 +133,17 @@ class STDIOTransport(BaseTransport):
 
     def is_available(self) -> bool:
         """Check if STDIO transport is available.
-        
+
         STDIO transport is always available if stdin/stdout are available.
-        
+
         Returns:
             True if STDIO is available, False otherwise
 
         """
         try:
             # Check if stdin/stdout are available and not redirected to a file
-            return (sys.stdin.isatty() or not sys.stdin.closed) and \
-                   (sys.stdout.isatty() or not sys.stdout.closed)
+            return (sys.stdin.isatty() or not sys.stdin.closed) and (
+                sys.stdout.isatty() or not sys.stdout.closed
+            )
         except Exception:
             return False

@@ -5,7 +5,7 @@ messages to prevent malformed input attacks and ensure protocol compliance.
 """
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
 import jsonschema
 import structlog
@@ -229,27 +229,29 @@ class MCPSchemaValidator:
 
     def validate_message_size(self, message: str) -> bool:
         """Validate message size is within limits.
-        
+
         Args:
             message: The JSON message string
-            
+
         Returns:
             True if message size is valid, False otherwise
 
         """
         if len(message.encode("utf-8")) > MAX_MESSAGE_SIZE:
-            self.logger.warning("Message size exceeds limit",
-                              size=len(message.encode("utf-8")),
-                              limit=MAX_MESSAGE_SIZE)
+            self.logger.warning(
+                "Message size exceeds limit",
+                size=len(message.encode("utf-8")),
+                limit=MAX_MESSAGE_SIZE,
+            )
             return False
         return True
 
-    def validate_json_structure(self, message: str) -> Optional[Dict[str, Any]]:
+    def validate_json_structure(self, message: str) -> dict[str, Any] | None:
         """Validate JSON structure and nesting depth.
-        
+
         Args:
             message: The JSON message string
-            
+
         Returns:
             Parsed JSON object if valid, None otherwise
 
@@ -269,20 +271,22 @@ class MCPSchemaValidator:
 
         # Check nesting depth
         if self._get_nesting_depth(parsed) > MAX_NESTING_DEPTH:
-            self.logger.warning("JSON nesting depth exceeds limit",
-                              depth=self._get_nesting_depth(parsed),
-                              limit=MAX_NESTING_DEPTH)
+            self.logger.warning(
+                "JSON nesting depth exceeds limit",
+                depth=self._get_nesting_depth(parsed),
+                limit=MAX_NESTING_DEPTH,
+            )
             return None
 
-        return parsed
+        return parsed  # type: ignore[no-any-return]
 
     def _get_nesting_depth(self, obj: Any, current_depth: int = 0) -> int:
         """Calculate the maximum nesting depth of a JSON object.
-        
+
         Args:
             obj: The JSON object to analyze
             current_depth: Current nesting depth
-            
+
         Returns:
             Maximum nesting depth
 
@@ -293,21 +297,19 @@ class MCPSchemaValidator:
         if isinstance(obj, dict):
             if not obj:
                 return current_depth
-            return max(self._get_nesting_depth(value, current_depth + 1)
-                      for value in obj.values())
+            return max(self._get_nesting_depth(value, current_depth + 1) for value in obj.values())
         if isinstance(obj, list):
             if not obj:
                 return current_depth
-            return max(self._get_nesting_depth(item, current_depth + 1)
-                      for item in obj)
+            return max(self._get_nesting_depth(item, current_depth + 1) for item in obj)
         return current_depth  # Leaf nodes return current depth
 
-    def validate_request(self, message: Dict[str, Any]) -> bool:
+    def validate_request(self, message: dict[str, Any]) -> bool:
         """Validate an MCP request message.
-        
+
         Args:
             message: The parsed JSON message
-            
+
         Returns:
             True if valid, False otherwise
 
@@ -316,20 +318,18 @@ class MCPSchemaValidator:
             self.request_validator.validate(message)
             return True
         except jsonschema.ValidationError as e:
-            self.logger.warning("MCP request validation failed",
-                              error=str(e),
-                              message=message)
+            self.logger.warning("MCP request validation failed", error=str(e), message=message)
             return False
         except Exception as e:
             self.logger.error("Unexpected error during request validation", error=str(e))
             return False
 
-    def validate_response(self, message: Dict[str, Any]) -> bool:
+    def validate_response(self, message: dict[str, Any]) -> bool:
         """Validate an MCP response message.
-        
+
         Args:
             message: The parsed JSON message
-            
+
         Returns:
             True if valid, False otherwise
 
@@ -338,20 +338,18 @@ class MCPSchemaValidator:
             self.response_validator.validate(message)
             return True
         except jsonschema.ValidationError as e:
-            self.logger.warning("MCP response validation failed",
-                              error=str(e),
-                              message=message)
+            self.logger.warning("MCP response validation failed", error=str(e), message=message)
             return False
         except Exception as e:
             self.logger.error("Unexpected error during response validation", error=str(e))
             return False
 
-    def validate_notification(self, message: Dict[str, Any]) -> bool:
+    def validate_notification(self, message: dict[str, Any]) -> bool:
         """Validate an MCP notification message.
-        
+
         Args:
             message: The parsed JSON message
-            
+
         Returns:
             True if valid, False otherwise
 
@@ -360,21 +358,19 @@ class MCPSchemaValidator:
             self.notification_validator.validate(message)
             return True
         except jsonschema.ValidationError as e:
-            self.logger.warning("MCP notification validation failed",
-                              error=str(e),
-                              message=message)
+            self.logger.warning("MCP notification validation failed", error=str(e), message=message)
             return False
         except Exception as e:
             self.logger.error("Unexpected error during notification validation", error=str(e))
             return False
 
-    def validate_tool_parameters(self, tool_name: str, params: Dict[str, Any]) -> bool:
+    def validate_tool_parameters(self, tool_name: str, params: dict[str, Any]) -> bool:
         """Validate tool-specific parameters.
-        
+
         Args:
             tool_name: Name of the tool
             params: Tool parameters to validate
-            
+
         Returns:
             True if valid, False otherwise
 
@@ -387,23 +383,25 @@ class MCPSchemaValidator:
             self.tool_validators[tool_name].validate(params)
             return True
         except jsonschema.ValidationError as e:
-            self.logger.warning("Tool parameter validation failed",
-                              tool_name=tool_name,
-                              error=str(e),
-                              params=params)
+            self.logger.warning(
+                "Tool parameter validation failed", tool_name=tool_name, error=str(e), params=params
+            )
             return False
         except Exception as e:
-            self.logger.error("Unexpected error during tool parameter validation",
-                            tool_name=tool_name, error=str(e))
+            self.logger.error(
+                "Unexpected error during tool parameter validation",
+                tool_name=tool_name,
+                error=str(e),
+            )
             return False
 
     def sanitize_string_input(self, value: str, max_length: int = 1000) -> str:
         """Sanitize string input to prevent injection attacks.
-        
+
         Args:
             value: Input string to sanitize
             max_length: Maximum allowed length
-            
+
         Returns:
             Sanitized string
 
@@ -447,18 +445,19 @@ class MCPSchemaValidator:
         ]
 
         import re
+
         all_patterns = sql_patterns + xss_patterns + path_patterns
         for pattern in all_patterns:
             value = re.sub(pattern, "", value, flags=re.IGNORECASE)
 
         return value.strip()
 
-    def validate_complete_message(self, message: str) -> Optional[Dict[str, Any]]:
+    def validate_complete_message(self, message: str) -> dict[str, Any] | None:
         """Perform complete message validation.
-        
+
         Args:
             message: The raw JSON message string
-            
+
         Returns:
             Validated and parsed message if valid, None otherwise
 
@@ -487,8 +486,11 @@ class MCPSchemaValidator:
             return None
 
         # Validate tool parameters if this is a tool call
-        if (parsed.get("method", "").startswith("tools/") and
-            "params" in parsed and parsed["params"]):
+        if (
+            parsed.get("method", "").startswith("tools/")
+            and "params" in parsed
+            and parsed["params"]
+        ):
             tool_name = parsed["method"].replace("tools/", "")
             if not self.validate_tool_parameters(tool_name, parsed["params"]):
                 return None

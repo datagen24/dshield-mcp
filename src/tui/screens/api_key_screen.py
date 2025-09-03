@@ -4,7 +4,7 @@ This module provides a modal screen for generating and configuring API keys
 with permissions, expiration, and rate limiting options.
 """
 
-from typing import Any, Dict
+from typing import Any
 
 import structlog
 from textual.app import ComposeResult  # type: ignore
@@ -26,9 +26,9 @@ logger = structlog.get_logger(__name__)
 class APIKeyGenerated(Message):  # type: ignore
     """Message sent when an API key has been generated."""
 
-    def __init__(self, key_config: Dict[str, Any]) -> None:
+    def __init__(self, key_config: dict[str, Any]) -> None:
         """Initialize API key generated message.
-        
+
         Args:
             key_config: Configuration for the generated API key
 

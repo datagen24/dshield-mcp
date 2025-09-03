@@ -24,8 +24,8 @@ import os
 import traceback
 import uuid
 from collections import Counter
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 import structlog
 
@@ -61,16 +61,16 @@ def _is_debug_mode() -> bool:
 
 class DataProcessor:
     """Process and structure DShield SIEM data for AI analysis.
-    
+
     This class provides methods to normalize, enrich, and summarize DShield SIEM
     data for use in AI-driven analytics and reporting. It includes attack pattern
     detection, severity/category mapping, and report generation utilities.
-    
+
     Attributes:
         dshield_attack_patterns: Mapping of attack pattern names to keywords
         dshield_severity_mapping: Mapping of severity labels to EventSeverity
         dshield_category_mapping: Mapping of category labels to EventCategory
-    
+
     Example:
         >>> processor = DataProcessor()
         >>> summary = processor.generate_security_summary(events)
@@ -79,19 +79,34 @@ class DataProcessor:
 
     def __init__(self) -> None:
         """Initialize the DataProcessor.
-        
+
         Sets up DShield-specific mappings for attack patterns, severity, and category.
         """
         # DShield-specific attack patterns and signatures
         self.dshield_attack_patterns = {
-            "brute_force": ["failed login", "authentication failure", "invalid credentials", "ssh brute force"],
+            "brute_force": [
+                "failed login",
+                "authentication failure",
+                "invalid credentials",
+                "ssh brute force",
+            ],
             "port_scan": ["port scan", "nmap", "masscan", "port scanning", "syn scan"],
             "sql_injection": ["sql injection", "sql error", "database error", "mysql error"],
             "xss": ["cross-site scripting", "xss", "script injection", "javascript injection"],
             "ddos": ["denial of service", "ddos", "flood attack", "syn flood", "udp flood"],
             "malware": ["malware", "virus", "trojan", "ransomware", "botnet"],
-            "phishing": ["phishing", "suspicious email", "credential harvesting", "social engineering"],
-            "reconnaissance": ["reconnaissance", "information gathering", "enumeration", "network scan"],
+            "phishing": [
+                "phishing",
+                "suspicious email",
+                "credential harvesting",
+                "social engineering",
+            ],
+            "reconnaissance": [
+                "reconnaissance",
+                "information gathering",
+                "enumeration",
+                "network scan",
+            ],
             "exploit": ["exploit", "vulnerability", "cve", "buffer overflow", "code injection"],
             "backdoor": ["backdoor", "reverse shell", "command injection", "remote access"],
             "data_exfiltration": ["data theft", "exfiltration", "sensitive data", "confidential"],
@@ -133,15 +148,15 @@ class DataProcessor:
             "other": EventCategory.OTHER,
         }
 
-    def process_security_events(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def process_security_events(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Process and normalize security events from DShield SIEM.
-        
+
         Normalizes, enriches, and detects attack patterns in a list of security events.
         Handles error logging and skips events that cannot be processed.
-        
+
         Args:
             events: List of raw event dictionaries
-        
+
         Returns:
             List of processed and normalized event dictionaries
 
@@ -158,7 +173,9 @@ class DataProcessor:
                 normalized_event = self._normalize_event(event)
 
                 # Detect attack patterns
-                normalized_event["attack_patterns"] = self._detect_attack_patterns([normalized_event])
+                normalized_event["attack_patterns"] = self._detect_attack_patterns(
+                    [normalized_event]
+                )
 
                 # Add DShield-specific enrichments
                 normalized_event = self._enrich_dshield_data(normalized_event)
@@ -167,31 +184,37 @@ class DataProcessor:
 
             except Exception as e:
                 if _is_debug_mode():
-                    logger.warning("Failed to process event",
-                                  event_id=event.get("id") if event else None,
-                                  error=str(e),
-                                  stack_trace=traceback.format_exc())
+                    logger.warning(
+                        "Failed to process event",
+                        event_id=event.get("id") if event else None,
+                        error=str(e),
+                        stack_trace=traceback.format_exc(),
+                    )
                 else:
-                    logger.warning("Failed to process event",
-                                  event_id=event.get("id") if event else None,
-                                  error=str(e))
+                    logger.warning(
+                        "Failed to process event",
+                        event_id=event.get("id") if event else None,
+                        error=str(e),
+                    )
                 continue
 
-        logger.info("Processed security events",
-                   total_events=len(events),
-                   processed_events=len(processed_events))
+        logger.info(
+            "Processed security events",
+            total_events=len(events),
+            processed_events=len(processed_events),
+        )
 
         return processed_events
 
-    def process_dshield_attacks(self, attacks: List[Dict[str, Any]]) -> List[DShieldAttack]:
+    def process_dshield_attacks(self, attacks: list[dict[str, Any]]) -> list[DShieldAttack]:
         """Process DShield attack events into structured format.
-        
+
         Converts raw attack event dictionaries into DShieldAttack model instances.
         Handles error logging and skips attacks that cannot be processed.
-        
+
         Args:
             attacks: List of raw attack event dictionaries
-        
+
         Returns:
             List of DShieldAttack model instances
 
@@ -203,7 +226,7 @@ class DataProcessor:
                 # Create DShieldAttack object
                 dshield_attack = DShieldAttack(
                     id=attack.get("id", str(uuid.uuid4())),
-                    timestamp=attack.get("timestamp", datetime.now(timezone.utc)),
+                    timestamp=attack.get("timestamp", datetime.now(UTC)),
                     source_ip=attack.get("source_ip", ""),
                     destination_ip=attack.get("destination_ip"),
                     source_port=attack.get("source_port"),
@@ -232,27 +255,31 @@ class DataProcessor:
 
             except Exception as e:
                 if _is_debug_mode():
-                    logger.warning("Failed to process DShield attack",
-                                  attack_id=attack.get("id"),
-                                  error=str(e),
-                                  stack_trace=traceback.format_exc())
+                    logger.warning(
+                        "Failed to process DShield attack",
+                        attack_id=attack.get("id"),
+                        error=str(e),
+                        stack_trace=traceback.format_exc(),
+                    )
                 else:
-                    logger.warning("Failed to process DShield attack",
-                                  attack_id=attack.get("id"),
-                                  error=str(e))
+                    logger.warning(
+                        "Failed to process DShield attack", attack_id=attack.get("id"), error=str(e)
+                    )
                 continue
 
         return processed_attacks
 
-    def process_dshield_reputation(self, reputation_data: List[Dict[str, Any]]) -> Dict[str, DShieldReputation]:
+    def process_dshield_reputation(
+        self, reputation_data: list[dict[str, Any]]
+    ) -> dict[str, DShieldReputation]:
         """Process DShield reputation data into structured format.
-        
+
         Converts raw reputation data dictionaries into DShieldReputation model instances.
         Handles error logging and skips entries that cannot be processed.
-        
+
         Args:
             reputation_data: List of raw reputation data dictionaries
-        
+
         Returns:
             Dictionary mapping IP addresses to DShieldReputation model instances
 
@@ -287,19 +314,25 @@ class DataProcessor:
 
             except Exception as e:
                 if _is_debug_mode():
-                    logger.warning("Failed to process DShield reputation",
-                                  ip=rep_data.get("source_ip"),
-                                  error=str(e),
-                                  stack_trace=traceback.format_exc())
+                    logger.warning(
+                        "Failed to process DShield reputation",
+                        ip=rep_data.get("source_ip"),
+                        error=str(e),
+                        stack_trace=traceback.format_exc(),
+                    )
                 else:
-                    logger.warning("Failed to process DShield reputation",
-                                  ip=rep_data.get("source_ip"),
-                                  error=str(e))
+                    logger.warning(
+                        "Failed to process DShield reputation",
+                        ip=rep_data.get("source_ip"),
+                        error=str(e),
+                    )
                 continue
 
         return processed_reputation
 
-    def process_dshield_top_attackers(self, attackers: List[Dict[str, Any]]) -> List[DShieldTopAttacker]:
+    def process_dshield_top_attackers(
+        self, attackers: list[dict[str, Any]]
+    ) -> list[DShieldTopAttacker]:
         """Process DShield top attackers data into structured format."""
         processed_attackers = []
 
@@ -326,19 +359,23 @@ class DataProcessor:
 
             except Exception as e:
                 if _is_debug_mode():
-                    logger.warning("Failed to process DShield top attacker",
-                                  ip=attacker.get("source_ip"),
-                                  error=str(e),
-                                  stack_trace=traceback.format_exc())
+                    logger.warning(
+                        "Failed to process DShield top attacker",
+                        ip=attacker.get("source_ip"),
+                        error=str(e),
+                        stack_trace=traceback.format_exc(),
+                    )
                 else:
-                    logger.warning("Failed to process DShield top attacker",
-                                  ip=attacker.get("source_ip"),
-                                  error=str(e))
+                    logger.warning(
+                        "Failed to process DShield top attacker",
+                        ip=attacker.get("source_ip"),
+                        error=str(e),
+                    )
                 continue
 
         return processed_attackers
 
-    def generate_dshield_summary(self, events: List[Dict[str, Any]]) -> DShieldStatistics:
+    def generate_dshield_summary(self, events: list[dict[str, Any]]) -> DShieldStatistics:
         """Generate DShield-specific security summary."""
         if not events:
             return self._create_empty_dshield_statistics()
@@ -350,13 +387,67 @@ class DataProcessor:
         stats = DShieldStatistics(
             time_range_hours=24,  # Default, should be configurable
             total_attacks=len(dshield_attacks),
-            unique_attackers=len(set(str(e.get("source_ip")) if isinstance(e.get("source_ip"), (list, dict)) else e.get("source_ip") for e in dshield_attacks if e.get("source_ip"))),
-            total_targets=len(set(str(e.get("destination_ip")) if isinstance(e.get("destination_ip"), (list, dict)) else e.get("destination_ip") for e in dshield_attacks if e.get("destination_ip"))),
-            countries_attacking=len(set(str(e.get("country")) if isinstance(e.get("country"), (list, dict)) else e.get("country") for e in events if e.get("country"))),
-            ports_targeted=len(set(str(e.get("destination_port")) if isinstance(e.get("destination_port"), (list, dict)) else e.get("destination_port") for e in events if e.get("destination_port"))),
-            protocols_used=len(set(str(e.get("protocol")) if isinstance(e.get("protocol"), (list, dict)) else e.get("protocol") for e in events if e.get("protocol"))),
-            asns_attacking=len(set(str(e.get("asn")) if isinstance(e.get("asn"), (list, dict)) else e.get("asn") for e in events if e.get("asn"))),
-            organizations_attacking=len(set(str(e.get("organization")) if isinstance(e.get("organization"), (list, dict)) else e.get("organization") for e in events if e.get("organization"))),
+            unique_attackers=len(
+                set(
+                    str(e.get("source_ip"))
+                    if isinstance(e.get("source_ip"), list | dict)
+                    else e.get("source_ip")
+                    for e in dshield_attacks
+                    if e.get("source_ip")
+                )
+            ),
+            total_targets=len(
+                set(
+                    str(e.get("destination_ip"))
+                    if isinstance(e.get("destination_ip"), list | dict)
+                    else e.get("destination_ip")
+                    for e in dshield_attacks
+                    if e.get("destination_ip")
+                )
+            ),
+            countries_attacking=len(
+                set(
+                    str(e.get("country"))
+                    if isinstance(e.get("country"), list | dict)
+                    else e.get("country")
+                    for e in events
+                    if e.get("country")
+                )
+            ),
+            ports_targeted=len(
+                set(
+                    str(e.get("destination_port"))
+                    if isinstance(e.get("destination_port"), list | dict)
+                    else e.get("destination_port")
+                    for e in events
+                    if e.get("destination_port")
+                )
+            ),
+            protocols_used=len(
+                set(
+                    str(e.get("protocol"))
+                    if isinstance(e.get("protocol"), list | dict)
+                    else e.get("protocol")
+                    for e in events
+                    if e.get("protocol")
+                )
+            ),
+            asns_attacking=len(
+                set(
+                    str(e.get("asn")) if isinstance(e.get("asn"), list | dict) else e.get("asn")
+                    for e in events
+                    if e.get("asn")
+                )
+            ),
+            organizations_attacking=len(
+                set(
+                    str(e.get("organization"))
+                    if isinstance(e.get("organization"), list | dict)
+                    else e.get("organization")
+                    for e in events
+                    if e.get("organization")
+                )
+            ),
             high_reputation_ips=len([e for e in events if e.get("reputation_score", 0) > 80]),
             top_countries=self._get_top_countries(events),
             top_ports=self._get_top_ports(events),
@@ -364,20 +455,19 @@ class DataProcessor:
             top_asns=self._get_top_asns(events),
             top_organizations=self._get_top_organizations(events),
             average_reputation_score=self._calculate_average_reputation(events),
-            indices_queried=list(set(
-                str(index) for e in events for index in e.get("indices", [])
-            )),
+            indices_queried=list(set(str(index) for e in events for index in e.get("indices", []))),
+            query_duration_ms=None,  # TODO: Calculate actual query duration
         )
 
         return stats
 
-    def generate_security_summary(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def generate_security_summary(self, events: list[dict[str, Any]]) -> dict[str, Any]:
         """Generate security summary statistics with DShield enrichment."""
         if not events:
             return self._create_empty_summary()
 
-        summary = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+        summary: dict[str, Any] = {
+            "timestamp": datetime.now(UTC).isoformat(),
             "time_range_hours": 24,  # Default, should be configurable
             "total_events": len(events),
             "events_by_severity": {},
@@ -391,7 +481,6 @@ class DataProcessor:
             "attack_patterns": {},
             "timeline": {},
             "indices_queried": [],
-
             # DShield-specific statistics
             "dshield_attacks": 0,
             "dshield_blocks": 0,
@@ -407,28 +496,32 @@ class DataProcessor:
         # Extract unique IPs
         source_ips = set()
         destination_ips = set()
-        ip_event_counts = Counter()
+        ip_event_counts: Counter[str] = Counter()
 
         # Process events
         for event in events:
             # Count by severity
             severity = event.get("severity", "medium")
             # Ensure severity is hashable
-            if isinstance(severity, (list, dict)):
+            if isinstance(severity, list | dict):
                 severity = str(severity)
-            summary["events_by_severity"][severity] = summary["events_by_severity"].get(severity, 0) + 1
+            summary["events_by_severity"][severity] = (
+                summary["events_by_severity"].get(severity, 0) + 1
+            )
 
             # Count by category
             category = event.get("category", "other")
             # Ensure category is hashable
-            if isinstance(category, (list, dict)):
+            if isinstance(category, list | dict):
                 category = str(category)
-            summary["events_by_category"][category] = summary["events_by_category"].get(category, 0) + 1
+            summary["events_by_category"][category] = (
+                summary["events_by_category"].get(category, 0) + 1
+            )
 
             # Track IPs - ensure they are hashable
             source_ip = event.get("source_ip")
             if source_ip:
-                if isinstance(source_ip, (list, dict)):
+                if isinstance(source_ip, list | dict):
                     source_ip_str = str(source_ip)
                 else:
                     source_ip_str = str(source_ip)
@@ -437,7 +530,7 @@ class DataProcessor:
 
             destination_ip = event.get("destination_ip")
             if destination_ip:
-                if isinstance(destination_ip, (list, dict)):
+                if isinstance(destination_ip, list | dict):
                     destination_ip_str = str(destination_ip)
                 else:
                     destination_ip_str = str(destination_ip)
@@ -460,7 +553,7 @@ class DataProcessor:
                 indices = event["indices"]
                 if isinstance(indices, list):
                     for index in indices:
-                        if isinstance(index, (list, dict)):
+                        if isinstance(index, list | dict):
                             summary["indices_queried"].append(str(index))
                         else:
                             summary["indices_queried"].append(str(index))
@@ -473,8 +566,7 @@ class DataProcessor:
 
         # Get top source IPs
         summary["top_source_ips"] = [
-            {"ip": ip, "count": count}
-            for ip, count in ip_event_counts.most_common(10)
+            {"ip": ip, "count": count} for ip, count in ip_event_counts.most_common(10)
         ]
 
         # Generate DShield-specific distributions
@@ -497,9 +589,9 @@ class DataProcessor:
 
     def generate_attack_report(
         self,
-        events: List[Dict[str, Any]],
-        threat_intelligence: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        events: list[dict[str, Any]],
+        threat_intelligence: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Generate structured attack report with DShield data."""
         if not events:
             return self._create_empty_attack_report()
@@ -525,21 +617,37 @@ class DataProcessor:
         impact_assessment = self._assess_impact(events, threat_indicators)
 
         # Generate recommendations
-        recommendations = self._generate_recommendations(events, threat_indicators, impact_assessment)
+        recommendations = self._generate_recommendations(
+            events, threat_indicators, impact_assessment
+        )
 
         # Process DShield-specific data
-        dshield_attacks = self.process_dshield_attacks([e for e in events if e.get("event_type") == "attack"])
-        dshield_reputation = self.process_dshield_reputation([e for e in events if e.get("event_type") == "reputation"])
-        top_attackers = self.process_dshield_top_attackers([e for e in events if e.get("attack_count", 0) > 1])
+        dshield_attacks = self.process_dshield_attacks(
+            [e for e in events if e.get("event_type") == "attack"]
+        )
+        dshield_reputation = self.process_dshield_reputation(
+            [e for e in events if e.get("event_type") == "reputation"]
+        )
+        top_attackers = self.process_dshield_top_attackers(
+            [e for e in events if e.get("attack_count", 0) > 1]
+        )
 
         # Create attack report
         report = {
             "report_id": report_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "title": f"Security Incident Report - {report_id[:8]}",
             "summary": self._generate_executive_summary(events, threat_indicators),
             "total_events": len(events),
-            "unique_ips": len(set(str(e.get("source_ip")) if isinstance(e.get("source_ip"), (list, dict)) else e.get("source_ip") for e in events if e.get("source_ip"))),
+            "unique_ips": len(
+                set(
+                    str(e.get("source_ip"))
+                    if isinstance(e.get("source_ip"), list | dict)
+                    else e.get("source_ip")
+                    for e in events
+                    if e.get("source_ip")
+                )
+            ),
             "time_range": self._calculate_time_range(events),
             "threat_indicators": threat_indicators,
             "high_risk_ips": self._identify_high_risk_ips(events, threat_intelligence),
@@ -559,36 +667,44 @@ class DataProcessor:
 
         return report
 
-    def extract_unique_ips(self, events: List[Dict[str, Any]]) -> List[str]:
+    def extract_unique_ips(self, events: list[dict[str, Any]]) -> list[str]:
         """Extract unique IP addresses from events."""
         unique_ips = set()
 
         for event in events:
             if event.get("source_ip"):
-                unique_ips.add(str(event["source_ip"]) if isinstance(event["source_ip"], (list, dict)) else event["source_ip"])
+                unique_ips.add(
+                    str(event["source_ip"])
+                    if isinstance(event["source_ip"], list | dict)
+                    else event["source_ip"]
+                )
             if event.get("destination_ip"):
-                unique_ips.add(str(event["destination_ip"]) if isinstance(event["destination_ip"], (list, dict)) else event["destination_ip"])
+                unique_ips.add(
+                    str(event["destination_ip"])
+                    if isinstance(event["destination_ip"], list | dict)
+                    else event["destination_ip"]
+                )
 
         return list(unique_ips)
 
-    def _normalize_event(self, event: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_event(self, event: dict[str, Any]) -> dict[str, Any]:
         """Normalize event data structure."""
         # Ensure severity and category are strings before using as dictionary keys
         severity_raw = event.get("severity", "medium")
-        if isinstance(severity_raw, (list, dict)):
+        if isinstance(severity_raw, list | dict):
             severity = str(severity_raw)
         else:
             severity = str(severity_raw)
 
         category_raw = event.get("category", "other")
-        if isinstance(category_raw, (list, dict)):
+        if isinstance(category_raw, list | dict):
             category = str(category_raw)
         else:
             category = str(category_raw)
 
         normalized = {
             "id": event.get("id", str(uuid.uuid4())),
-            "timestamp": event.get("timestamp", datetime.now(timezone.utc)),
+            "timestamp": event.get("timestamp", datetime.now(UTC)),
             "source_ip": event.get("source_ip"),
             "destination_ip": event.get("destination_ip"),
             "source_port": event.get("source_port"),
@@ -619,7 +735,7 @@ class DataProcessor:
 
         return normalized
 
-    def _enrich_dshield_data(self, event: Dict[str, Any]) -> Dict[str, Any]:
+    def _enrich_dshield_data(self, event: dict[str, Any]) -> dict[str, Any]:
         """Enrich event with DShield-specific data."""
         # Add threat level based on reputation score
         reputation_score = event.get("reputation_score")
@@ -647,9 +763,9 @@ class DataProcessor:
 
         return event
 
-    def _detect_attack_patterns(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _detect_attack_patterns(self, events: list[dict[str, Any]]) -> dict[str, int]:
         """Detect attack patterns in events."""
-        pattern_counts = Counter()
+        pattern_counts: Counter[str] = Counter()
 
         for event in events:
             # Robustly handle both strings and lists for description and event_type
@@ -671,96 +787,131 @@ class DataProcessor:
 
         return dict(pattern_counts)
 
-    def _get_top_countries(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_top_countries(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Get top countries by attack count."""
-        country_counts = Counter()
+        country_counts: Counter[str] = Counter()
         for event in events:
             if event.get("country"):
-                country_counts[str(event["country"]) if isinstance(event["country"], (list, dict)) else event["country"]] += 1
+                country_counts[
+                    str(event["country"])
+                    if isinstance(event["country"], list | dict)
+                    else event["country"]
+                ] += 1
 
-        return [{"country": country, "count": count}
-                for country, count in country_counts.most_common(10)]
+        return [
+            {"country": country, "count": count}
+            for country, count in country_counts.most_common(10)
+        ]
 
-    def _get_top_ports(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_top_ports(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Get top ports by attack count."""
-        port_counts = Counter()
+        port_counts: Counter[str] = Counter()
         for event in events:
             if event.get("destination_port"):
-                port_counts[str(event["destination_port"]) if isinstance(event["destination_port"], (list, dict)) else event["destination_port"]] += 1
+                port_counts[
+                    str(event["destination_port"])
+                    if isinstance(event["destination_port"], list | dict)
+                    else event["destination_port"]
+                ] += 1
 
-        return [{"port": port, "count": count}
-                for port, count in port_counts.most_common(10)]
+        return [{"port": port, "count": count} for port, count in port_counts.most_common(10)]
 
-    def _get_top_protocols(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_top_protocols(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Get top protocols by attack count."""
-        protocol_counts = Counter()
+        protocol_counts: Counter[str] = Counter()
         for event in events:
             if event.get("protocol"):
-                protocol_counts[str(event["protocol"]) if isinstance(event["protocol"], (list, dict)) else event["protocol"]] += 1
+                protocol_counts[
+                    str(event["protocol"])
+                    if isinstance(event["protocol"], list | dict)
+                    else event["protocol"]
+                ] += 1
 
-        return [{"protocol": protocol, "count": count}
-                for protocol, count in protocol_counts.most_common(10)]
+        return [
+            {"protocol": protocol, "count": count}
+            for protocol, count in protocol_counts.most_common(10)
+        ]
 
-    def _get_top_asns(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_top_asns(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Get top ASNs by attack count."""
-        asn_counts = Counter()
+        asn_counts: Counter[str] = Counter()
         for event in events:
             if event.get("asn"):
-                asn_counts[str(event["asn"]) if isinstance(event["asn"], (list, dict)) else event["asn"]] += 1
+                asn_counts[
+                    str(event["asn"]) if isinstance(event["asn"], list | dict) else event["asn"]
+                ] += 1
 
-        return [{"asn": asn, "count": count}
-                for asn, count in asn_counts.most_common(10)]
+        return [{"asn": asn, "count": count} for asn, count in asn_counts.most_common(10)]
 
-    def _get_top_organizations(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_top_organizations(self, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Get top organizations by attack count."""
-        org_counts = Counter()
+        org_counts: Counter[str] = Counter()
         for event in events:
             if event.get("organization"):
-                org_counts[str(event["organization"]) if isinstance(event["organization"], (list, dict)) else event["organization"]] += 1
+                org_counts[
+                    str(event["organization"])
+                    if isinstance(event["organization"], list | dict)
+                    else event["organization"]
+                ] += 1
 
-        return [{"organization": org, "count": count}
-                for org, count in org_counts.most_common(10)]
+        return [{"organization": org, "count": count} for org, count in org_counts.most_common(10)]
 
-    def _calculate_average_reputation(self, events: List[Dict[str, Any]]) -> Optional[float]:
+    def _calculate_average_reputation(self, events: list[dict[str, Any]]) -> float | None:
         """Calculate average reputation score."""
-        scores = [e.get("reputation_score") for e in events if e.get("reputation_score") is not None]
+        scores = [
+            float(e.get("reputation_score", 0)) for e in events if e.get("reputation_score") is not None
+        ]
         return sum(scores) / len(scores) if scores else None
 
-    def _get_geographic_distribution(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _get_geographic_distribution(self, events: list[dict[str, Any]]) -> dict[str, int]:
         """Get geographic distribution of attacks."""
-        distribution = Counter()
+        distribution: Counter[str] = Counter()
         for event in events:
             if event.get("country"):
-                distribution[str(event["country"]) if isinstance(event["country"], (list, dict)) else event["country"]] += 1
+                distribution[
+                    str(event["country"])
+                    if isinstance(event["country"], list | dict)
+                    else event["country"]
+                ] += 1
         return dict(distribution)
 
-    def _get_port_distribution(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _get_port_distribution(self, events: list[dict[str, Any]]) -> dict[str, int]:
         """Get port distribution of attacks."""
-        distribution = Counter()
+        distribution: Counter[str] = Counter()
         for event in events:
             if event.get("destination_port"):
-                distribution[str(event["destination_port"]) if isinstance(event["destination_port"], (list, dict)) else event["destination_port"]] += 1
+                distribution[
+                    str(event["destination_port"])
+                    if isinstance(event["destination_port"], list | dict)
+                    else event["destination_port"]
+                ] += 1
         return dict(distribution)
 
-    def _get_asn_distribution(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _get_asn_distribution(self, events: list[dict[str, Any]]) -> dict[str, int]:
         """Get ASN distribution of attacks."""
-        distribution = Counter()
+        distribution: Counter[str] = Counter()
         for event in events:
             if event.get("asn"):
-                distribution[str(event["asn"]) if isinstance(event["asn"], (list, dict)) else event["asn"]] += 1
+                distribution[
+                    str(event["asn"]) if isinstance(event["asn"], list | dict) else event["asn"]
+                ] += 1
         return dict(distribution)
 
-    def _get_organization_distribution(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _get_organization_distribution(self, events: list[dict[str, Any]]) -> dict[str, int]:
         """Get organization distribution of attacks."""
-        distribution = Counter()
+        distribution: Counter[str] = Counter()
         for event in events:
             if event.get("organization"):
-                distribution[str(event["organization"]) if isinstance(event["organization"], (list, dict)) else event["organization"]] += 1
+                distribution[
+                    str(event["organization"])
+                    if isinstance(event["organization"], list | dict)
+                    else event["organization"]
+                ] += 1
         return dict(distribution)
 
-    def _get_reputation_distribution(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _get_reputation_distribution(self, events: list[dict[str, Any]]) -> dict[str, int]:
         """Get reputation score distribution."""
-        distribution = Counter()
+        distribution: Counter[str] = Counter()
         for event in events:
             score = event.get("reputation_score")
             if score is not None:
@@ -772,9 +923,9 @@ class DataProcessor:
                     distribution["low"] += 1
         return dict(distribution)
 
-    def _generate_timeline(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _generate_timeline(self, events: list[dict[str, Any]]) -> dict[str, int]:
         """Generate timeline of events."""
-        timeline = Counter()
+        timeline: Counter[str] = Counter()
         for event in events:
             timestamp = event.get("timestamp")
             if timestamp:
@@ -789,7 +940,7 @@ class DataProcessor:
                     continue
         return dict(timeline)
 
-    def _analyze_events(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _analyze_events(self, events: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze events for patterns and insights."""
         # Filter out unhashable values for Counter
         severity_values = []
@@ -801,13 +952,13 @@ class DataProcessor:
 
             # Convert to string if it's not hashable
             if severity is not None:
-                if isinstance(severity, (list, dict)):
+                if isinstance(severity, list | dict):
                     severity_values.append(str(severity))
                 else:
                     severity_values.append(severity)
 
             if category is not None:
-                if isinstance(category, (list, dict)):
+                if isinstance(category, list | dict):
                     category_values.append(str(category))
                 else:
                     category_values.append(category)
@@ -817,7 +968,7 @@ class DataProcessor:
         for event in events:
             source_ip = event.get("source_ip")
             if source_ip:
-                if isinstance(source_ip, (list, dict)):
+                if isinstance(source_ip, list | dict):
                     unique_ips.add(str(source_ip))
                 else:
                     unique_ips.add(str(source_ip))
@@ -830,46 +981,60 @@ class DataProcessor:
             "category_distribution": Counter(category_values),
         }
 
-    def _extract_threat_indicators(self, events: List[Dict[str, Any]], threat_intelligence: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _extract_threat_indicators(
+        self, events: list[dict[str, Any]], threat_intelligence: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Extract threat indicators from events and threat intelligence."""
         indicators = []
 
         for event in events:
             if event.get("reputation_score", 0) > 80:
-                indicators.append({
-                    "type": "high_reputation_score",
-                    "value": str(event.get("source_ip")) if isinstance(event.get("source_ip"), (list, dict)) else event.get("source_ip"),
-                    "score": event.get("reputation_score"),
-                    "description": f"IP {str(event.get('source_ip')) if isinstance(event.get('source_ip'), (list, dict)) else event.get('source_ip')} has high reputation score",
-                })
+                indicators.append(
+                    {
+                        "type": "high_reputation_score",
+                        "value": str(event.get("source_ip"))
+                        if isinstance(event.get("source_ip"), list | dict)
+                        else event.get("source_ip"),
+                        "score": event.get("reputation_score"),
+                        "description": f"IP {str(event.get('source_ip')) if isinstance(event.get('source_ip'), list | dict) else event.get('source_ip')} has high reputation score",
+                    }
+                )
 
             if event.get("attack_count", 0) > 10:
-                indicators.append({
-                    "type": "high_attack_count",
-                    "value": str(event.get("source_ip")) if isinstance(event.get("source_ip"), (list, dict)) else event.get("source_ip"),
-                    "count": event.get("attack_count"),
-                    "description": f"IP {str(event.get('source_ip')) if isinstance(event.get('source_ip'), (list, dict)) else event.get('source_ip')} has high attack count",
-                })
+                indicators.append(
+                    {
+                        "type": "high_attack_count",
+                        "value": str(event.get("source_ip"))
+                        if isinstance(event.get("source_ip"), list | dict)
+                        else event.get("source_ip"),
+                        "count": event.get("attack_count"),
+                        "description": f"IP {str(event.get('source_ip')) if isinstance(event.get('source_ip'), list | dict) else event.get('source_ip')} has high attack count",
+                    }
+                )
 
         return indicators
 
-    def _identify_attack_vectors(self, events: List[Dict[str, Any]]) -> List[str]:
+    def _identify_attack_vectors(self, events: list[dict[str, Any]]) -> list[str]:
         """Identify attack vectors from events."""
         vectors = set()
 
         for event in events:
             if event.get("destination_port"):
-                vectors.add(f"Port {str(event['destination_port']) if isinstance(event['destination_port'], (list, dict)) else event['destination_port']}")
+                vectors.add(
+                    f"Port {str(event['destination_port']) if isinstance(event['destination_port'], list | dict) else event['destination_port']}"
+                )
 
             if event.get("protocol"):
-                vectors.add(f"Protocol {str(event['protocol']) if isinstance(event['protocol'], (list, dict)) else event['protocol']}")
+                vectors.add(
+                    f"Protocol {str(event['protocol']) if isinstance(event['protocol'], list | dict) else event['protocol']}"
+                )
 
             if event.get("attack_types"):
                 # Handle attack_types that might contain unhashable types
                 attack_types = event["attack_types"]
                 if isinstance(attack_types, list):
                     for attack_type in attack_types:
-                        if isinstance(attack_type, (list, dict)):
+                        if isinstance(attack_type, list | dict):
                             vectors.add(str(attack_type))
                         else:
                             vectors.add(attack_type)
@@ -878,20 +1043,28 @@ class DataProcessor:
 
         return list(vectors)
 
-    def _identify_affected_systems(self, events: List[Dict[str, Any]]) -> List[str]:
+    def _identify_affected_systems(self, events: list[dict[str, Any]]) -> list[str]:
         """Identify affected systems from events."""
         systems = set()
 
         for event in events:
             if event.get("destination_ip"):
-                systems.add(str(event["destination_ip"]) if isinstance(event["destination_ip"], (list, dict)) else event["destination_ip"])
+                systems.add(
+                    str(event["destination_ip"])
+                    if isinstance(event["destination_ip"], list | dict)
+                    else event["destination_ip"]
+                )
 
         return list(systems)
 
-    def _assess_impact(self, events: List[Dict[str, Any]], threat_indicators: List[Dict[str, Any]]) -> str:
+    def _assess_impact(
+        self, events: list[dict[str, Any]], threat_indicators: list[dict[str, Any]]
+    ) -> str:
         """Assess the impact of the security incident."""
         high_severity_count = len([e for e in events if e.get("severity") in ["high", "critical"]])
-        high_reputation_count = len([i for i in threat_indicators if i.get("type") == "high_reputation_score"])
+        high_reputation_count = len(
+            [i for i in threat_indicators if i.get("type") == "high_reputation_score"]
+        )
 
         if high_severity_count > 10 or high_reputation_count > 5:
             return "High - Multiple high-severity events and high-reputation attackers detected"
@@ -899,7 +1072,9 @@ class DataProcessor:
             return "Medium - Several high-severity events or high-reputation attackers detected"
         return "Low - Limited high-severity events detected"
 
-    def _generate_recommendations(self, events: List[Dict[str, Any]], threat_indicators: List[Dict[str, Any]], impact: str) -> List[str]:
+    def _generate_recommendations(
+        self, events: list[dict[str, Any]], threat_indicators: list[dict[str, Any]], impact: str
+    ) -> list[str]:
         """Generate security recommendations."""
         recommendations = []
 
@@ -913,7 +1088,9 @@ class DataProcessor:
             recommendations.append("Block IP addresses with high DShield reputation scores")
 
         if any(e.get("attack_count", 0) > 10 for e in events):
-            recommendations.append("Implement additional monitoring for IPs with high attack counts")
+            recommendations.append(
+                "Implement additional monitoring for IPs with high attack counts"
+            )
 
         if impact == "High":
             recommendations.append("Consider implementing additional security controls")
@@ -921,12 +1098,16 @@ class DataProcessor:
 
         return recommendations
 
-    def _generate_mitigation_actions(self, events: List[Dict[str, Any]], threat_indicators: List[Dict[str, Any]]) -> List[str]:
+    def _generate_mitigation_actions(
+        self, events: list[dict[str, Any]], threat_indicators: list[dict[str, Any]]
+    ) -> list[str]:
         """Generate specific mitigation actions."""
         actions = []
 
         # Immediate actions
-        high_reputation_ips = [i.get("value") for i in threat_indicators if i.get("type") == "high_reputation_score"]
+        high_reputation_ips = [
+            str(i.get("value", "")) for i in threat_indicators if i.get("type") == "high_reputation_score"
+        ]
         if high_reputation_ips:
             actions.append(f"Block IP addresses: {', '.join(high_reputation_ips[:5])}")
 
@@ -936,7 +1117,9 @@ class DataProcessor:
 
         return actions
 
-    def _assess_confidence_level(self, events: List[Dict[str, Any]], threat_intelligence: Dict[str, Any]) -> str:
+    def _assess_confidence_level(
+        self, events: list[dict[str, Any]], threat_intelligence: dict[str, Any]
+    ) -> str:
         """Assess confidence level of the analysis."""
         if len(events) > 50 and threat_intelligence:
             return "High"
@@ -944,14 +1127,14 @@ class DataProcessor:
             return "Medium"
         return "Low"
 
-    def _extract_tags(self, events: List[Dict[str, Any]]) -> List[str]:
+    def _extract_tags(self, events: list[dict[str, Any]]) -> list[str]:
         """Extract tags from events."""
         tags = set()
         for event in events:
             event_tags = event.get("tags", [])
             if isinstance(event_tags, list):
                 for tag in event_tags:
-                    if isinstance(tag, (list, dict)):
+                    if isinstance(tag, list | dict):
                         tags.add(str(tag))
                     else:
                         tags.add(tag)
@@ -959,7 +1142,9 @@ class DataProcessor:
                 tags.add(str(event_tags))
         return list(tags)
 
-    def _generate_executive_summary(self, events: List[Dict[str, Any]], threat_indicators: List[Dict[str, Any]]) -> str:
+    def _generate_executive_summary(
+        self, events: list[dict[str, Any]], threat_indicators: list[dict[str, Any]]
+    ) -> str:
         """Generate executive summary of the security incident."""
         total_events = len(events)
 
@@ -968,7 +1153,7 @@ class DataProcessor:
         for event in events:
             source_ip = event.get("source_ip")
             if source_ip:
-                if isinstance(source_ip, (list, dict)):
+                if isinstance(source_ip, list | dict):
                     unique_ips.add(str(source_ip))
                 else:
                     unique_ips.add(str(source_ip))
@@ -983,14 +1168,16 @@ class DataProcessor:
 
         return summary
 
-    def _identify_high_risk_ips(self, events: List[Dict[str, Any]], threat_intelligence: Dict[str, Any]) -> List[str]:
+    def _identify_high_risk_ips(
+        self, events: list[dict[str, Any]], threat_intelligence: dict[str, Any]
+    ) -> list[str]:
         """Identify high-risk IP addresses."""
         high_risk_ips = set()
 
         for event in events:
             source_ip = event.get("source_ip")
             if source_ip:
-                if isinstance(source_ip, (list, dict)):
+                if isinstance(source_ip, list | dict):
                     source_ip_str = str(source_ip)
                 else:
                     source_ip_str = str(source_ip)
@@ -1000,10 +1187,10 @@ class DataProcessor:
 
         return list(high_risk_ips)
 
-    def _create_empty_summary(self) -> Dict[str, Any]:
+    def _create_empty_summary(self) -> dict[str, Any]:
         """Create empty security summary."""
         return {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "time_range_hours": 24,
             "total_events": 0,
             "events_by_severity": {},
@@ -1028,11 +1215,11 @@ class DataProcessor:
             "reputation_distribution": {},
         }
 
-    def _create_empty_attack_report(self) -> Dict[str, Any]:
+    def _create_empty_attack_report(self) -> dict[str, Any]:
         """Create empty attack report."""
         return {
             "report_id": str(uuid.uuid4()),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "title": "No Security Events Detected",
             "summary": "No security events were found in the specified time range.",
             "total_events": 0,
@@ -1054,7 +1241,7 @@ class DataProcessor:
             "threat_intelligence": {},
         }
 
-    def _calculate_time_range(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _calculate_time_range(self, events: list[dict[str, Any]]) -> dict[str, Any]:
         """Calculate time range from events, handling empty sequences."""
         # Extract valid timestamps
         timestamps = []
@@ -1084,7 +1271,7 @@ class DataProcessor:
                 "end": max(timestamps),
             }
         # Return current time as fallback
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(UTC)
         return {
             "start": current_time,
             "end": current_time,
@@ -1110,4 +1297,5 @@ class DataProcessor:
             top_organizations=[],
             average_reputation_score=None,
             indices_queried=[],
+            query_duration_ms=None,
         )

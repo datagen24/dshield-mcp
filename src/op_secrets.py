@@ -23,7 +23,7 @@ Example:
 
 import re
 import subprocess
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
 
@@ -34,14 +34,14 @@ logger = structlog.get_logger(__name__)
 
 class OnePasswordSecrets:
     """Handle 1Password secret resolution for config values.
-    
+
     This class provides methods to resolve 1Password CLI references (op:// URLs)
     in configuration values. It automatically detects 1Password CLI availability
     and provides fallback behavior when the CLI is not available.
-    
+
     Attributes:
         op_available: Whether the 1Password CLI is available and working
-    
+
     Example:
         >>> op = OnePasswordSecrets()
         >>> if op.op_available:
@@ -52,7 +52,7 @@ class OnePasswordSecrets:
 
     def __init__(self) -> None:
         """Initialize the OnePasswordSecrets manager.
-        
+
         Checks for 1Password CLI availability and logs a warning if it's not
         available. This affects the behavior of URL resolution methods.
         """
@@ -62,10 +62,10 @@ class OnePasswordSecrets:
 
     def _check_op_cli(self) -> bool:
         """Check if 1Password CLI is available.
-        
+
         Attempts to run the 1Password CLI version command to verify
         that the tool is installed and accessible.
-        
+
         Returns:
             True if 1Password CLI is available, False otherwise
 
@@ -73,7 +73,8 @@ class OnePasswordSecrets:
         try:
             result = subprocess.run(
                 ["op", "--version"],
-                check=False, capture_output=True,
+                check=False,
+                capture_output=True,
                 text=True,
                 timeout=5,
             )
@@ -81,18 +82,18 @@ class OnePasswordSecrets:
         except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
             return False
 
-    def resolve_op_url(self, op_url: str) -> Optional[str]:
+    def resolve_op_url(self, op_url: str) -> str | None:
         """Resolve a 1Password URL (op://) to its actual value.
-        
+
         Uses the 1Password CLI to retrieve the secret value referenced
         by the op:// URL. Handles various error conditions gracefully.
-        
+
         Args:
             op_url: The 1Password URL (e.g., "op://vault/item/field")
-        
+
         Returns:
             The resolved secret value or None if resolution failed
-            
+
         Raises:
             subprocess.TimeoutExpired: If the CLI command times out
             subprocess.CalledProcessError: If the CLI command fails
@@ -119,27 +120,27 @@ class OnePasswordSecrets:
             logger.error("Timeout resolving 1Password URL (5s timeout)", op_url=op_url)
             return None
         except subprocess.CalledProcessError as e:
-            logger.error("Failed to resolve 1Password URL",
-                        op_url=op_url,
-                        error=e.stderr.strip(),
-                        return_code=e.returncode)
+            logger.error(
+                "Failed to resolve 1Password URL",
+                op_url=op_url,
+                error=e.stderr.strip(),
+                return_code=e.returncode,
+            )
             return None
         except Exception as e:
-            logger.error("Unexpected error resolving 1Password URL",
-                        op_url=op_url,
-                        error=str(e))
+            logger.error("Unexpected error resolving 1Password URL", op_url=op_url, error=str(e))
             return None
 
     def resolve_environment_variable(self, value: str) -> str:
         """Resolve config value, handling op:// URLs.
-        
+
         Processes a configuration value that may contain 1Password CLI
         references. Handles both simple op:// URLs and complex values
         with embedded URLs.
-        
+
         Args:
             value: The config value to resolve
-        
+
         Returns:
             The resolved value (original if not an op:// URL or resolution failed)
 
@@ -151,8 +152,10 @@ class OnePasswordSecrets:
             resolved = self.resolve_op_url(value)
             if resolved is not None:
                 return resolved
-            logger.error("Failed to resolve op:// URL, this may cause authentication issues",
-                       original_value=value)
+            logger.error(
+                "Failed to resolve op:// URL, this may cause authentication issues",
+                original_value=value,
+            )
             # When CLI is unavailable, return the original URL for testing compatibility
             # In production, this should be handled by proper error handling
             return value
@@ -166,20 +169,22 @@ class OnePasswordSecrets:
                 if resolved is not None:
                     resolved_value = resolved_value.replace(op_url, resolved)
                 else:
-                    logger.warning("Failed to resolve op:// URL in complex value",
-                                 op_url=op_url,
-                                 original_value=value)
+                    logger.warning(
+                        "Failed to resolve op:// URL in complex value",
+                        op_url=op_url,
+                        original_value=value,
+                    )
             return resolved_value
         return value
 
 
 class OnePasswordAPIKeyManager:
     """Enhanced 1Password integration for API key management.
-    
+
     This class provides comprehensive API key management using the new
     secrets abstraction layer while maintaining compatibility with
     existing op:// URL resolution functionality.
-    
+
     Attributes:
         secrets_manager: The underlying OnePasswordCLIManager instance
         op_secrets: The legacy OnePasswordSecrets instance for URL resolution
@@ -188,7 +193,7 @@ class OnePasswordAPIKeyManager:
 
     def __init__(self, vault: str = "DShield-MCP") -> None:
         """Initialize the API key manager.
-        
+
         Args:
             vault: The 1Password vault to use for API key storage
 
@@ -200,18 +205,18 @@ class OnePasswordAPIKeyManager:
     async def generate_api_key(
         self,
         name: str,
-        permissions: Optional[Dict[str, Any]] = None,
-        expiration_days: Optional[int] = None,
-        rate_limit: Optional[int] = None,
-    ) -> Optional[str]:
+        permissions: dict[str, Any] | None = None,
+        expiration_days: int | None = None,
+        rate_limit: int | None = None,
+    ) -> str | None:
         """Generate a new API key and store it in 1Password.
-        
+
         Args:
             name: Human-readable name for the API key
             permissions: Dictionary of permissions for the key
             expiration_days: Number of days until expiration (None for no expiration)
             rate_limit: Rate limit in requests per minute
-            
+
         Returns:
             The generated API key value if successful, None otherwise
 
@@ -243,6 +248,7 @@ class OnePasswordAPIKeyManager:
 
             # Create API key object
             from .secrets_manager.base_secrets_manager import APIKey
+
             api_key = APIKey(
                 key_id=key_id,
                 key_value=key_value,
@@ -265,15 +271,16 @@ class OnePasswordAPIKeyManager:
             self.logger.error(f"Error generating API key: {e}")
             return None
 
-    async def list_api_keys(self) -> list:
+    async def list_api_keys(self) -> list[dict[str, Any]]:
         """List all API keys stored in 1Password.
-        
+
         Returns:
             List of API key information dictionaries
 
         """
         try:
             from datetime import datetime
+
             api_keys = await self.secrets_manager.list_api_keys()
             return [
                 {
@@ -282,7 +289,9 @@ class OnePasswordAPIKeyManager:
                     "created_at": key.created_at.isoformat(),
                     "expires_at": key.expires_at.isoformat() if key.expires_at else None,
                     "permissions": key.permissions,
-                    "is_expired": key.expires_at and key.expires_at < datetime.utcnow() if key.expires_at else False,
+                    "is_expired": key.expires_at and key.expires_at < datetime.utcnow()
+                    if key.expires_at
+                    else False,
                 }
                 for key in api_keys
             ]
@@ -292,10 +301,10 @@ class OnePasswordAPIKeyManager:
 
     async def delete_api_key(self, key_id: str) -> bool:
         """Delete an API key from 1Password.
-        
+
         Args:
             key_id: The unique identifier of the API key to delete
-            
+
         Returns:
             True if the key was deleted successfully, False otherwise
 
@@ -311,18 +320,19 @@ class OnePasswordAPIKeyManager:
             self.logger.error(f"Error deleting API key {key_id}: {e}")
             return False
 
-    async def validate_api_key(self, key_value: str) -> Optional[Dict[str, Any]]:
+    async def validate_api_key(self, key_value: str) -> dict[str, Any] | None:
         """Validate an API key and return its information.
-        
+
         Args:
             key_value: The API key value to validate
-            
+
         Returns:
             Dictionary with key information if valid, None otherwise
 
         """
         try:
             from datetime import datetime
+
             api_keys = await self.secrets_manager.list_api_keys()
             for key in api_keys:
                 if key.key_value == key_value:
@@ -347,13 +357,13 @@ class OnePasswordAPIKeyManager:
 
     def resolve_environment_variable(self, value: str) -> str:
         """Resolve config value, handling op:// URLs (backward compatibility).
-        
+
         This method provides backward compatibility with the existing
         OnePasswordSecrets.resolve_environment_variable method.
-        
+
         Args:
             value: The config value to resolve
-            
+
         Returns:
             The resolved value
 
@@ -362,7 +372,7 @@ class OnePasswordAPIKeyManager:
 
     async def health_check(self) -> bool:
         """Check if the 1Password integration is healthy.
-        
+
         Returns:
             True if both the secrets manager and op CLI are working
 

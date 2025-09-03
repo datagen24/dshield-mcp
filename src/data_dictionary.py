@@ -20,19 +20,19 @@ Example:
 
 """
 
-from typing import Any, Dict
+from typing import Any
 
 
 class DataDictionary:
     """Comprehensive data dictionary for DShield SIEM data.
-    
+
     This class provides static methods to access comprehensive information
     about DShield SIEM data structures, including field descriptions,
     query examples, data patterns, and analysis guidelines.
-    
+
     The class serves as a central reference for understanding DShield
     data formats and constructing effective queries and analysis.
-    
+
     Example:
         >>> fields = DataDictionary.get_field_descriptions()
         >>> examples = DataDictionary.get_query_examples()
@@ -41,12 +41,12 @@ class DataDictionary:
     """
 
     @staticmethod
-    def get_field_descriptions() -> Dict[str, Any]:
+    def get_field_descriptions() -> dict[str, Any]:
         """Get comprehensive field descriptions for DShield data.
-        
+
         Returns a detailed dictionary containing descriptions, types,
         examples, and usage information for all DShield SIEM fields.
-        
+
         Returns:
             Dictionary containing field descriptions organized by category:
             - core_fields: Basic event fields (timestamp, id)
@@ -120,7 +120,18 @@ class DataDictionary:
                 "category": {
                     "description": "Event category classification",
                     "type": "enum",
-                    "values": ["network", "authentication", "malware", "intrusion", "data_exfiltration", "reconnaissance", "denial_of_service", "attack", "block", "reputation"],
+                    "values": [
+                        "network",
+                        "authentication",
+                        "malware",
+                        "intrusion",
+                        "data_exfiltration",
+                        "reconnaissance",
+                        "denial_of_service",
+                        "attack",
+                        "block",
+                        "reputation",
+                    ],
                     "usage": "Groups events by security domain",
                 },
                 "description": {
@@ -226,12 +237,12 @@ class DataDictionary:
         }
 
     @staticmethod
-    def get_query_examples() -> Dict[str, Any]:
+    def get_query_examples() -> dict[str, Any]:
         """Get example queries for common use cases.
-        
+
         Returns a collection of example queries demonstrating how to
         use the DShield MCP tools for various security analysis scenarios.
-        
+
         Returns:
             Dictionary containing query examples with descriptions,
             parameters, and expected fields for each use case
@@ -245,7 +256,13 @@ class DataDictionary:
                     "time_range_hours": 24,
                     "size": 100,
                 },
-                "expected_fields": ["source_ip", "destination_ip", "attack_type", "severity", "timestamp"],
+                "expected_fields": [
+                    "source_ip",
+                    "destination_ip",
+                    "attack_type",
+                    "severity",
+                    "timestamp",
+                ],
             },
             "high_risk_ips": {
                 "description": "Find IPs with high reputation scores",
@@ -286,12 +303,12 @@ class DataDictionary:
         }
 
     @staticmethod
-    def get_data_patterns() -> Dict[str, Any]:
+    def get_data_patterns() -> dict[str, Any]:
         """Get common data patterns and their interpretations.
-        
+
         Returns patterns that commonly appear in DShield data and
         their security implications for analysis.
-        
+
         Returns:
             Dictionary containing data patterns with descriptions
             and security context
@@ -301,17 +318,29 @@ class DataDictionary:
             "attack_patterns": {
                 "ssh_brute_force": {
                     "description": "SSH brute force attacks",
-                    "indicators": ["destination_port: 22", "multiple failed logins", "high attack_count"],
+                    "indicators": [
+                        "destination_port: 22",
+                        "multiple failed logins",
+                        "high attack_count",
+                    ],
                     "severity": "high",
                 },
                 "port_scan": {
                     "description": "Port scanning activity",
-                    "indicators": ["multiple destination_ports", "short time intervals", "reconnaissance category"],
+                    "indicators": [
+                        "multiple destination_ports",
+                        "short time intervals",
+                        "reconnaissance category",
+                    ],
                     "severity": "medium",
                 },
                 "web_attacks": {
                     "description": "Web application attacks",
-                    "indicators": ["destination_ports: [80, 443, 8080]", "http/https protocols", "sql_injection or xss in attack_types"],
+                    "indicators": [
+                        "destination_ports: [80, 443, 8080]",
+                        "http/https protocols",
+                        "sql_injection or xss in attack_types",
+                    ],
                     "severity": "high",
                 },
                 "botnet_activity": {
@@ -359,12 +388,12 @@ class DataDictionary:
         }
 
     @staticmethod
-    def get_analysis_guidelines() -> Dict[str, Any]:
+    def get_analysis_guidelines() -> dict[str, Any]:
         """Get guidelines for analyzing DShield SIEM data.
-        
+
         Returns best practices and guidelines for interpreting
         and analyzing DShield security data effectively.
-        
+
         Returns:
             Dictionary containing analysis guidelines and best practices
 
@@ -394,8 +423,16 @@ class DataDictionary:
             },
             "response_priorities": {
                 "immediate": {
-                    "criteria": ["reputation_score >= 90", "attack_count >= 1000", "critical severity"],
-                    "actions": ["Block IP immediately", "Alert security team", "Start incident response"],
+                    "criteria": [
+                        "reputation_score >= 90",
+                        "attack_count >= 1000",
+                        "critical severity",
+                    ],
+                    "actions": [
+                        "Block IP immediately",
+                        "Alert security team",
+                        "Start incident response",
+                    ],
                 },
                 "high": {
                     "criteria": ["reputation_score >= 70", "attack_count >= 100", "high severity"],
@@ -403,11 +440,19 @@ class DataDictionary:
                 },
                 "medium": {
                     "criteria": ["reputation_score >= 40", "attack_count >= 10", "medium severity"],
-                    "actions": ["Add to watchlist", "Monitor for escalation", "Document for trends"],
+                    "actions": [
+                        "Add to watchlist",
+                        "Monitor for escalation",
+                        "Document for trends",
+                    ],
                 },
                 "low": {
                     "criteria": ["reputation_score < 40", "attack_count < 10", "low severity"],
-                    "actions": ["Log for reference", "Include in periodic reports", "No immediate action"],
+                    "actions": [
+                        "Log for reference",
+                        "Include in periodic reports",
+                        "No immediate action",
+                    ],
                 },
             },
         }
@@ -415,11 +460,11 @@ class DataDictionary:
     @staticmethod
     def get_initial_prompt() -> str:
         """Get the initial prompt for AI models.
-        
+
         Generates a comprehensive initial prompt that provides AI models
         with all the necessary context about DShield SIEM data structures,
         field meanings, and analysis guidelines.
-        
+
         Returns:
             String containing the complete initial prompt for AI models
 
@@ -491,12 +536,12 @@ When analyzing DShield data, always consider the context, time patterns, and cor
         return prompt
 
     @staticmethod
-    def _format_field_section(fields: Dict[str, Any]) -> str:
+    def _format_field_section(fields: dict[str, Any]) -> str:
         """Format field descriptions into a readable section.
-        
+
         Args:
             fields: Dictionary containing field descriptions
-        
+
         Returns:
             Formatted string representation of the field section
 
@@ -512,12 +557,12 @@ When analyzing DShield data, always consider the context, time patterns, and cor
         return "\n".join(formatted)
 
     @staticmethod
-    def _format_query_examples(examples: Dict[str, Any]) -> str:
+    def _format_query_examples(examples: dict[str, Any]) -> str:
         """Format query examples into a readable section.
-        
+
         Args:
             examples: Dictionary containing query examples
-        
+
         Returns:
             Formatted string representation of the query examples section
 
@@ -533,12 +578,12 @@ When analyzing DShield data, always consider the context, time patterns, and cor
         return "\n".join(formatted)
 
     @staticmethod
-    def _format_data_patterns(patterns: Dict[str, Any]) -> str:
+    def _format_data_patterns(patterns: dict[str, Any]) -> str:
         """Format data patterns into a readable section.
-        
+
         Args:
             patterns: Dictionary containing data patterns
-        
+
         Returns:
             Formatted string representation of the data patterns section
 
@@ -564,12 +609,12 @@ When analyzing DShield data, always consider the context, time patterns, and cor
         return "\n".join(formatted)
 
     @staticmethod
-    def _format_analysis_guidelines(guidelines: Dict[str, Any]) -> str:
+    def _format_analysis_guidelines(guidelines: dict[str, Any]) -> str:
         """Format analysis guidelines into a readable section.
-        
+
         Args:
             guidelines: Dictionary containing analysis guidelines
-        
+
         Returns:
             Formatted string representation of the analysis guidelines section
 
@@ -579,7 +624,9 @@ When analyzing DShield data, always consider the context, time patterns, and cor
         # Correlation rules
         formatted.append("### Correlation Rules")
         for rule_name, rule_info in guidelines["correlation_rules"].items():
-            formatted.append(f"- **{rule_name.replace('_', ' ').title()}**: {rule_info['description']}")
+            formatted.append(
+                f"- **{rule_name.replace('_', ' ').title()}**: {rule_info['description']}"
+            )
             formatted.append(f"  - Action: {rule_info['action']}")
             if "threshold" in rule_info:
                 formatted.append(f"  - Threshold: {rule_info['threshold']}")
@@ -598,7 +645,7 @@ When analyzing DShield data, always consider the context, time patterns, and cor
     @staticmethod
     def has_offline_threat_intel() -> bool:
         """Check if offline threat intelligence sources are available.
-        
+
         Returns:
             bool: True if offline threat intelligence is available, False otherwise
 
@@ -620,7 +667,7 @@ When analyzing DShield data, always consider the context, time patterns, and cor
             # Check if we have any meaningful threat intelligence
             if threat_data and isinstance(threat_data, dict):
                 # Check if we have any threat intelligence categories with data
-                for category, data in threat_data.items():
+                for _category, data in threat_data.items():
                     if isinstance(data, dict) and data.get("enabled", False):
                         if data.get("data") or data.get("patterns") or data.get("indicators"):
                             return True
@@ -632,9 +679,9 @@ When analyzing DShield data, always consider the context, time patterns, and cor
             return False
 
     @staticmethod
-    def get_threat_intelligence_data() -> Dict[str, Any]:
+    def get_threat_intelligence_data() -> dict[str, Any]:
         """Get offline threat intelligence data.
-        
+
         Returns:
             Dict[str, Any]: Dictionary containing offline threat intelligence data
 
@@ -645,7 +692,7 @@ When analyzing DShield data, always consider the context, time patterns, and cor
                 "description": "Known malicious IP addresses and ranges",
                 "data": [
                     "192.168.1.100",  # Example malicious IP
-                    "10.0.0.50",      # Example malicious IP
+                    "10.0.0.50",  # Example malicious IP
                 ],
                 "patterns": ["brute_force", "port_scan", "malware_c2"],
                 "indicators": ["high_attack_frequency", "multiple_targets", "suspicious_ports"],
@@ -656,7 +703,11 @@ When analyzing DShield data, always consider the context, time patterns, and cor
                 "data": {
                     "brute_force": {
                         "description": "Repeated authentication attempts",
-                        "indicators": ["multiple_failed_logins", "rapid_requests", "common_usernames"],
+                        "indicators": [
+                            "multiple_failed_logins",
+                            "rapid_requests",
+                            "common_usernames",
+                        ],
                         "severity": "medium",
                     },
                     "port_scan": {

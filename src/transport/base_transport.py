@@ -6,7 +6,7 @@ defining the interface that must be implemented by STDIO and TCP transports.
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
 
@@ -15,10 +15,10 @@ logger = structlog.get_logger(__name__)
 
 class BaseTransport(ABC):
     """Abstract base class for MCP transport implementations.
-    
+
     This class defines the interface that all transport implementations must
     follow to ensure consistent behavior and MCP protocol compliance.
-    
+
     Attributes:
         server: The MCP server instance
         config: Transport-specific configuration
@@ -26,9 +26,9 @@ class BaseTransport(ABC):
 
     """
 
-    def __init__(self, server: Any, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, server: Any, config: dict[str, Any] | None = None) -> None:
         """Initialize the base transport.
-        
+
         Args:
             server: The MCP server instance
             config: Transport-specific configuration
@@ -42,10 +42,10 @@ class BaseTransport(ABC):
     @abstractmethod
     async def start(self) -> None:
         """Start the transport and begin accepting connections.
-        
+
         This method should initialize the transport mechanism and begin
         accepting connections or processing messages.
-        
+
         Raises:
             TransportError: If the transport fails to start
 
@@ -54,7 +54,7 @@ class BaseTransport(ABC):
     @abstractmethod
     async def stop(self) -> None:
         """Stop the transport and clean up resources.
-        
+
         This method should gracefully shutdown the transport, close all
         connections, and clean up any resources.
         """
@@ -62,7 +62,7 @@ class BaseTransport(ABC):
     @abstractmethod
     async def run(self) -> None:
         """Run the transport main loop.
-        
+
         This method should implement the main transport loop, handling
         incoming connections and messages according to the MCP protocol.
         """
@@ -71,7 +71,7 @@ class BaseTransport(ABC):
     @abstractmethod
     def transport_type(self) -> str:
         """Get the transport type identifier.
-        
+
         Returns:
             String identifier for the transport type (e.g., 'stdio', 'tcp')
 
@@ -79,11 +79,11 @@ class BaseTransport(ABC):
 
     def get_config(self, key: str, default: Any = None) -> Any:
         """Get a configuration value.
-        
+
         Args:
             key: Configuration key
             default: Default value if key not found
-            
+
         Returns:
             Configuration value or default
 
@@ -92,7 +92,7 @@ class BaseTransport(ABC):
 
     def set_config(self, key: str, value: Any) -> None:
         """Set a configuration value.
-        
+
         Args:
             key: Configuration key
             value: Configuration value
@@ -102,7 +102,7 @@ class BaseTransport(ABC):
 
     async def __aenter__(self) -> "BaseTransport":
         """Async context manager entry.
-        
+
         Returns:
             Self for use in async with statements
 
@@ -112,7 +112,7 @@ class BaseTransport(ABC):
 
     async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit.
-        
+
         Args:
             exc_type: Exception type
             exc_val: Exception value
@@ -124,14 +124,16 @@ class BaseTransport(ABC):
 
 class TransportError(Exception):
     """Exception raised for transport-related errors.
-    
+
     This exception is raised when transport operations fail, such as
     connection failures, protocol errors, or resource issues.
     """
 
-    def __init__(self, message: str, transport_type: str = "unknown", error_code: Optional[str] = None) -> None:
+    def __init__(
+        self, message: str, transport_type: str = "unknown", error_code: str | None = None
+    ) -> None:
         """Initialize the transport error.
-        
+
         Args:
             message: Error message
             transport_type: Type of transport that failed
@@ -145,7 +147,7 @@ class TransportError(Exception):
 
     def __str__(self) -> str:
         """Get string representation of the error.
-        
+
         Returns:
             Formatted error string
 

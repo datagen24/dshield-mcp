@@ -11,6 +11,8 @@ import os
 import sys
 import subprocess
 import shutil
+import ast
+import inspect
 from pathlib import Path
 from typing import Optional
 
@@ -18,28 +20,22 @@ from typing import Optional
 def run_command(cmd: list[str], cwd: Optional[Path] = None) -> int:
     """
     Run a command and return the exit code.
-    
+
     Args:
         cmd: Command to run as a list of strings
         cwd: Working directory for the command
-        
+
     Returns:
         Exit code of the command
     """
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=cwd,
-            check=False,
-            capture_output=True,
-            text=True
-        )
-        
+        result = subprocess.run(cmd, cwd=cwd, check=False, capture_output=True, text=True)
+
         if result.stdout:
             print(result.stdout)
         if result.stderr:
             print(result.stderr, file=sys.stderr)
-            
+
         return result.returncode
     except Exception as e:
         print(f"Error running command {' '.join(cmd)}: {e}", file=sys.stderr)
@@ -49,7 +45,7 @@ def run_command(cmd: list[str], cwd: Optional[Path] = None) -> int:
 def check_pdoc_installed() -> bool:
     """
     Check if pdoc is installed in the current environment.
-    
+
     Returns:
         True if pdoc is available, False otherwise
     """
@@ -59,7 +55,7 @@ def check_pdoc_installed() -> bool:
 def install_pdoc() -> bool:
     """
     Install pdoc using pip.
-    
+
     Returns:
         True if installation was successful, False otherwise
     """
@@ -70,82 +66,222 @@ def install_pdoc() -> bool:
 def clean_output_directory(output_dir: Path) -> None:
     """
     Clean the output directory before generating new documentation.
-    
+
     Args:
         output_dir: Path to the output directory
     """
     if output_dir.exists():
         print(f"Cleaning output directory: {output_dir}")
         shutil.rmtree(output_dir)
-    
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
 
 def generate_html_documentation(project_root: Path, output_dir: Path) -> bool:
     """
     Generate HTML API documentation using pdoc (v15+ CLI syntax).
-    
+
     Args:
         project_root: Path to the project root directory
         output_dir: Path to the output directory for documentation
-        
+
     Returns:
         True if generation was successful, False otherwise
     """
     print(f"Generating HTML API documentation to: {output_dir}")
-    
+
     # Build the pdoc command for v15+ HTML generation
-    cmd = [
-        sys.executable, "-m", "pdoc",
-        str(project_root / "src"),
-        "--output-dir", str(output_dir)
-    ]
-    
+    cmd = [sys.executable, "-m", "pdoc", str(project_root / "src"), "--output-dir", str(output_dir)]
+
     return run_command(cmd, cwd=project_root) == 0
 
 
 def generate_markdown_documentation(project_root: Path, output_dir: Path) -> bool:
     """
-    Generate Markdown API documentation using pydoc-markdown.
-    
+    Generate Markdown API documentation by extracting docstrings from source files.
+
     Args:
         project_root: Path to the project root directory
         output_dir: Path to the output directory for documentation
-        
+
     Returns:
         True if generation was successful, False otherwise
     """
     markdown_dir = output_dir / "markdown"
     print(f"Generating Markdown API documentation to: {markdown_dir}")
-    
+
     # Create markdown directory
     markdown_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Try using pydoc-markdown with the current Python executable
-    config_file = project_root / "pydoc-markdown.yml"
-    cmd = [
-        sys.executable, "-m", "pydoc_markdown",
-        str(config_file)
-    ]
-    
-    result = run_command(cmd, cwd=project_root)
-    if result == 0:
+
+    try:
+        
+        # Add src to Python path
+        src_path = str(project_root / "src")
+        if src_path not in sys.path:
+            sys.path.insert(0, src_path)
+        
+        # Generate documentation for all modules in src
+        src_dir = project_root / "src"
+        created_files = 0
+        
+        # Find all Python modules
+        for py_file in src_dir.rglob("*.py"):
+            if py_file.name == "__init__.py":
+                continue
+                
+            try:
+                # Read the source file
+                source_code = py_file.read_text(encoding="utf-8")
+                
+                # Parse the AST
+                tree = ast.parse(source_code)
+                
+                # Generate markdown content
+                markdown_content = generate_module_markdown(py_file, tree, source_code)
+                
+                # Create output file path
+                rel_path = py_file.relative_to(src_dir)
+                module_name = str(rel_path.with_suffix("")).replace("/", ".")
+                output_file = markdown_dir / f"{module_name}.md"
+                output_file.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Write markdown content
+                output_file.write_text(markdown_content, encoding="utf-8")
+                created_files += 1
+                
+            except Exception as e:
+                print(f"Warning: Could not document {py_file}: {e}")
+                continue
+        
+        if created_files == 0:
+            print(f"ERROR: No markdown files created in {markdown_dir}")
+            return False
+        
+        print(f"Created {created_files} markdown files")
         return True
+        
+    except Exception as e:
+        print(f"ERROR: Failed to generate markdown documentation: {e}")
+        return False
+
+
+def generate_module_markdown(file_path: Path, tree: ast.AST, source_code: str) -> str:
+    """
+    Generate markdown documentation for a single module.
     
-    # Fallback: try direct pydoc-markdown command
-    print("Fallback: trying direct pydoc-markdown command...")
-    cmd = [
-        "pydoc-markdown",
-        str(config_file)
-    ]
+    Args:
+        file_path: Path to the Python file
+        tree: Parsed AST of the file
+        source_code: Raw source code
+        
+    Returns:
+        Markdown content for the module
+    """
+    lines = []
     
-    return run_command(cmd, cwd=project_root) == 0
+    # Module header
+    module_name = file_path.stem
+    lines.append(f"# {module_name}")
+    lines.append("")
+    
+    # Module docstring
+    if tree.body and isinstance(tree.body[0], ast.Expr) and isinstance(tree.body[0].value, ast.Constant):
+        if isinstance(tree.body[0].value.value, str):
+            docstring = tree.body[0].value.value.strip()
+            if docstring:
+                lines.append(docstring)
+                lines.append("")
+    
+    # Process classes and functions
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            lines.extend(generate_class_markdown(node))
+        elif isinstance(node, ast.FunctionDef):
+            lines.extend(generate_function_markdown(node))
+    
+    return "\n".join(lines)
+
+
+def generate_class_markdown(node: ast.ClassDef) -> list[str]:
+    """Generate markdown for a class definition."""
+    lines = []
+    lines.append(f"## {node.name}")
+    lines.append("")
+    
+    # Class docstring
+    if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+        if isinstance(node.body[0].value.value, str):
+            docstring = node.body[0].value.value.strip()
+            if docstring:
+                lines.append(docstring)
+                lines.append("")
+    
+    # Methods
+    for item in node.body:
+        if isinstance(item, ast.FunctionDef):
+            lines.extend(generate_method_markdown(item))
+    
+    return lines
+
+
+def generate_function_markdown(node: ast.FunctionDef) -> list[str]:
+    """Generate markdown for a function definition."""
+    lines = []
+    lines.append(f"### {node.name}")
+    lines.append("")
+    
+    # Function signature
+    args = []
+    for arg in node.args.args:
+        args.append(arg.arg)
+    signature = f"def {node.name}({', '.join(args)})"
+    lines.append(f"```python")
+    lines.append(signature)
+    lines.append("```")
+    lines.append("")
+    
+    # Function docstring
+    if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+        if isinstance(node.body[0].value.value, str):
+            docstring = node.body[0].value.value.strip()
+            if docstring:
+                lines.append(docstring)
+                lines.append("")
+    
+    return lines
+
+
+def generate_method_markdown(node: ast.FunctionDef) -> list[str]:
+    """Generate markdown for a method definition."""
+    lines = []
+    lines.append(f"#### {node.name}")
+    lines.append("")
+    
+    # Method signature
+    args = []
+    for arg in node.args.args:
+        args.append(arg.arg)
+    signature = f"def {node.name}({', '.join(args)})"
+    lines.append(f"```python")
+    lines.append(signature)
+    lines.append("```")
+    lines.append("")
+    
+    # Method docstring
+    if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+        if isinstance(node.body[0].value.value, str):
+            docstring = node.body[0].value.value.strip()
+            if docstring:
+                lines.append(docstring)
+                lines.append("")
+    
+    return lines
 
 
 def create_index_file(output_dir: Path) -> None:
     """
     Create an index.html file that redirects to the main documentation.
-    
+
     Args:
         output_dir: Path to the output directory
     """
@@ -236,16 +372,51 @@ def create_index_file(output_dir: Path) -> None:
     </div>
 </body>
 </html>"""
-    
+
     index_file = output_dir / "index.html"
     index_file.write_text(index_content)
     print(f"Created index file: {index_file}")
 
 
+def verify_documentation_exists(output_dir: Path) -> dict:
+    """
+    Verify documentation was actually created.
+
+    Args:
+        output_dir: Path to the output directory
+
+    Returns:
+        Dictionary with verification results
+    """
+    results = {
+        "html_files": 0,
+        "markdown_files": 0,
+        "total_size": 0
+    }
+
+    # Check HTML files
+    html_dir = output_dir / "src"
+    if html_dir.exists():
+        html_files = list(html_dir.glob("**/*.html"))
+        results["html_files"] = len(html_files)
+
+    # Check Markdown files
+    md_dir = output_dir / "markdown"
+    if md_dir.exists():
+        md_files = list(md_dir.glob("**/*.md"))
+        results["markdown_files"] = len(md_files)
+
+        # Calculate total size
+        for md_file in md_files:
+            results["total_size"] += md_file.stat().st_size
+
+    return results
+
+
 def create_markdown_index(output_dir: Path) -> None:
     """
     Create a Markdown index file for the documentation.
-    
+
     Args:
         output_dir: Path to the output directory
     """
@@ -307,7 +478,7 @@ To regenerate this documentation:
 
 This will create both HTML and Markdown versions of the API documentation.
 """
-    
+
     markdown_index_file = output_dir / "README.md"
     markdown_index_file.write_text(markdown_index_content)
     print(f"Created Markdown index: {markdown_index_file}")
@@ -316,20 +487,20 @@ This will create both HTML and Markdown versions of the API documentation.
 def main() -> int:
     """
     Main function to build API documentation.
-    
+
     Returns:
         Exit code (0 for success, 1 for failure)
     """
     # Get project root directory
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
-    
+
     # Define output directory
     output_dir = project_root / "docs" / "api"
-    
+
     print("DShield MCP API Documentation Builder")
     print("=" * 40)
-    
+
     # Check if pdoc is installed
     if not check_pdoc_installed():
         print("pdoc not found. Attempting to install...")
@@ -337,35 +508,52 @@ def main() -> int:
             print("Failed to install pdoc. Please install it manually:")
             print("  pip install pdoc>=14.0.0")
             return 1
-    
+
     # Clean output directory
     clean_output_directory(output_dir)
-    
+
     # Generate HTML documentation
     if not generate_html_documentation(project_root, output_dir):
         print("Failed to generate HTML API documentation", file=sys.stderr)
         return 1
-    
+
     # Generate Markdown documentation
     if not generate_markdown_documentation(project_root, output_dir):
         print("Failed to generate Markdown API documentation", file=sys.stderr)
         return 1
-    
+
+    # VERIFY files were actually created
+    verification = verify_documentation_exists(output_dir)
+
+    if verification["html_files"] == 0:
+        print("ERROR: No HTML files were generated!")
+        return 1
+
+    if verification["markdown_files"] == 0:
+        print("ERROR: No Markdown files were generated!")
+        return 1
+
     # Create index files
     create_index_file(output_dir)
     create_markdown_index(output_dir)
-    
+
     print("\n" + "=" * 40)
     print("API documentation generated successfully!")
     print(f"Documentation location: {output_dir}")
     print(f"HTML documentation: {output_dir / 'index.html'}")
     print(f"Markdown documentation: {output_dir / 'markdown'}")
+    
+    print(f"\nVerification Results:")
+    print(f"  HTML files created: {verification['html_files']}")
+    print(f"  Markdown files created: {verification['markdown_files']}")
+    print(f"  Total documentation size: {verification['total_size'] / 1024:.1f} KB")
+    
     print("\nFormats available:")
     print("- HTML: Interactive, searchable documentation")
     print("- Markdown: AI-friendly plain text format")
-    
+
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main()) 
+    sys.exit(main())

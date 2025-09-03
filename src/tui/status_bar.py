@@ -7,7 +7,7 @@ information including server status, connection counts, and system metrics.
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 import structlog
 from textual.reactive import reactive  # type: ignore
@@ -18,14 +18,14 @@ logger = structlog.get_logger(__name__)
 
 class StatusBar(Static):  # type: ignore
     """Status bar widget for displaying real-time status information.
-    
+
     This widget shows server status, connection counts, system metrics,
     and other relevant information in a compact format.
     """
 
     def __init__(self, id: str = "status-bar") -> None:
         """Initialize the status bar.
-        
+
         Args:
             id: Widget ID
 
@@ -34,7 +34,7 @@ class StatusBar(Static):  # type: ignore
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
         # Status information
-        self.server_status: Dict[str, Any] = {}
+        self.server_status: dict[str, Any] = {}
         self.connection_count = reactive(0)
         self.authenticated_count = reactive(0)
         self.api_key_count = reactive(0)
@@ -46,9 +46,9 @@ class StatusBar(Static):  # type: ignore
         self.logger.debug("Status bar mounted")
         self.update_display()
 
-    def update_server_status(self, status: Dict[str, Any]) -> None:
+    def update_server_status(self, status: dict[str, Any]) -> None:
         """Update server status information.
-        
+
         Args:
             status: Server status dictionary
 
@@ -75,7 +75,7 @@ class StatusBar(Static):  # type: ignore
 
     def update_connection_count(self, total: int, authenticated: int) -> None:
         """Update connection count information.
-        
+
         Args:
             total: Total number of connections
             authenticated: Number of authenticated connections
@@ -88,7 +88,7 @@ class StatusBar(Static):  # type: ignore
 
     def update_api_key_count(self, count: int) -> None:
         """Update API key count information.
-        
+
         Args:
             count: Number of API keys
 
@@ -99,7 +99,7 @@ class StatusBar(Static):  # type: ignore
 
     def update_error_count(self, count: int) -> None:
         """Update error count information.
-        
+
         Args:
             count: Number of errors
 
@@ -154,7 +154,7 @@ class StatusBar(Static):  # type: ignore
 
     def watch_connection_count(self, count: int) -> None:
         """Watch for connection count changes.
-        
+
         Args:
             count: New connection count
 
@@ -163,7 +163,7 @@ class StatusBar(Static):  # type: ignore
 
     def watch_authenticated_count(self, count: int) -> None:
         """Watch for authenticated count changes.
-        
+
         Args:
             count: New authenticated count
 
@@ -172,7 +172,7 @@ class StatusBar(Static):  # type: ignore
 
     def watch_api_key_count(self, count: int) -> None:
         """Watch for API key count changes.
-        
+
         Args:
             count: New API key count
 
@@ -181,7 +181,7 @@ class StatusBar(Static):  # type: ignore
 
     def watch_error_count(self, count: int) -> None:
         """Watch for error count changes.
-        
+
         Args:
             count: New error count
 
@@ -190,16 +190,16 @@ class StatusBar(Static):  # type: ignore
 
     def watch_last_update(self, update_time: datetime) -> None:
         """Watch for last update time changes.
-        
+
         Args:
             update_time: New update time
 
         """
         self.update_display()
 
-    def get_status_summary(self) -> Dict[str, Any]:
+    def get_status_summary(self) -> dict[str, Any]:
         """Get a summary of current status information.
-        
+
         Returns:
             Dictionary of status summary
 
@@ -214,9 +214,9 @@ class StatusBar(Static):  # type: ignore
             "server_status": self.server_status,
         }
 
-    def set_status_message(self, message: str, timeout: Optional[float] = None) -> None:
+    def set_status_message(self, message: str, timeout: float | None = None) -> None:
         """Set a temporary status message.
-        
+
         Args:
             message: Status message to display
             timeout: Optional timeout in seconds to revert to normal status
@@ -227,13 +227,14 @@ class StatusBar(Static):  # type: ignore
         if timeout:
             # Schedule revert to normal status
             import asyncio
+
             asyncio.create_task(self._revert_status_after_timeout(timeout))
 
         self.logger.debug("Set status message", message=message, timeout=timeout)
 
     async def _revert_status_after_timeout(self, timeout: float) -> None:
         """Revert status message after timeout.
-        
+
         Args:
             timeout: Timeout in seconds
 
@@ -243,7 +244,7 @@ class StatusBar(Static):  # type: ignore
 
     def add_status_indicator(self, indicator: str, value: Any) -> None:
         """Add a status indicator to the display.
-        
+
         Args:
             indicator: Indicator name
             value: Indicator value
@@ -255,7 +256,7 @@ class StatusBar(Static):  # type: ignore
 
     def remove_status_indicator(self, indicator: str) -> None:
         """Remove a status indicator from the display.
-        
+
         Args:
             indicator: Indicator name to remove
 

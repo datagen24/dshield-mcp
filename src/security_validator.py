@@ -12,7 +12,7 @@ import re
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +34,15 @@ class SecurityIssue:
     severity: SecurityRiskLevel
     description: str
     location: str
-    details: Dict[str, Any]
-    timestamp: Optional[datetime] = None
+    details: dict[str, Any]
+    timestamp: datetime | None = None
 
     def __post_init__(self) -> None:
+        """Initialize timestamp if not provided."""
         if self.timestamp is None:
             self.timestamp = datetime.now()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         data = asdict(self)
         data["timestamp"] = self.timestamp.isoformat() if self.timestamp else None
@@ -54,13 +55,13 @@ class SecurityValidator:
 
     def __init__(self, enable_logging: bool = True):
         """Initialize security validator.
-        
+
         Args:
             enable_logging: Whether to enable security logging
 
         """
         self.enable_logging = enable_logging
-        self.issues: List[SecurityIssue] = []
+        self.issues: list[SecurityIssue] = []
 
         # Patterns for detecting security issues
         self.sensitive_patterns = [
@@ -136,17 +137,23 @@ class SecurityValidator:
 
         # Compile patterns for better performance
         self.sensitive_regex = re.compile("|".join(self.sensitive_patterns), re.IGNORECASE)
-        self.sensitive_exact_regex = re.compile("|".join(self.sensitive_exact_patterns), re.IGNORECASE)
-        self.hidden_instruction_regex = re.compile("|".join(self.hidden_instruction_patterns), re.IGNORECASE)
-        self.tool_shadowing_regex = re.compile("|".join(self.tool_shadowing_patterns), re.IGNORECASE)
+        self.sensitive_exact_regex = re.compile(
+            "|".join(self.sensitive_exact_patterns), re.IGNORECASE
+        )
+        self.hidden_instruction_regex = re.compile(
+            "|".join(self.hidden_instruction_patterns), re.IGNORECASE
+        )
+        self.tool_shadowing_regex = re.compile(
+            "|".join(self.tool_shadowing_patterns), re.IGNORECASE
+        )
 
-    def validate_tool_description(self, tool_name: str, description: str) -> List[SecurityIssue]:
+    def validate_tool_description(self, tool_name: str, description: str) -> list[SecurityIssue]:
         """Validate tool description for security issues.
-        
+
         Args:
             tool_name: Name of the tool being validated
             description: Tool description to validate
-            
+
         Returns:
             List of security issues found
 
@@ -156,68 +163,82 @@ class SecurityValidator:
         # Check for hidden instructions
         hidden_matches = self.hidden_instruction_regex.findall(description)
         if hidden_matches:
-            issues.append(SecurityIssue(
-                issue_type="hidden_instructions",
-                severity=SecurityRiskLevel.HIGH,
-                description="Hidden instructions detected in tool description",
-                location=f"tool:{tool_name}",
-                details={
-                    "matches": hidden_matches,
-                    "description_preview": description[:200] + "..." if len(description) > 200 else description,
-                },
-            ))
+            issues.append(
+                SecurityIssue(
+                    issue_type="hidden_instructions",
+                    severity=SecurityRiskLevel.HIGH,
+                    description="Hidden instructions detected in tool description",
+                    location=f"tool:{tool_name}",
+                    details={
+                        "matches": hidden_matches,
+                        "description_preview": description[:200] + "..."
+                        if len(description) > 200
+                        else description,
+                    },
+                )
+            )
 
         # Check for sensitive file access
         sensitive_matches = self.sensitive_exact_regex.findall(description)
         if sensitive_matches:
-            issues.append(SecurityIssue(
-                issue_type="sensitive_file_access",
-                severity=SecurityRiskLevel.HIGH,
-                description="Potential sensitive file access detected",
-                location=f"tool:{tool_name}",
-                details={
-                    "matches": sensitive_matches,
-                    "description_preview": description[:200] + "..." if len(description) > 200 else description,
-                },
-            ))
+            issues.append(
+                SecurityIssue(
+                    issue_type="sensitive_file_access",
+                    severity=SecurityRiskLevel.HIGH,
+                    description="Potential sensitive file access detected",
+                    location=f"tool:{tool_name}",
+                    details={
+                        "matches": sensitive_matches,
+                        "description_preview": description[:200] + "..."
+                        if len(description) > 200
+                        else description,
+                    },
+                )
+            )
 
         # Check for tool shadowing
         shadowing_matches = self.tool_shadowing_regex.findall(description)
         if shadowing_matches:
-            issues.append(SecurityIssue(
-                issue_type="tool_shadowing",
-                severity=SecurityRiskLevel.CRITICAL,
-                description="Tool shadowing behavior detected",
-                location=f"tool:{tool_name}",
-                details={
-                    "matches": shadowing_matches,
-                    "description_preview": description[:200] + "..." if len(description) > 200 else description,
-                },
-            ))
+            issues.append(
+                SecurityIssue(
+                    issue_type="tool_shadowing",
+                    severity=SecurityRiskLevel.CRITICAL,
+                    description="Tool shadowing behavior detected",
+                    location=f"tool:{tool_name}",
+                    details={
+                        "matches": shadowing_matches,
+                        "description_preview": description[:200] + "..."
+                        if len(description) > 200
+                        else description,
+                    },
+                )
+            )
 
         # Check for excessive length (potential hidden content)
         if len(description) > 2000:
-            issues.append(SecurityIssue(
-                issue_type="excessive_description_length",
-                severity=SecurityRiskLevel.MEDIUM,
-                description="Tool description is excessively long",
-                location=f"tool:{tool_name}",
-                details={
-                    "length": len(description),
-                    "recommended_max": 2000,
-                },
-            ))
+            issues.append(
+                SecurityIssue(
+                    issue_type="excessive_description_length",
+                    severity=SecurityRiskLevel.MEDIUM,
+                    description="Tool description is excessively long",
+                    location=f"tool:{tool_name}",
+                    details={
+                        "length": len(description),
+                        "recommended_max": 2000,
+                    },
+                )
+            )
 
         self._log_issues(issues)
         return issues
 
-    def validate_tool_schema(self, tool_name: str, schema: Dict[str, Any]) -> List[SecurityIssue]:
+    def validate_tool_schema(self, tool_name: str, schema: dict[str, Any]) -> list[SecurityIssue]:
         """Validate tool schema for security issues.
-        
+
         Args:
             tool_name: Name of the tool being validated
             schema: Tool parameter schema to validate
-            
+
         Returns:
             List of security issues found
 
@@ -231,58 +252,66 @@ class SecurityValidator:
         properties = schema.get("properties", {})
         for param_name, param_schema in properties.items():
             if param_name.lower() in self.suspicious_parameters:
-                issues.append(SecurityIssue(
-                    issue_type="suspicious_parameter",
-                    severity=SecurityRiskLevel.MEDIUM,
-                    description="Suspicious parameter name detected",
-                    location=f"tool:{tool_name}:parameter:{param_name}",
-                    details={
-                        "parameter_name": param_name,
-                        "parameter_schema": param_schema,
-                        "suspicious_reason": "Parameter name matches suspicious patterns",
-                    },
-                ))
+                issues.append(
+                    SecurityIssue(
+                        issue_type="suspicious_parameter",
+                        severity=SecurityRiskLevel.MEDIUM,
+                        description="Suspicious parameter name detected",
+                        location=f"tool:{tool_name}:parameter:{param_name}",
+                        details={
+                            "parameter_name": param_name,
+                            "parameter_schema": param_schema,
+                            "suspicious_reason": "Parameter name matches suspicious patterns",
+                        },
+                    )
+                )
 
             # Check for overly permissive parameter types
             param_type = param_schema.get("type", "")
             if param_type == "object" and param_schema.get("additionalProperties", False):
-                issues.append(SecurityIssue(
-                    issue_type="permissive_parameter",
-                    severity=SecurityRiskLevel.MEDIUM,
-                    description="Overly permissive parameter type",
-                    location=f"tool:{tool_name}:parameter:{param_name}",
-                    details={
-                        "parameter_name": param_name,
-                        "parameter_type": param_type,
-                        "additional_properties": True,
-                    },
-                ))
+                issues.append(
+                    SecurityIssue(
+                        issue_type="permissive_parameter",
+                        severity=SecurityRiskLevel.MEDIUM,
+                        description="Overly permissive parameter type",
+                        location=f"tool:{tool_name}:parameter:{param_name}",
+                        details={
+                            "parameter_name": param_name,
+                            "parameter_type": param_type,
+                            "additional_properties": True,
+                        },
+                    )
+                )
 
         # Check for missing required field validation
         required_fields = schema.get("required", [])
         for field in required_fields:
             if field not in properties:
-                issues.append(SecurityIssue(
-                    issue_type="missing_required_field",
-                    severity=SecurityRiskLevel.LOW,
-                    description="Required field not defined in properties",
-                    location=f"tool:{tool_name}:parameter:{field}",
-                    details={
-                        "field_name": field,
-                        "required_fields": required_fields,
-                    },
-                ))
+                issues.append(
+                    SecurityIssue(
+                        issue_type="missing_required_field",
+                        severity=SecurityRiskLevel.LOW,
+                        description="Required field not defined in properties",
+                        location=f"tool:{tool_name}:parameter:{field}",
+                        details={
+                            "field_name": field,
+                            "required_fields": required_fields,
+                        },
+                    )
+                )
 
         self._log_issues(issues)
         return issues
 
-    def validate_tool_arguments(self, tool_name: str, arguments: Dict[str, Any]) -> List[SecurityIssue]:
+    def validate_tool_arguments(
+        self, tool_name: str, arguments: dict[str, Any]
+    ) -> list[SecurityIssue]:
         """Validate tool arguments for security issues.
-        
+
         Args:
             tool_name: Name of the tool being validated
             arguments: Tool arguments to validate
-            
+
         Returns:
             List of security issues found
 
@@ -298,53 +327,61 @@ class SecurityValidator:
                 # Check for sensitive patterns in string values
                 sensitive_matches = self.sensitive_regex.findall(arg_value)
                 if sensitive_matches:
-                    issues.append(SecurityIssue(
-                        issue_type="sensitive_data_in_arguments",
-                        severity=SecurityRiskLevel.HIGH,
-                        description="Sensitive data detected in tool arguments",
-                        location=f"tool:{tool_name}:argument:{arg_name}",
-                        details={
-                            "argument_name": arg_name,
-                            "matches": sensitive_matches,
-                            "value_preview": arg_value[:100] + "..." if len(arg_value) > 100 else arg_value,
-                        },
-                    ))
+                    issues.append(
+                        SecurityIssue(
+                            issue_type="sensitive_data_in_arguments",
+                            severity=SecurityRiskLevel.HIGH,
+                            description="Sensitive data detected in tool arguments",
+                            location=f"tool:{tool_name}:argument:{arg_name}",
+                            details={
+                                "argument_name": arg_name,
+                                "matches": sensitive_matches,
+                                "value_preview": arg_value[:100] + "..."
+                                if len(arg_value) > 100
+                                else arg_value,
+                            },
+                        )
+                    )
 
                 # Check for potential path traversal
                 if ".." in arg_value or arg_value.startswith("/"):
-                    issues.append(SecurityIssue(
-                        issue_type="potential_path_traversal",
-                        severity=SecurityRiskLevel.HIGH,
-                        description="Potential path traversal detected",
-                        location=f"tool:{tool_name}:argument:{arg_name}",
-                        details={
-                            "argument_name": arg_name,
-                            "value": arg_value,
-                        },
-                    ))
+                    issues.append(
+                        SecurityIssue(
+                            issue_type="potential_path_traversal",
+                            severity=SecurityRiskLevel.HIGH,
+                            description="Potential path traversal detected",
+                            location=f"tool:{tool_name}:argument:{arg_name}",
+                            details={
+                                "argument_name": arg_name,
+                                "value": arg_value,
+                            },
+                        )
+                    )
 
             # Check for suspicious parameter names
             if arg_name.lower() in self.suspicious_parameters:
-                issues.append(SecurityIssue(
-                    issue_type="suspicious_argument_name",
-                    severity=SecurityRiskLevel.MEDIUM,
-                    description="Suspicious argument name detected",
-                    location=f"tool:{tool_name}:argument:{arg_name}",
-                    details={
-                        "argument_name": arg_name,
-                        "argument_value": str(arg_value)[:100],
-                    },
-                ))
+                issues.append(
+                    SecurityIssue(
+                        issue_type="suspicious_argument_name",
+                        severity=SecurityRiskLevel.MEDIUM,
+                        description="Suspicious argument name detected",
+                        location=f"tool:{tool_name}:argument:{arg_name}",
+                        details={
+                            "argument_name": arg_name,
+                            "argument_value": str(arg_value)[:100],
+                        },
+                    )
+                )
 
         self._log_issues(issues)
         return issues
 
-    def validate_server_configuration(self, config: Dict[str, Any]) -> List[SecurityIssue]:
+    def validate_server_configuration(self, config: dict[str, Any]) -> list[SecurityIssue]:
         """Validate MCP server configuration for security issues.
-        
+
         Args:
             config: Server configuration to validate
-            
+
         Returns:
             List of security issues found
 
@@ -356,44 +393,48 @@ class SecurityValidator:
             env_vars = config["env"]
             sensitive_env_vars = ["password", "secret", "key", "token", "api_key"]
 
-            for env_var_name, env_var_value in env_vars.items():
+            for env_var_name, _env_var_value in env_vars.items():
                 env_var_lower = env_var_name.lower()
                 for sensitive_pattern in sensitive_env_vars:
                     if sensitive_pattern in env_var_lower:
-                        issues.append(SecurityIssue(
-                            issue_type="hardcoded_credentials",
-                            severity=SecurityRiskLevel.HIGH,
-                            description="Hardcoded credentials detected in configuration",
-                            location=f"config:env:{env_var_name}",
-                            details={
-                                "environment_variable": env_var_name,
-                                "sensitive_pattern": sensitive_pattern,
-                                "recommendation": "Use environment variables or secure secret management",
-                            },
-                        ))
+                        issues.append(
+                            SecurityIssue(
+                                issue_type="hardcoded_credentials",
+                                severity=SecurityRiskLevel.HIGH,
+                                description="Hardcoded credentials detected in configuration",
+                                location=f"config:env:{env_var_name}",
+                                details={
+                                    "environment_variable": env_var_name,
+                                    "sensitive_pattern": sensitive_pattern,
+                                    "recommendation": "Use environment variables or secure secret management",
+                                },
+                            )
+                        )
                         break  # Only report once per environment variable
 
         # Check for insecure command execution
         if "command" in config:
             command = config["command"]
             if command in ["bash", "sh", "cmd", "powershell"]:
-                issues.append(SecurityIssue(
-                    issue_type="insecure_command_execution",
-                    severity=SecurityRiskLevel.HIGH,
-                    description="Insecure command execution detected",
-                    location="config:command",
-                    details={
-                        "command": command,
-                        "recommendation": "Use specific executable paths instead of shell commands",
-                    },
-                ))
+                issues.append(
+                    SecurityIssue(
+                        issue_type="insecure_command_execution",
+                        severity=SecurityRiskLevel.HIGH,
+                        description="Insecure command execution detected",
+                        location="config:command",
+                        details={
+                            "command": command,
+                            "recommendation": "Use specific executable paths instead of shell commands",
+                        },
+                    )
+                )
 
         self._log_issues(issues)
         return issues
 
-    def get_security_summary(self) -> Dict[str, Any]:
+    def get_security_summary(self) -> dict[str, Any]:
         """Get a summary of all security issues found."""
-        summary: Dict[str, Any] = {
+        summary: dict[str, Any] = {
             "total_issues": len(self.issues),
             "issues_by_severity": {},
             "issues_by_type": {},
@@ -403,7 +444,9 @@ class SecurityValidator:
         # Count by severity
         for issue in self.issues:
             severity = issue.severity.value
-            summary["issues_by_severity"][severity] = summary["issues_by_severity"].get(severity, 0) + 1
+            summary["issues_by_severity"][severity] = (
+                summary["issues_by_severity"].get(severity, 0) + 1
+            )
 
         # Count by type
         for issue in self.issues:
@@ -429,7 +472,7 @@ class SecurityValidator:
         """Clear all recorded security issues."""
         self.issues.clear()
 
-    def _log_issues(self, issues: List[SecurityIssue]) -> None:
+    def _log_issues(self, issues: list[SecurityIssue]) -> None:
         """Log security issues and add to tracking list."""
         for issue in issues:
             self.issues.append(issue)
@@ -443,8 +486,10 @@ class SecurityValidator:
                     SecurityRiskLevel.CRITICAL: logging.CRITICAL,
                 }.get(issue.severity, logging.WARNING)
 
-                logger.log(log_level,
-                          f"Security issue detected: {issue.issue_type} - {issue.description} at {issue.location}")
+                logger.log(
+                    log_level,
+                    f"Security issue detected: {issue.issue_type} - {issue.description} at {issue.location}",
+                )
 
 
 class SecurityMonitor:
@@ -452,7 +497,7 @@ class SecurityMonitor:
 
     def __init__(self, validator: SecurityValidator):
         """Initialize security monitor.
-        
+
         Args:
             validator: Security validator instance
 
@@ -461,7 +506,9 @@ class SecurityMonitor:
         self.monitoring_enabled = True
         self.alert_threshold = SecurityRiskLevel.MEDIUM
 
-    def monitor_tool_registration(self, tool_name: str, description: str, schema: Dict[str, Any]) -> List[SecurityIssue]:
+    def monitor_tool_registration(
+        self, tool_name: str, description: str, schema: dict[str, Any]
+    ) -> list[SecurityIssue]:
         """Monitor tool registration for security issues."""
         if not self.monitoring_enabled:
             return []
@@ -473,11 +520,15 @@ class SecurityMonitor:
         # Check if any issues meet alert threshold
         high_priority_issues = [i for i in issues if i.severity.value >= self.alert_threshold.value]
         if high_priority_issues:
-            logger.warning(f"High-priority security issues detected during tool registration: {tool_name}")
+            logger.warning(
+                f"High-priority security issues detected during tool registration: {tool_name}"
+            )
 
         return issues
 
-    def monitor_tool_execution(self, tool_name: str, arguments: Dict[str, Any]) -> List[SecurityIssue]:
+    def monitor_tool_execution(
+        self, tool_name: str, arguments: dict[str, Any]
+    ) -> list[SecurityIssue]:
         """Monitor tool execution for security issues."""
         if not self.monitoring_enabled:
             return []
@@ -487,11 +538,13 @@ class SecurityMonitor:
         # Check if any issues meet alert threshold
         high_priority_issues = [i for i in issues if i.severity.value >= self.alert_threshold.value]
         if high_priority_issues:
-            logger.warning(f"High-priority security issues detected during tool execution: {tool_name}")
+            logger.warning(
+                f"High-priority security issues detected during tool execution: {tool_name}"
+            )
 
         return issues
 
-    def get_security_metrics(self) -> Dict[str, Any]:
+    def get_security_metrics(self) -> dict[str, Any]:
         """Get security monitoring metrics."""
         summary = self.validator.get_security_summary()
 

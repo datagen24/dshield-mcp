@@ -21,9 +21,9 @@ import json
 import sys
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import structlog
 from pydantic import ValidationError
@@ -41,15 +41,15 @@ logger = structlog.get_logger(__name__)
 class CircuitBreakerState(Enum):
     """Circuit breaker states."""
 
-    CLOSED = "closed"      # Normal operation
-    OPEN = "open"          # Failing, reject requests
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Failing, reject requests
     HALF_OPEN = "half_open"  # Testing if service recovered
 
 
 @dataclass
 class CircuitBreakerConfig:
     """Configuration for circuit breaker behavior.
-    
+
     Attributes:
         failure_threshold: Number of failures before opening circuit
         recovery_timeout: Time to wait before attempting recovery
@@ -60,14 +60,14 @@ class CircuitBreakerConfig:
 
     failure_threshold: int = 5
     recovery_timeout: float = 60.0  # seconds
-    expected_exception: tuple = (Exception,)
+    expected_exception: tuple[type[Exception], ...] = (Exception,)
     success_threshold: int = 2
 
 
 @dataclass
 class ErrorHandlingConfig:
     """Configuration for error handling behavior.
-    
+
     Attributes:
         timeouts: Timeout settings for different operations
         retry_settings: Retry configuration for transient failures
@@ -77,48 +77,56 @@ class ErrorHandlingConfig:
 
     """
 
-    timeouts: Dict[str, float] = field(default_factory=lambda: {
-        "elasticsearch_operations": 30.0,
-        "dshield_api_calls": 10.0,
-        "latex_compilation": 60.0,
-        "tool_execution": 120.0,
-    })
+    timeouts: dict[str, float] = field(
+        default_factory=lambda: {
+            "elasticsearch_operations": 30.0,
+            "dshield_api_calls": 10.0,
+            "latex_compilation": 60.0,
+            "tool_execution": 120.0,
+        }
+    )
 
-    retry_settings: Dict[str, Any] = field(default_factory=lambda: {
-        "max_retries": 3,
-        "base_delay": 1.0,
-        "max_delay": 30.0,
-        "exponential_base": 2.0,
-    })
+    retry_settings: dict[str, Any] = field(
+        default_factory=lambda: {
+            "max_retries": 3,
+            "base_delay": 1.0,
+            "max_delay": 30.0,
+            "exponential_base": 2.0,
+        }
+    )
 
-    logging: Dict[str, Any] = field(default_factory=lambda: {
-        "include_stack_traces": True,
-        "include_request_context": True,
-        "include_user_parameters": True,
-        "log_level": "INFO",
-    })
+    logging: dict[str, Any] = field(
+        default_factory=lambda: {
+            "include_stack_traces": True,
+            "include_request_context": True,
+            "include_user_parameters": True,
+            "log_level": "INFO",
+        }
+    )
 
     circuit_breaker: CircuitBreakerConfig = field(default_factory=CircuitBreakerConfig)
 
-    error_aggregation: Dict[str, Any] = field(default_factory=lambda: {
-        "enabled": True,
-        "window_size": 300,  # 5 minutes
-        "max_errors_per_window": 100,
-        "history_size": 1000,
-    })
+    error_aggregation: dict[str, Any] = field(
+        default_factory=lambda: {
+            "enabled": True,
+            "window_size": 300,  # 5 minutes
+            "max_errors_per_window": 100,
+            "history_size": 1000,
+        }
+    )
 
 
 class MCPErrorHandler:
     """Handles JSON-RPC error responses for MCP server.
-    
+
     This class provides comprehensive error handling for all MCP operations,
     including proper error code generation, timeout handling, retry logic,
     and detailed error logging for debugging and troubleshooting.
-    
+
     The error handler follows the JSON-RPC 2.0 specification and ensures
     that all error responses are properly formatted and contain actionable
     information for users while maintaining detailed logging for developers.
-    
+
     Attributes:
         config: Error handling configuration
         logger: Structured logger instance
@@ -144,9 +152,9 @@ class MCPErrorHandler:
     SECURITY_ERROR = -32009
     SCHEMA_VALIDATION_ERROR = -32010
 
-    def __init__(self, config: Optional[ErrorHandlingConfig] = None) -> None:
+    def __init__(self, config: ErrorHandlingConfig | None = None) -> None:
         """Initialize the MCP error handler.
-        
+
         Args:
             config: Error handling configuration. If None, uses default values.
 
@@ -168,7 +176,7 @@ class MCPErrorHandler:
 
     def _validate_config(self) -> None:
         """Validate the error handling configuration.
-        
+
         Raises:
             ValueError: If configuration values are invalid.
 
@@ -193,20 +201,20 @@ class MCPErrorHandler:
         self,
         code: int,
         message: str,
-        data: Optional[Dict[str, Any]] = None,
-        request_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        data: dict[str, Any] | None = None,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
         """Create a properly formatted JSON-RPC error response.
-        
+
         Args:
             code: JSON-RPC error code
             message: Human-readable error message
             data: Additional error data (optional)
             request_id: Request ID for correlation (optional)
-        
+
         Returns:
             Dictionary containing the JSON-RPC error response.
-        
+
         Example:
             >>> error = error_handler.create_error(
             ...     MCPErrorHandler.INVALID_PARAMS,
@@ -215,7 +223,7 @@ class MCPErrorHandler:
             ... )
 
         """
-        error_response = {
+        error_response: dict[str, Any] = {
             "jsonrpc": "2.0",
             "error": {
                 "code": code,
@@ -235,10 +243,10 @@ class MCPErrorHandler:
         # Record error with aggregator for Phase 3 analytics
         if self.config.error_aggregation["enabled"]:
             error_type = self._get_error_type(code)
-            context = {
+            context: dict[str, Any] = {
                 "message": message,
                 "request_id": request_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
             if data:
                 context["error_data"] = data
@@ -248,10 +256,10 @@ class MCPErrorHandler:
 
     def _get_error_type(self, code: int) -> str:
         """Get a human-readable error type from error code.
-        
+
         Args:
             code: JSON-RPC error code
-        
+
         Returns:
             String representation of error type.
 
@@ -274,39 +282,45 @@ class MCPErrorHandler:
 
         return error_type_map.get(code, "unknown_error")
 
-    def create_parse_error(self, message: str = "Parse error", data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_parse_error(
+        self, message: str = "Parse error", data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a parse error response.
-        
+
         Args:
             message: Error message
             data: Additional error data
-        
+
         Returns:
             Parse error response.
 
         """
         return self.create_error(self.PARSE_ERROR, message, data)
 
-    def create_invalid_request_error(self, message: str = "Invalid request", data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_invalid_request_error(
+        self, message: str = "Invalid request", data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create an invalid request error response.
-        
+
         Args:
             message: Error message
             data: Additional error data
-        
+
         Returns:
             Invalid request error response.
 
         """
         return self.create_error(self.INVALID_REQUEST, message, data)
 
-    def create_method_not_found_error(self, method: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_method_not_found_error(
+        self, method: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a method not found error response.
-        
+
         Args:
             method: Method name that was not found
             data: Additional error data
-        
+
         Returns:
             Method not found error response.
 
@@ -316,40 +330,46 @@ class MCPErrorHandler:
             data = {"method": method}
         return self.create_error(self.METHOD_NOT_FOUND, message, data)
 
-    def create_invalid_params_error(self, message: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_invalid_params_error(
+        self, message: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create an invalid parameters error response.
-        
+
         Args:
             message: Error message
             data: Additional error data
-        
+
         Returns:
             Invalid parameters error response.
 
         """
         return self.create_error(self.INVALID_PARAMS, message, data)
 
-    def create_internal_error(self, message: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_internal_error(
+        self, message: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create an internal error response.
-        
+
         Args:
             message: Error message
             data: Additional error data
-        
+
         Returns:
             Internal error response.
 
         """
         return self.create_error(self.INTERNAL_ERROR, message, data)
 
-    def create_validation_error(self, tool_name: str, validation_error: ValidationError, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_validation_error(
+        self, tool_name: str, validation_error: ValidationError, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a validation error response.
-        
+
         Args:
             tool_name: Name of the tool that failed validation
             validation_error: Pydantic validation error
             data: Additional error data
-        
+
         Returns:
             Validation error response.
 
@@ -365,14 +385,16 @@ class MCPErrorHandler:
 
         return self.create_error(self.VALIDATION_ERROR, message, data)
 
-    def create_timeout_error(self, tool_name: str, timeout_seconds: float, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_timeout_error(
+        self, tool_name: str, timeout_seconds: float, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a timeout error response.
-        
+
         Args:
             tool_name: Name of the tool that timed out
             timeout_seconds: Timeout value in seconds
             data: Additional error data
-        
+
         Returns:
             Timeout error response.
 
@@ -388,15 +410,17 @@ class MCPErrorHandler:
 
         return self.create_error(self.TIMEOUT_ERROR, message, data)
 
-    def create_resource_error(self, resource_uri: str, error_type: str, message: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_resource_error(
+        self, resource_uri: str, error_type: str, message: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a resource-related error response.
-        
+
         Args:
             resource_uri: URI of the resource that caused the error
             error_type: Type of resource error
             message: Error message
             data: Additional error data
-        
+
         Returns:
             Resource error response.
 
@@ -419,14 +443,16 @@ class MCPErrorHandler:
 
         return self.create_error(code, message, data)
 
-    def create_external_service_error(self, service_name: str, error_message: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_external_service_error(
+        self, service_name: str, error_message: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create an external service error response.
-        
+
         Args:
             service_name: Name of the external service
             error_message: Error message from the service
             data: Additional error data
-        
+
         Returns:
             External service error response.
 
@@ -441,14 +467,19 @@ class MCPErrorHandler:
 
         return self.create_error(self.EXTERNAL_SERVICE_ERROR, message, data)
 
-    def create_rate_limit_error(self, service_name: str, retry_after: Optional[float] = None, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_rate_limit_error(
+        self,
+        service_name: str,
+        retry_after: float | None = None,
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Create a rate limit error response.
-        
+
         Args:
             service_name: Name of the service that rate limited the request
             retry_after: Suggested retry delay in seconds
             data: Additional error data
-        
+
         Returns:
             Rate limit error response.
 
@@ -467,13 +498,15 @@ class MCPErrorHandler:
 
         return self.create_error(self.RATE_LIMIT_ERROR, message, data)
 
-    def create_security_error(self, message: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_security_error(
+        self, message: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a security error response.
-        
+
         Args:
             message: Security error message
             data: Additional error data
-            
+
         Returns:
             Security error response.
 
@@ -481,18 +514,20 @@ class MCPErrorHandler:
         if not data:
             data = {
                 "error_type": "security_violation",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
         return self.create_error(self.SECURITY_ERROR, message, data)
 
-    def create_schema_validation_error(self, message: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_schema_validation_error(
+        self, message: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a schema validation error response.
-        
+
         Args:
             message: Schema validation error message
             data: Additional error data
-            
+
         Returns:
             Schema validation error response.
 
@@ -500,19 +535,21 @@ class MCPErrorHandler:
         if not data:
             data = {
                 "error_type": "schema_validation_failed",
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
         return self.create_error(self.SCHEMA_VALIDATION_ERROR, message, data)
 
-    async def validate_message_security(self, message: str, connection_id: Optional[str] = None, api_key_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    async def validate_message_security(
+        self, message: str, connection_id: str | None = None, api_key_id: str | None = None
+    ) -> dict[str, Any] | None:
         """Validate message security including schema validation and rate limiting.
-        
+
         Args:
             message: Raw JSON message string
             connection_id: Connection ID for rate limiting
             api_key_id: API key ID for rate limiting
-            
+
         Returns:
             Error response if validation fails, None if valid
 
@@ -524,12 +561,12 @@ class MCPErrorHandler:
 
         # Connection rate limiting
         if connection_id and not await self.connection_rate_limiter.is_allowed(connection_id):
-            wait_time = await self.connection_rate_limiter.get_wait_time()
+            wait_time = await self.connection_rate_limiter.get_wait_time(connection_id)
             return self.create_rate_limit_error("connection", retry_after=wait_time)
 
         # API key rate limiting
         if api_key_id and not await self.api_key_rate_limiter.is_allowed(api_key_id):
-            wait_time = await self.api_key_rate_limiter.get_wait_time()
+            wait_time = await self.api_key_rate_limiter.get_wait_time(api_key_id)
             return self.create_rate_limit_error("api_key", retry_after=wait_time)
 
         # Schema validation
@@ -539,28 +576,32 @@ class MCPErrorHandler:
 
         return None
 
-    def validate_tool_exists(self, tool_name: str, available_tools: List[str]) -> None:
+    def validate_tool_exists(self, tool_name: str, available_tools: list[str]) -> None:
         """Validate that a tool exists before execution.
-        
+
         Args:
             tool_name: Name of the tool to validate
             available_tools: List of available tool names
-        
+
         Raises:
             ValueError: If the tool does not exist.
 
         """
         if tool_name not in available_tools:
-            raise ValueError(f"Tool '{tool_name}' not found. Available tools: {', '.join(available_tools)}")
+            raise ValueError(
+                f"Tool '{tool_name}' not found. Available tools: {', '.join(available_tools)}"
+            )
 
-    def validate_arguments(self, tool_name: str, arguments: Dict[str, Any], schema: Dict[str, Any]) -> None:
+    def validate_arguments(
+        self, tool_name: str, arguments: dict[str, Any], schema: dict[str, Any]
+    ) -> None:
         """Validate arguments against a tool schema.
-        
+
         Args:
             tool_name: Name of the tool
             arguments: Arguments to validate
             schema: Tool schema for validation
-        
+
         Raises:
             ValidationError: If arguments are invalid.
 
@@ -578,18 +619,18 @@ class MCPErrorHandler:
         self,
         operation: str,
         coro: Any,
-        timeout_seconds: Optional[float] = None,
+        timeout_seconds: float | None = None,
     ) -> Any:
         """Execute a coroutine with timeout protection.
-        
+
         Args:
             operation: Name of the operation for logging
             coro: Coroutine to execute
             timeout_seconds: Timeout in seconds (uses default if None)
-        
+
         Returns:
             Result of the coroutine execution.
-        
+
         Raises:
             asyncio.TimeoutError: If the operation times out.
 
@@ -597,30 +638,30 @@ class MCPErrorHandler:
         if timeout_seconds is None:
             timeout_seconds = self.config.timeouts.get("tool_execution", 120.0)
 
-        self.logger.debug("Executing operation with timeout",
-                         operation=operation,
-                         timeout_seconds=timeout_seconds)
+        self.logger.debug(
+            "Executing operation with timeout", operation=operation, timeout_seconds=timeout_seconds
+        )
 
         try:
             result = await asyncio.wait_for(coro, timeout=timeout_seconds)
             return result
-        except asyncio.TimeoutError:
-            self.logger.warning("Operation timed out",
-                              operation=operation,
-                              timeout_seconds=timeout_seconds)
+        except TimeoutError:
+            self.logger.warning(
+                "Operation timed out", operation=operation, timeout_seconds=timeout_seconds
+            )
             raise
 
     async def execute_with_retry(
         self,
         operation: str,
         coro_factory: Any,
-        max_retries: Optional[int] = None,
-        base_delay: Optional[float] = None,
-        max_delay: Optional[float] = None,
-        exponential_base: Optional[float] = None,
+        max_retries: int | None = None,
+        base_delay: float | None = None,
+        max_delay: float | None = None,
+        exponential_base: float | None = None,
     ) -> Any:
         """Execute a coroutine with retry logic and exponential backoff.
-        
+
         Args:
             operation: Name of the operation for logging
             coro_factory: Coroutine factory function or callable that returns a coroutine
@@ -628,10 +669,10 @@ class MCPErrorHandler:
             base_delay: Base delay between retries (uses config default if None)
             max_delay: Maximum delay between retries (uses config default if None)
             exponential_base: Exponential backoff multiplier (uses config default if None)
-        
+
         Returns:
             Result of the coroutine execution.
-        
+
         Raises:
             Exception: If all retries are exhausted.
 
@@ -645,15 +686,17 @@ class MCPErrorHandler:
         if exponential_base is None:
             exponential_base = self.config.retry_settings["exponential_base"]
 
-        last_exception = None
+        last_exception: Exception | None = None
 
         for attempt in range(max_retries + 1):
             try:
                 if attempt > 0:
-                    self.logger.info("Retrying operation",
-                                   operation=operation,
-                                   attempt=attempt,
-                                   max_retries=max_retries)
+                    self.logger.info(
+                        "Retrying operation",
+                        operation=operation,
+                        attempt=attempt,
+                        max_retries=max_retries,
+                    )
 
                 # Create a new coroutine for each attempt
                 if callable(coro_factory):
@@ -663,39 +706,48 @@ class MCPErrorHandler:
 
                 result = await coro
                 if attempt > 0:
-                    self.logger.info("Operation succeeded on retry",
-                                   operation=operation,
-                                   attempt=attempt)
+                    self.logger.info(
+                        "Operation succeeded on retry", operation=operation, attempt=attempt
+                    )
                 return result
 
             except Exception as e:
                 last_exception = e
 
                 if attempt == max_retries:
-                    self.logger.error("Operation failed after all retries",
-                                    operation=operation,
-                                    max_retries=max_retries,
-                                    final_error=str(e))
+                    self.logger.error(
+                        "Operation failed after all retries",
+                        operation=operation,
+                        max_retries=max_retries,
+                        final_error=str(e),
+                    )
                     raise
 
                 # Calculate delay with exponential backoff
-                delay = min(base_delay * (exponential_base ** attempt), max_delay)
+                delay = min(base_delay * (exponential_base**attempt), max_delay)
 
-                self.logger.warning("Operation failed, retrying",
-                                  operation=operation,
-                                  attempt=attempt + 1,
-                                  max_retries=max_retries,
-                                  delay_seconds=delay,
-                                  error=str(e))
+                self.logger.warning(
+                    "Operation failed, retrying",
+                    operation=operation,
+                    attempt=attempt + 1,
+                    max_retries=max_retries,
+                    delay_seconds=delay,
+                    error=str(e),
+                )
 
                 await asyncio.sleep(delay)
 
         # This should never be reached, but just in case
-        raise last_exception
+        if last_exception is not None:
+            raise last_exception
+        else:
+            raise RuntimeError("Retry operation failed without exception")
 
-    def _log_error(self, code: int, message: str, data: Optional[Dict[str, Any]], request_id: Optional[str]) -> None:
+    def _log_error(
+        self, code: int, message: str, data: dict[str, Any] | None, request_id: str | None
+    ) -> None:
         """Log error information to stderr for debugging.
-        
+
         Args:
             code: Error code
             message: Error message
@@ -706,7 +758,7 @@ class MCPErrorHandler:
         log_data = {
             "error_code": code,
             "error_message": message,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "request_id": request_id,
         }
 
@@ -720,9 +772,9 @@ class MCPErrorHandler:
         # Also log to structured logger
         self.logger.error("MCP error occurred", **log_data)
 
-    def get_error_summary(self) -> Dict[str, Any]:
+    def get_error_summary(self) -> dict[str, Any]:
         """Get a summary of error handling configuration.
-        
+
         Returns:
             Dictionary containing error handling configuration summary.
 
@@ -754,13 +806,15 @@ class MCPErrorHandler:
 
     # Phase 3: Advanced Error Handling Features
 
-    def create_resource_not_found_error(self, resource_uri: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_resource_not_found_error(
+        self, resource_uri: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a resource not found error response.
-        
+
         Args:
             resource_uri: URI of the resource that was not found
             data: Additional error data
-        
+
         Returns:
             Resource not found error response.
 
@@ -771,16 +825,23 @@ class MCPErrorHandler:
                 "suggestion": "Check the resource URI and ensure it exists",
             }
 
-        return self.create_error(self.RESOURCE_NOT_FOUND, f"Resource '{resource_uri}' not found", data)
+        return self.create_error(
+            self.RESOURCE_NOT_FOUND, f"Resource '{resource_uri}' not found", data
+        )
 
-    def create_resource_access_denied_error(self, resource_uri: str, reason: str = "Permission denied", data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_resource_access_denied_error(
+        self,
+        resource_uri: str,
+        reason: str = "Permission denied",
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Create a resource access denied error response.
-        
+
         Args:
             resource_uri: URI of the resource that access was denied to
             reason: Reason for access denial
             data: Additional error data
-        
+
         Returns:
             Resource access denied error response.
 
@@ -792,16 +853,25 @@ class MCPErrorHandler:
                 "suggestion": "Check your permissions and authentication",
             }
 
-        return self.create_error(self.RESOURCE_ACCESS_DENIED, f"Access denied to resource '{resource_uri}': {reason}", data)
+        return self.create_error(
+            self.RESOURCE_ACCESS_DENIED,
+            f"Access denied to resource '{resource_uri}': {reason}",
+            data,
+        )
 
-    def create_resource_unavailable_error(self, resource_uri: str, reason: str = "Resource temporarily unavailable", data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_resource_unavailable_error(
+        self,
+        resource_uri: str,
+        reason: str = "Resource temporarily unavailable",
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Create a resource unavailable error response.
-        
+
         Args:
             resource_uri: URI of the resource that is unavailable
             reason: Reason for unavailability
             data: Additional error data
-        
+
         Returns:
             Resource unavailable error response.
 
@@ -813,15 +883,19 @@ class MCPErrorHandler:
                 "suggestion": "Try again later or contact support if the issue persists",
             }
 
-        return self.create_error(self.RESOURCE_UNAVAILABLE, f"Resource '{resource_uri}' unavailable: {reason}", data)
+        return self.create_error(
+            self.RESOURCE_UNAVAILABLE, f"Resource '{resource_uri}' unavailable: {reason}", data
+        )
 
-    def create_circuit_breaker_open_error(self, service_name: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_circuit_breaker_open_error(
+        self, service_name: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Create a circuit breaker open error response.
-        
+
         Args:
             service_name: Name of the service with open circuit breaker
             data: Additional error data
-        
+
         Returns:
             Circuit breaker open error response.
 
@@ -832,17 +906,25 @@ class MCPErrorHandler:
                 "suggestion": "Service is temporarily unavailable due to repeated failures. Please try again later.",
             }
 
-        return self.create_error(self.EXTERNAL_SERVICE_ERROR, f"Service '{service_name}' circuit breaker is open", data)
+        return self.create_error(
+            self.EXTERNAL_SERVICE_ERROR, f"Service '{service_name}' circuit breaker is open", data
+        )
 
-    def create_validation_error_with_context(self, tool_name: str, validation_error: ValidationError, context: Dict[str, Any], data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_validation_error_with_context(
+        self,
+        tool_name: str,
+        validation_error: ValidationError,
+        context: dict[str, Any],
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Create a validation error response with additional context.
-        
+
         Args:
             tool_name: Name of the tool that failed validation
             validation_error: Pydantic validation error
             context: Additional context about the validation failure
             data: Additional error data
-        
+
         Returns:
             Enhanced validation error response.
 
@@ -855,17 +937,25 @@ class MCPErrorHandler:
                 "suggestion": "Check the input parameters and ensure they match the expected schema",
             }
 
-        return self.create_error(self.VALIDATION_ERROR, f"Validation failed for tool '{tool_name}'", data)
+        return self.create_error(
+            self.VALIDATION_ERROR, f"Validation failed for tool '{tool_name}'", data
+        )
 
-    def create_timeout_error_with_context(self, tool_name: str, timeout_seconds: float, operation_context: Dict[str, Any], data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def create_timeout_error_with_context(
+        self,
+        tool_name: str,
+        timeout_seconds: float,
+        operation_context: dict[str, Any],
+        data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Create a timeout error response with operation context.
-        
+
         Args:
             tool_name: Name of the tool that timed out
             timeout_seconds: Timeout value that was exceeded
             operation_context: Context about the operation that timed out
             data: Additional error data
-        
+
         Returns:
             Enhanced timeout error response.
 
@@ -878,43 +968,51 @@ class MCPErrorHandler:
                 "suggestion": "The operation may be taking longer than expected. Try reducing the scope or increasing the timeout.",
             }
 
-        return self.create_error(self.TIMEOUT_ERROR, f"Tool '{tool_name}' timed out after {timeout_seconds} seconds", data)
+        return self.create_error(
+            self.TIMEOUT_ERROR,
+            f"Tool '{tool_name}' timed out after {timeout_seconds} seconds",
+            data,
+        )
 
-    def get_enhanced_error_summary(self) -> Dict[str, Any]:
+    def get_enhanced_error_summary(self) -> dict[str, Any]:
         """Get an enhanced summary including Phase 3 features.
-        
+
         Returns:
             Dictionary containing comprehensive error handling configuration and capabilities.
 
         """
         base_summary = self.get_error_summary()
-        base_summary.update({
-            "phase_3_features": {
-                "circuit_breaker": {
-                    "enabled": True,
-                    "config": {
-                        "failure_threshold": self.config.circuit_breaker.failure_threshold,
-                        "recovery_timeout": self.config.circuit_breaker.recovery_timeout,
-                        "success_threshold": self.config.circuit_breaker.success_threshold,
+        base_summary.update(
+            {
+                "phase_3_features": {
+                    "circuit_breaker": {
+                        "enabled": True,
+                        "config": {
+                            "failure_threshold": self.config.circuit_breaker.failure_threshold,
+                            "recovery_timeout": self.config.circuit_breaker.recovery_timeout,
+                            "success_threshold": self.config.circuit_breaker.success_threshold,
+                        },
                     },
+                    "error_aggregation": {
+                        "enabled": self.config.error_aggregation["enabled"],
+                        "window_size": self.config.error_aggregation["window_size"],
+                        "max_errors_per_window": self.config.error_aggregation[
+                            "max_errors_per_window"
+                        ],
+                    },
+                    "enhanced_resource_handling": True,
+                    "context_aware_errors": True,
                 },
-                "error_aggregation": {
-                    "enabled": self.config.error_aggregation["enabled"],
-                    "window_size": self.config.error_aggregation["window_size"],
-                    "max_errors_per_window": self.config.error_aggregation["max_errors_per_window"],
-                },
-                "enhanced_resource_handling": True,
-                "context_aware_errors": True,
-            },
-        })
+            }
+        )
         return base_summary
 
-    def get_error_analytics(self, window_seconds: Optional[int] = None) -> Dict[str, Any]:
+    def get_error_analytics(self, window_seconds: int | None = None) -> dict[str, Any]:
         """Get error analytics and patterns from the aggregator.
-        
+
         Args:
             window_seconds: Time window in seconds (uses config default if None)
-        
+
         Returns:
             Dictionary containing error analytics and patterns.
 
@@ -928,12 +1026,12 @@ class MCPErrorHandler:
             "aggregation_config": self.config.error_aggregation,
         }
 
-    def get_circuit_breaker_status(self, service_name: str) -> Optional[Dict[str, Any]]:
+    def get_circuit_breaker_status(self, service_name: str) -> dict[str, Any] | None:
         """Get circuit breaker status for a specific service.
-        
+
         Args:
             service_name: Name of the service to check
-        
+
         Returns:
             Circuit breaker status or None if not found.
 
@@ -945,11 +1043,11 @@ class MCPErrorHandler:
 
 class CircuitBreaker:
     """Circuit breaker implementation for external service calls.
-    
+
     This class implements the circuit breaker pattern to prevent cascading failures
     when external services are experiencing issues. It tracks failures and
     automatically opens the circuit when the failure threshold is reached.
-    
+
     Attributes:
         config: Circuit breaker configuration
         state: Current circuit breaker state
@@ -960,9 +1058,9 @@ class CircuitBreaker:
 
     """
 
-    def __init__(self, service_name: str, config: Optional[CircuitBreakerConfig] = None) -> None:
+    def __init__(self, service_name: str, config: CircuitBreakerConfig | None = None) -> None:
         """Initialize the circuit breaker.
-        
+
         Args:
             service_name: Name of the service being protected
             config: Circuit breaker configuration
@@ -973,12 +1071,12 @@ class CircuitBreaker:
         self.state = CircuitBreakerState.CLOSED
         self.failure_count = 0
         self.success_count = 0
-        self.last_failure_time = None
+        self.last_failure_time: datetime | None = None
         self.logger = structlog.get_logger(__name__)
 
     def can_execute(self) -> bool:
         """Check if the circuit breaker allows execution.
-        
+
         Returns:
             True if execution is allowed, False otherwise.
 
@@ -1008,24 +1106,26 @@ class CircuitBreaker:
 
     def on_failure(self, exception: Exception) -> None:
         """Record a failed operation.
-        
+
         Args:
             exception: The exception that occurred
 
         """
         if isinstance(exception, self.config.expected_exception):
             self.failure_count += 1
-            self.last_failure_time = datetime.now(timezone.utc)
+            self.last_failure_time = datetime.now(UTC)
 
             if self.failure_count >= self.config.failure_threshold:
                 self._set_open()
-                self.logger.warning("Circuit breaker opened",
-                                  service=self.service_name,
-                                  failure_count=self.failure_count)
+                self.logger.warning(
+                    "Circuit breaker opened",
+                    service=self.service_name,
+                    failure_count=self.failure_count,
+                )
 
     def _should_attempt_reset(self) -> bool:
         """Check if enough time has passed to attempt reset.
-        
+
         Returns:
             True if reset should be attempted.
 
@@ -1033,7 +1133,7 @@ class CircuitBreaker:
         if self.last_failure_time is None:
             return False
 
-        time_since_failure = (datetime.now(timezone.utc) - self.last_failure_time).total_seconds()
+        time_since_failure = (datetime.now(UTC) - self.last_failure_time).total_seconds()
         return time_since_failure >= self.config.recovery_timeout
 
     def _set_half_open(self) -> None:
@@ -1052,11 +1152,10 @@ class CircuitBreaker:
         self.state = CircuitBreakerState.CLOSED
         self.failure_count = 0
         self.success_count = 0
-        self.last_failure_time = None
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         """Get the current status of the circuit breaker.
-        
+
         Returns:
             Dictionary containing circuit breaker status.
 
@@ -1066,7 +1165,9 @@ class CircuitBreaker:
             "state": self.state.value,
             "failure_count": self.failure_count,
             "success_count": self.success_count,
-            "last_failure_time": self.last_failure_time.isoformat() if self.last_failure_time else None,
+            "last_failure_time": self.last_failure_time.isoformat()
+            if self.last_failure_time
+            else None,
             "config": {
                 "failure_threshold": self.config.failure_threshold,
                 "recovery_timeout": self.config.recovery_timeout,
@@ -1076,14 +1177,14 @@ class CircuitBreaker:
 
     async def execute(self, coro_factory: Any, error_handler: "MCPErrorHandler") -> Any:
         """Execute a coroutine with circuit breaker protection.
-        
+
         Args:
             coro_factory: Coroutine factory function or callable
             error_handler: MCPErrorHandler instance for error responses
-        
+
         Returns:
             Result of the coroutine execution.
-        
+
         Raises:
             Exception: If the circuit breaker is open or execution fails.
 
@@ -1108,10 +1209,10 @@ class CircuitBreaker:
 
 class ErrorAggregator:
     """Error aggregation and analytics for monitoring and debugging.
-    
+
     This class tracks error patterns, frequencies, and trends to help
     identify systemic issues and provide insights for debugging.
-    
+
     Attributes:
         config: Error aggregation configuration
         error_counts: Count of errors by type and time window
@@ -1120,9 +1221,9 @@ class ErrorAggregator:
 
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, config: dict[str, Any] | None = None) -> None:
         """Initialize the error aggregator.
-        
+
         Args:
             config: Error aggregation configuration
 
@@ -1134,13 +1235,13 @@ class ErrorAggregator:
             "history_size": 1000,
         }
 
-        self.error_counts = defaultdict(int)
-        self.error_history = deque(maxlen=self.config["history_size"])
+        self.error_counts: defaultdict[str, int] = defaultdict(int)
+        self.error_history: deque[dict[str, Any]] = deque(maxlen=self.config["history_size"])
         self.logger = structlog.get_logger(__name__)
 
-    def record_error(self, error_code: int, error_type: str, context: Dict[str, Any]) -> None:
+    def record_error(self, error_code: int, error_type: str, context: dict[str, Any]) -> None:
         """Record an error occurrence.
-        
+
         Args:
             error_code: JSON-RPC error code
             error_type: Type of error (e.g., 'timeout', 'validation', 'external_service')
@@ -1150,7 +1251,7 @@ class ErrorAggregator:
         if not self.config["enabled"]:
             return
 
-        timestamp = datetime.now(timezone.utc)
+        timestamp = datetime.now(UTC)
 
         # Record error count
         key = f"{error_code}_{error_type}"
@@ -1170,7 +1271,7 @@ class ErrorAggregator:
 
     def _check_error_thresholds(self, error_type: str) -> None:
         """Check if error thresholds are exceeded and log warnings.
-        
+
         Args:
             error_type: Type of error to check
 
@@ -1179,30 +1280,32 @@ class ErrorAggregator:
         error_count = len([e for e in recent_errors if e["error_type"] == error_type])
 
         if error_count > self.config["max_errors_per_window"]:
-            self.logger.warning("Error threshold exceeded",
-                              error_type=error_type,
-                              count=error_count,
-                              threshold=self.config["max_errors_per_window"])
+            self.logger.warning(
+                "Error threshold exceeded",
+                error_type=error_type,
+                count=error_count,
+                threshold=self.config["max_errors_per_window"],
+            )
 
-    def _get_recent_errors(self, window_seconds: int) -> List[Dict[str, Any]]:
+    def _get_recent_errors(self, window_seconds: int) -> list[dict[str, Any]]:
         """Get errors from the recent time window.
-        
+
         Args:
             window_seconds: Time window in seconds
-        
+
         Returns:
             List of recent errors
 
         """
-        cutoff_time = datetime.now(timezone.utc) - timedelta(seconds=window_seconds)
+        cutoff_time = datetime.now(UTC) - timedelta(seconds=window_seconds)
         return [e for e in self.error_history if e["timestamp"] >= cutoff_time]
 
-    def get_error_summary(self, window_seconds: Optional[int] = None) -> Dict[str, Any]:
+    def get_error_summary(self, window_seconds: int | None = None) -> dict[str, Any]:
         """Get a summary of error patterns.
-        
+
         Args:
             window_seconds: Time window in seconds (uses config default if None)
-        
+
         Returns:
             Dictionary containing error summary and patterns.
 
@@ -1213,16 +1316,18 @@ class ErrorAggregator:
         recent_errors = self._get_recent_errors(window_seconds)
 
         # Group errors by type and code
-        error_summary = defaultdict(lambda: {"count": 0, "examples": []})
+        error_summary: defaultdict[str, dict[str, Any]] = defaultdict(lambda: {"count": 0, "examples": []})
 
         for error in recent_errors:
             key = f"{error['error_code']}_{error['error_type']}"
             error_summary[key]["count"] += 1
             if len(error_summary[key]["examples"]) < 5:  # Keep only first 5 examples
-                error_summary[key]["examples"].append({
-                    "timestamp": error["timestamp"].isoformat(),
-                    "context": error["context"],
-                })
+                error_summary[key]["examples"].append(
+                    {
+                        "timestamp": error["timestamp"].isoformat(),
+                        "context": error["context"],
+                    }
+                )
 
         return {
             "window_seconds": window_seconds,
@@ -1235,12 +1340,12 @@ class ErrorAggregator:
             )[:10],  # Top 10 most common errors
         }
 
-    def get_error_trends(self, hours: int = 24) -> Dict[str, Any]:
+    def get_error_trends(self, hours: int = 24) -> dict[str, Any]:
         """Get error trends over a longer time period.
-        
+
         Args:
             hours: Number of hours to analyze
-        
+
         Returns:
             Dictionary containing error trends and patterns.
 
@@ -1249,7 +1354,7 @@ class ErrorAggregator:
         recent_errors = self._get_recent_errors(window_seconds)
 
         # Group errors by hour
-        hourly_errors = defaultdict(int)
+        hourly_errors: defaultdict[str, int] = defaultdict(int)
         for error in recent_errors:
             hour_key = error["timestamp"].replace(minute=0, second=0, microsecond=0)
             hourly_errors[hour_key] += 1
@@ -1270,17 +1375,17 @@ class ErrorAggregator:
         return {
             "analysis_period_hours": hours,
             "total_errors": len(recent_errors),
-            "hourly_breakdown": {h.isoformat(): c for h, c in hourly_errors.items()},
+            "hourly_breakdown": {str(h): c for h, c in hourly_errors.items()},
             "trend_percentage": trend_percentage,
             "trend_description": self._describe_trend(trend_percentage),
         }
 
     def _describe_trend(self, trend_percentage: float) -> str:
         """Describe the error trend in human-readable terms.
-        
+
         Args:
             trend_percentage: Percentage change in error rate
-        
+
         Returns:
             Human-readable trend description.
 
