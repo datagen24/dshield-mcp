@@ -5,12 +5,13 @@ by the existing test suites. This includes advanced error handling, complex work
 and integration edge cases.
 """
 
-import pytest
-import pytest_asyncio
 from unittest.mock import AsyncMock, patch
 
-from src.data_processor import DataProcessor
+import pytest
+import pytest_asyncio
+
 from src.context_injector import ContextInjector
+from src.data_processor import DataProcessor
 from src.user_config import get_user_config, reset_user_config
 
 

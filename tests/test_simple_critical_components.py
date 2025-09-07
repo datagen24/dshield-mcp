@@ -1,9 +1,8 @@
 """Simple tests for critical components to improve coverage."""
 
-import pytest
 from unittest.mock import Mock, patch
-from datetime import datetime, timedelta
-from src.connection_manager import ConnectionManager, APIKey
+
+from src.connection_manager import APIKey, ConnectionManager
 from src.transport.tcp_transport import TCPConnection
 
 

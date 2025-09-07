@@ -5,11 +5,12 @@ This test suite validates that our DShield MCP server properly implements
 the Model Context Protocol specification and JSON-RPC 2.0 standard.
 """
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
+
 from mcp_server import DShieldMCPServer
-from src.mcp_error_handler import MCPErrorHandler, ErrorHandlingConfig
+from src.mcp_error_handler import ErrorHandlingConfig, MCPErrorHandler
 
 
 class TestMCPProtocolCompliance:

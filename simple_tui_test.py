@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Simple TUI test to verify basic functionality."""
 
-import sys
 import os
+import sys
 
 # Add the project root to the Python path
 project_root = os.path.dirname(__file__)
@@ -10,7 +10,6 @@ sys.path.insert(0, project_root)
 
 # Import using the module path
 from src.tui.tui_app import DShieldTUIApp
-from src.user_config import UserConfigManager
 
 
 def test_tui_startup():

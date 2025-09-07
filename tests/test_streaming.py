@@ -4,10 +4,11 @@ Tests for event streaming functionality including basic streaming, cursor-based 
 field selection, filtering, and smart chunking with session context.
 """
 
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock, patch
-from datetime import datetime, timedelta
 
 
 class TestStreaming:

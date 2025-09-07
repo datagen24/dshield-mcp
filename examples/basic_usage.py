@@ -12,15 +12,14 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from elasticsearch_client import ElasticsearchClient
-from dshield_client import DShieldClient
-from data_processor import DataProcessor
 from context_injector import ContextInjector
+from data_processor import DataProcessor
+from dshield_client import DShieldClient
+from elasticsearch_client import ElasticsearchClient
 
 
 async def dshield_security_analysis():
     """Perform DShield-specific security analysis using the MCP utility."""
-
     print("=== DShield MCP Security Analysis ===\n")
 
     try:
@@ -72,7 +71,7 @@ async def dshield_security_analysis():
         # Get DShield statistics
         print("Getting DShield statistics...")
         stats = await es_client.get_dshield_statistics(time_range_hours=24)
-        print(f"Retrieved comprehensive DShield statistics")
+        print("Retrieved comprehensive DShield statistics")
 
         # Process events
         print("Processing DShield events...")
@@ -234,7 +233,6 @@ async def dshield_security_analysis():
 
 async def dshield_specific_analysis():
     """Perform specific DShield analysis tasks."""
-
     print("\n=== DShield Specific Analysis ===\n")
 
     try:
@@ -301,7 +299,6 @@ async def dshield_specific_analysis():
 
 async def main():
     """Main function to run DShield analysis examples."""
-
     print("DShield MCP - Elastic SIEM Integration Examples")
     print("=" * 50)
 

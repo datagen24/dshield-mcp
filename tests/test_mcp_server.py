@@ -1,8 +1,9 @@
 """Tests for MCP server functionality and tool registration."""
 
-import pytest
 import importlib
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 
 class MockPerformanceSettings:

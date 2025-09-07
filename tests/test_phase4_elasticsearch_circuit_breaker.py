@@ -6,15 +6,17 @@ ensuring that the circuit breaker pattern works correctly for external service
 error handling.
 """
 
+from datetime import UTC
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
 
 from src.elasticsearch_client import ElasticsearchClient
 from src.mcp_error_handler import (
-    MCPErrorHandler,
-    ErrorHandlingConfig,
     CircuitBreaker,
     CircuitBreakerState,
+    ErrorHandlingConfig,
+    MCPErrorHandler,
 )
 
 
@@ -447,10 +449,10 @@ class TestElasticsearchCircuitBreakerRecovery:
         elasticsearch_client.circuit_breaker.failure_count = 5
 
         # Simulate time passing (recovery timeout)
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta
 
         elasticsearch_client.circuit_breaker.last_failure_time = datetime.now(
-            timezone.utc
+            UTC
         ) - timedelta(seconds=70)
 
         # Check if circuit breaker allows execution (should set to half-open)

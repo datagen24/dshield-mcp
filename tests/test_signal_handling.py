@@ -1,7 +1,9 @@
-import pytest
 import asyncio
-from src.resource_manager import ResourceManager
+
+import pytest
+
 from src.operation_tracker import OperationTracker
+from src.resource_manager import ResourceManager
 
 
 @pytest.mark.asyncio

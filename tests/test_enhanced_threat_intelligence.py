@@ -18,18 +18,18 @@ Example:
     >>> pytest tests/test_enhanced_threat_intelligence.py -v
 """
 
-import pytest
-import pytest_asyncio
 import asyncio
-from datetime import datetime, timedelta
-from typing import Dict, Any
-from unittest.mock import AsyncMock, MagicMock, patch
 import os
 import uuid
+from datetime import datetime, timedelta
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+import pytest_asyncio
+
+from src.models import DomainIntelligence, ThreatIntelligenceResult, ThreatIntelligenceSource
 from src.threat_intelligence_manager import ThreatIntelligenceManager
-from src.models import ThreatIntelligenceResult, DomainIntelligence, ThreatIntelligenceSource
-
 
 pytestmark = pytest.mark.asyncio
 
@@ -52,7 +52,7 @@ class TestThreatIntelligenceManager:
                 pass  # Ignore cleanup errors
 
     @pytest.fixture
-    def mock_config(self) -> Dict[str, Any]:
+    def mock_config(self) -> dict[str, Any]:
         """Mock configuration for testing."""
         return {
             "threat_intelligence": {

@@ -1,10 +1,12 @@
 """Unit tests for Elasticsearch client."""
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+from elasticsearch.exceptions import RequestError, TransportError
+
 from src.elasticsearch_client import ElasticsearchClient
 from src.mcp_error_handler import MCPErrorHandler
-from elasticsearch.exceptions import RequestError, TransportError
 
 # Minimal valid config for ElasticsearchClient
 TEST_CONFIG = {

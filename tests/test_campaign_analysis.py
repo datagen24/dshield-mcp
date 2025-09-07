@@ -4,12 +4,13 @@ Tests for campaign analysis functionality including data models, correlation met
 timeline building, scoring, and MCP tools integration.
 """
 
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timedelta
 
-from src.campaign_analyzer import CampaignAnalyzer, Campaign, CampaignEvent, CorrelationMethod
+from src.campaign_analyzer import Campaign, CampaignAnalyzer, CampaignEvent, CorrelationMethod
 from src.campaign_mcp_tools import CampaignMCPTools
 
 

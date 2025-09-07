@@ -42,13 +42,14 @@ Panel for managing the MCP server.
 #### __init__
 
 ```python
-def __init__(self, id)
+def __init__(self, id, config_path)
 ```
 
 Initialize the server panel.
 
         Args:
             id: Panel ID
+            config_path: Optional path to configuration file
 
 #### compose
 
@@ -69,24 +70,32 @@ def on_mount(self)
 
 Handle panel mount event.
 
-#### _initialize_config_inputs
+#### _initialize_config_display
 
 ```python
-def _initialize_config_inputs(self)
+def _initialize_config_display(self)
 ```
 
-Initialize configuration input fields.
+Initialize configuration display with effective configuration.
 
-#### update_server_status
+#### _update_server_status
 
 ```python
-def update_server_status(self, running)
+def _update_server_status(self)
 ```
 
-Update server running status.
+Update server status from process manager.
+
+#### _on_server_status_update
+
+```python
+def _on_server_status_update(self, message)
+```
+
+Handle server status update from process manager.
 
         Args:
-            running: Whether the server is running
+            message: Server status update message
 
 #### update_server_statistics
 
@@ -109,17 +118,6 @@ Handle button press events.
 
         Args:
             event: Button press event
-
-#### on_input_changed
-
-```python
-def on_input_changed(self, event)
-```
-
-Handle input field changes.
-
-        Args:
-            event: Input change event
 
 #### _start_server
 
@@ -144,44 +142,6 @@ def _restart_server(self)
 ```
 
 Restart the server.
-
-#### _apply_config
-
-```python
-def _apply_config(self)
-```
-
-Apply configuration changes.
-
-#### _reset_config
-
-```python
-def _reset_config(self)
-```
-
-Reset configuration to defaults.
-
-#### get_server_configuration
-
-```python
-def get_server_configuration(self)
-```
-
-Get current server configuration from inputs.
-
-        Returns:
-            Dictionary of server configuration
-
-#### set_server_configuration
-
-```python
-def set_server_configuration(self, config)
-```
-
-Set server configuration in inputs.
-
-        Args:
-            config: Server configuration dictionary
 
 #### get_server_health
 

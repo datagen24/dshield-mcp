@@ -6,17 +6,18 @@ including circuit breaker pattern, error aggregation, and enhanced error
 handling methods.
 """
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
+import pytest
+
 from src.mcp_error_handler import (
-    MCPErrorHandler,
-    ErrorHandlingConfig,
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerState,
     ErrorAggregator,
+    ErrorHandlingConfig,
+    MCPErrorHandler,
 )
 
 
@@ -204,7 +205,7 @@ class TestCircuitBreaker:
         assert cb.can_execute() is False
 
         # Simulate time passing (mock last_failure_time)
-        cb.last_failure_time = datetime.now(timezone.utc) - timedelta(seconds=70)
+        cb.last_failure_time = datetime.now(UTC) - timedelta(seconds=70)
 
         # Should now allow execution and set to half-open
         assert cb.can_execute() is True
@@ -219,7 +220,7 @@ class TestCircuitBreaker:
             cb.on_failure(Exception("Test failure"))
 
         # Simulate recovery timeout
-        cb.last_failure_time = datetime.now(timezone.utc) - timedelta(seconds=70)
+        cb.last_failure_time = datetime.now(UTC) - timedelta(seconds=70)
         cb.can_execute()  # This sets to half-open
 
         # Simulate successes

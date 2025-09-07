@@ -3,9 +3,10 @@
 Tests for query performance tracking and metrics collection functionality.
 """
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock, patch
 
 
 class TestPerformanceMetrics:

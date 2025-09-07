@@ -56,6 +56,14 @@ def _generate_api_key(self)
 
 Generate API key with the configured settings.
 
+#### _confirm_key_generation
+
+```python
+def _confirm_key_generation(self)
+```
+
+Confirm key generation and send the message.
+
 #### on_mount
 
 ```python

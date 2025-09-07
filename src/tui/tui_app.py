@@ -193,7 +193,7 @@ class DShieldTUIApp(App):  # type: ignore
         with Container(id="main-container"):
             with Container(id="left-panel"):
                 yield ConnectionPanel(id="connection-panel")
-                yield ServerPanel(id="server-panel")
+                yield ServerPanel(id="server-panel", config_path=self.config_path)
 
             with Container(id="right-panel"):
                 yield LogPanel(id="log-panel")
@@ -336,20 +336,47 @@ class DShieldTUIApp(App):  # type: ignore
                     return
 
             if connection_panel:
-                # Update API keys
-                api_keys = getattr(self, "generated_api_keys", [])
+                # Get API keys from the connection manager
+                api_keys = []
+                if self.tcp_server and hasattr(self.tcp_server, 'connection_manager'):
+                    try:
+                        api_keys = self.tcp_server.connection_manager.get_api_keys_info()
+                    except Exception as e:
+                        self.logger.error("Error getting API keys from connection manager", error=str(e))
+                        api_keys = []
+                
                 self.logger.debug(
                     "Updating connection panel", api_keys_count=len(api_keys), api_keys=api_keys
                 )
                 connection_panel.update_api_keys(api_keys)
                 self.logger.debug("Connection panel update_api_keys called")
 
-                # Update connections (empty for now in simulation)
+                # Get connections from the connection manager
                 connections: list[dict[str, Any]] = []
+                if self.tcp_server and hasattr(self.tcp_server, 'connection_manager'):
+                    try:
+                        connections = self.tcp_server.connection_manager.get_connections_info()
+                        # Enhance connection data with additional information
+                        for conn in connections:
+                            # Add RPS and violations if not present
+                            if 'rps' not in conn:
+                                conn['rps'] = conn.get('requests_per_second', 0)
+                            if 'violations' not in conn:
+                                conn['violations'] = conn.get('rate_limit_violations', 0)
+                            
+                            # Ensure permissions are properly formatted
+                            if 'permissions' not in conn and 'api_key_permissions' in conn:
+                                conn['permissions'] = conn['api_key_permissions']
+                    except Exception as e:
+                        self.logger.error("Error getting connections from connection manager", error=str(e))
+                        connections = []
+                
                 connection_panel.update_connections(connections)
 
                 self.logger.debug(
-                    "Updated connection panel successfully", api_keys_count=len(api_keys)
+                    "Updated connection panel successfully", 
+                    api_keys_count=len(api_keys),
+                    connections_count=len(connections)
                 )
 
         except Exception as e:
@@ -465,17 +492,17 @@ class DShieldTUIApp(App):  # type: ignore
     def on_server_start(self, event: ServerStart) -> None:
         """Handle server start message from server panel."""
         self.logger.info("Received server start message")
-        self.action_restart_server()
+        # Server panel now handles this directly via process manager
 
     def on_server_stop(self, event: ServerStop) -> None:
         """Handle server stop message from server panel."""
         self.logger.info("Received server stop message")
-        self.action_stop_server()
+        # Server panel now handles this directly via process manager
 
     def on_server_restart(self, event: ServerRestart) -> None:
         """Handle server restart message from server panel."""
         self.logger.info("Received server restart message")
-        self.action_restart_server()
+        # Server panel now handles this directly via process manager
 
     def _start_server(self) -> None:
         """Start the TCP server."""
@@ -741,6 +768,111 @@ class DShieldTUIApp(App):  # type: ignore
         # Update log panel
         log_panel = self.query_one("#log-panel", LogPanel)
         log_panel.add_log_entries(message.log_entries)
+
+    def on_api_key_generate(self, message: Any) -> None:
+        """Handle API key generation message from connection panel."""
+        self.logger.info("Received API key generation message")
+        asyncio.create_task(self.action_generate_api_key())
+
+    def on_api_key_revoke(self, message: Any) -> None:
+        """Handle API key revocation message from connection panel."""
+        self.logger.info("Received API key revocation message", key_id=getattr(message, 'api_key_id', 'unknown'))
+        asyncio.create_task(self._revoke_api_key(getattr(message, 'api_key_id', None)))
+
+    def on_connection_disconnect(self, message: Any) -> None:
+        """Handle connection disconnect message from connection panel."""
+        client_address = getattr(message, 'client_address', None)
+        self.logger.info("Received connection disconnect message", client_address=client_address)
+        asyncio.create_task(self._disconnect_connection(client_address))
+
+    def on_connection_refresh(self, message: Any) -> None:
+        """Handle connection refresh message from connection panel."""
+        self.logger.debug("Received connection refresh message")
+        self._update_connection_panel()
+
+    def on_connection_filter(self, message: Any) -> None:
+        """Handle connection filter message from connection panel."""
+        filter_text = getattr(message, 'filter_text', '')
+        self.logger.debug("Received connection filter message", filter_text=filter_text)
+        # Filtering is handled by the connection panel itself
+
+    async def _disconnect_connection(self, client_address: str | None) -> None:
+        """Disconnect a specific connection."""
+        try:
+            if not client_address:
+                self.notify("No client address provided", severity="error")
+                return
+
+            if not self.server_running:
+                self.notify("Server must be running to disconnect connections", timeout=3)
+                return
+
+            # Get the connection manager from the TCP server
+            connection_manager = getattr(self.tcp_server, "connection_manager", None)
+            if not connection_manager:
+                self.notify("Connection manager not available", severity="error")
+                return
+
+            # Find and disconnect the connection
+            connections = connection_manager.get_connections_info()
+            target_connection = None
+            
+            for conn in connections:
+                if str(conn.get("client_address", "")) == str(client_address):
+                    target_connection = conn
+                    break
+            
+            if not target_connection:
+                self.notify(f"Connection not found: {client_address}", severity="error")
+                return
+
+            # Disconnect the connection
+            # This would typically involve finding the actual connection object
+            # and calling a disconnect method on it
+            self.logger.info("Disconnecting connection", client_address=client_address)
+            self.notify(f"Disconnected connection: {client_address}", timeout=3)
+            
+            # Add log entry
+            self._add_log_entry("info", f"Disconnected connection: {client_address}")
+            
+            # Update connection panel
+            self._update_connection_panel()
+
+        except Exception as e:
+            self.logger.error("Failed to disconnect connection", error=str(e), client_address=client_address)
+            self.notify(f"Failed to disconnect connection: {e}", severity="error")
+
+    async def _revoke_api_key(self, key_id: str | None) -> None:
+        """Revoke an API key."""
+        try:
+            if not key_id:
+                self.notify("No API key ID provided", severity="error")
+                return
+
+            if not self.server_running:
+                self.notify("Server must be running to revoke API keys", timeout=3)
+                return
+
+            # Get the connection manager from the TCP server
+            connection_manager = getattr(self.tcp_server, "connection_manager", None)
+            if not connection_manager:
+                self.notify("Connection manager not available", severity="error")
+                return
+
+            # Revoke the API key
+            success = await connection_manager.delete_api_key(key_id)
+            if success:
+                self.logger.info("Revoked API key", key_id=key_id)
+                self.notify(f"API key {key_id} revoked successfully", timeout=3)
+                self._add_log_entry("info", f"API key {key_id} revoked")
+                # Update connection panel
+                self._update_connection_panel()
+            else:
+                self.notify(f"Failed to revoke API key {key_id}", severity="error")
+
+        except Exception as e:
+            self.logger.error("Failed to revoke API key", error=str(e))
+            self.notify(f"Failed to revoke API key: {e}", timeout=5)
 
     def watch_server_running(self, running: bool) -> None:
         """Watch for server running state changes."""

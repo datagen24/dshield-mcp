@@ -1,7 +1,9 @@
 """Focused tests for OnePassword CLI Manager."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
+
 from src.secrets_manager.onepassword_cli_manager import OnePasswordCLIManager
 
 

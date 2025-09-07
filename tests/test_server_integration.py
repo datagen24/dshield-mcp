@@ -1,10 +1,12 @@
 """Integration tests for server startup and core components."""
 
-import pytest
 from unittest.mock import Mock, patch
-from src.models import SecurityEvent, ThreatIntelligence, AttackReport
-from src.data_processor import DataProcessor
+
+import pytest
+
 from src.context_injector import ContextInjector
+from src.data_processor import DataProcessor
+from src.models import AttackReport, SecurityEvent, ThreatIntelligence
 
 
 class TestServerIntegration:
@@ -22,14 +24,14 @@ class TestServerIntegration:
         assert ContextInjector is not None
 
         # Test clients (already tested extensively, just verify imports)
-        from src.elasticsearch_client import ElasticsearchClient
         from src.dshield_client import DShieldClient
+        from src.elasticsearch_client import ElasticsearchClient
 
         assert ElasticsearchClient is not None
         assert DShieldClient is not None
 
         # Test config and utilities
-        from src.config_loader import get_config, ConfigError
+        from src.config_loader import ConfigError, get_config
         from src.data_dictionary import DataDictionary
         from src.op_secrets import OnePasswordSecrets
 
@@ -206,10 +208,10 @@ class TestServerIntegration:
         mock_dshield_client.return_value = mock_dshield_instance
 
         # Test that all components can be imported and initialized
-        from src.elasticsearch_client import ElasticsearchClient
-        from src.dshield_client import DShieldClient
-        from src.data_processor import DataProcessor
         from src.context_injector import ContextInjector
+        from src.data_processor import DataProcessor
+        from src.dshield_client import DShieldClient
+        from src.elasticsearch_client import ElasticsearchClient
 
         # Initialize components
         es_client = ElasticsearchClient()

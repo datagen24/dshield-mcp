@@ -13,8 +13,10 @@ CORRECT PATCH ORDER:
 def test_method(self, mock_get_config, mock_op_secrets_class, mock_user_config):
 """
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
+
 from src.dshield_client import DShieldClient
 
 # Minimal valid config for DShieldClient

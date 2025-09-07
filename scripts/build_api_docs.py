@@ -7,17 +7,14 @@ including all modules, classes, functions, and their docstrings.
 Generates both HTML and Markdown formats.
 """
 
-import os
-import sys
-import subprocess
-import shutil
 import ast
-import inspect
+import shutil
+import subprocess
+import sys
 from pathlib import Path
-from typing import Optional
 
 
-def run_command(cmd: list[str], cwd: Optional[Path] = None) -> int:
+def run_command(cmd: list[str], cwd: Path | None = None) -> int:
     """
     Run a command and return the exit code.
 
@@ -235,7 +232,7 @@ def generate_function_markdown(node: ast.FunctionDef) -> list[str]:
     for arg in node.args.args:
         args.append(arg.arg)
     signature = f"def {node.name}({', '.join(args)})"
-    lines.append(f"```python")
+    lines.append("```python")
     lines.append(signature)
     lines.append("```")
     lines.append("")
@@ -262,7 +259,7 @@ def generate_method_markdown(node: ast.FunctionDef) -> list[str]:
     for arg in node.args.args:
         args.append(arg.arg)
     signature = f"def {node.name}({', '.join(args)})"
-    lines.append(f"```python")
+    lines.append("```python")
     lines.append(signature)
     lines.append("```")
     lines.append("")
@@ -543,7 +540,7 @@ def main() -> int:
     print(f"HTML documentation: {output_dir / 'index.html'}")
     print(f"Markdown documentation: {output_dir / 'markdown'}")
     
-    print(f"\nVerification Results:")
+    print("\nVerification Results:")
     print(f"  HTML files created: {verification['html_files']}")
     print(f"  Markdown files created: {verification['markdown_files']}")
     print(f"  Total documentation size: {verification['total_size'] / 1024:.1f} KB")

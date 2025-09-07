@@ -7,38 +7,34 @@ between DShield Elasticsearch queries and DShield threat intelligence.
 
 import asyncio
 import json
-import logging
-import os
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
 import sys
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import structlog
-from mcp.server import Server
-from mcp.server import NotificationOptions
+from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
-from mcp.types import Tool  # Fixed import for Tool
 from mcp.server.stdio import stdio_server
+from mcp.types import Tool  # Fixed import for Tool
 
-from src.elasticsearch_client import ElasticsearchClient
-from src.dshield_client import DShieldClient
-from src.data_processor import DataProcessor
-from src.context_injector import ContextInjector
-from src.models import SecurityEvent, ThreatIntelligence, AttackReport, DShieldStatistics
-from src.data_dictionary import DataDictionary
-from src.user_config import get_user_config
 from src.campaign_analyzer import CampaignAnalyzer
 from src.campaign_mcp_tools import CampaignMCPTools
-from src.latex_template_tools import LaTeXTemplateTools
-from src.threat_intelligence_manager import ThreatIntelligenceManager
-from src.health_check_manager import HealthCheckManager
+from src.context_injector import ContextInjector
+from src.data_dictionary import DataDictionary
+from src.data_processor import DataProcessor
+from src.dshield_client import DShieldClient
+from src.dynamic_tool_registry import TOOL_DESCRIPTIONS, DynamicToolRegistry
+from src.elasticsearch_client import ElasticsearchClient
 from src.feature_manager import FeatureManager
-from src.dynamic_tool_registry import DynamicToolRegistry, TOOL_DESCRIPTIONS
-from src.signal_handler import SignalHandler
-from src.resource_manager import ResourceManager
+from src.health_check_manager import HealthCheckManager
+from src.latex_template_tools import LaTeXTemplateTools
+from src.mcp_error_handler import ErrorHandlingConfig, MCPErrorHandler
 from src.operation_tracker import OperationTracker
+from src.resource_manager import ResourceManager
+from src.signal_handler import SignalHandler
 from src.statistical_analysis_tools import StatisticalAnalysisTools
-from src.mcp_error_handler import MCPErrorHandler, ErrorHandlingConfig
+from src.threat_intelligence_manager import ThreatIntelligenceManager
+from src.user_config import get_user_config
 
 # Configure structured logging
 structlog.configure(
@@ -164,7 +160,7 @@ class DShieldMCPServer:
         """
 
         @self.server.list_tools()
-        async def handle_list_tools() -> List[Tool]:
+        async def handle_list_tools() -> list[Tool]:
             """List all available tools based on feature availability."""
             # Only return tools that are actually available
             available_tools = []
@@ -383,7 +379,7 @@ class DShieldMCPServer:
             return available_tools
 
         @self.server.call_tool()
-        async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+        async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[dict[str, Any]]:
             """Handle tool calls."""
             if not self._is_tool_available(name):
                 return await self._tool_unavailable_response(name)
@@ -482,7 +478,7 @@ class DShieldMCPServer:
                     return await self._get_latex_circuit_breaker_status(arguments)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.error("Tool call timed out", tool=name)
                 return self.error_handler.create_timeout_error(name)
             except ValueError as e:
@@ -493,7 +489,7 @@ class DShieldMCPServer:
                 return self.error_handler.create_internal_error(name, e)
 
         @self.server.list_resources()
-        async def handle_list_resources() -> List[Dict[str, Any]]:
+        async def handle_list_resources() -> list[dict[str, Any]]:
             """List available resources."""
             return [
                 {
@@ -787,7 +783,7 @@ class DShieldMCPServer:
             self.latex_tools = None
             self.threat_intelligence_manager = None
 
-    async def _query_dshield_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _query_dshield_events(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Query DShield events from Elasticsearch.
 
         This method handles queries for DShield security events from the
@@ -970,7 +966,7 @@ class DShieldMCPServer:
                 }
             ]
 
-    async def _query_dshield_aggregations(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _query_dshield_aggregations(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get aggregated summary data without full records."""
         time_range_hours = arguments.get("time_range_hours", 24)
         time_range = arguments.get("time_range")
@@ -1100,7 +1096,7 @@ class DShieldMCPServer:
                 }
             ]
 
-    async def _stream_dshield_events(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _stream_dshield_events(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Stream DShield events for very large datasets with chunked processing."""
         time_range_hours = arguments.get("time_range_hours", 24)
         time_range = arguments.get("time_range")
@@ -1215,7 +1211,7 @@ class DShieldMCPServer:
                     break
 
             # Create comprehensive response
-            response_text = f"DShield Event Streaming Results:\n\n"
+            response_text = "DShield Event Streaming Results:\n\n"
             response_text += f"Time Range: {start_time.isoformat()} to {end_time.isoformat()}\n"
             response_text += f"Total Chunks Processed: {stream_state['current_chunk_index']}\n"
             response_text += f"Total Events Processed: {stream_state['total_events_processed']}\n"
@@ -1245,8 +1241,8 @@ class DShieldMCPServer:
             ]
 
     async def _stream_dshield_events_with_session_context(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Stream DShield events with smart session-based chunking."""
         time_range_hours = arguments.get("time_range_hours", 24)
         indices = arguments.get("indices")
@@ -1303,7 +1299,7 @@ class DShieldMCPServer:
             logger.error("Session context streaming failed", error=str(e))
             raise
 
-    async def _query_dshield_attacks(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _query_dshield_attacks(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Query DShield attack data specifically."""
         time_range_hours = arguments.get("time_range_hours", 24)
         page = arguments.get("page", 1)
@@ -1339,7 +1335,7 @@ class DShieldMCPServer:
             if include_summary and attacks:
                 # Add summary information
                 summary = self.data_processor.generate_security_summary(attacks)
-                response_text += f"Page Summary:\n"
+                response_text += "Page Summary:\n"
                 response_text += f"- Attacks on this page: {len(attacks)}\n"
                 response_text += f"- High risk attacks: {summary.get('high_risk_events', 0)}\n"
                 response_text += (
@@ -1353,7 +1349,7 @@ class DShieldMCPServer:
 
             # Add pagination info to response
             if pagination_info['has_next'] or pagination_info['has_previous']:
-                response_text += f"\n\nPagination Info:\n" + json.dumps(pagination_info, indent=2)
+                response_text += "\n\nPagination Info:\n" + json.dumps(pagination_info, indent=2)
 
             return [{"type": "text", "text": response_text}]
         except Exception as e:
@@ -1365,7 +1361,7 @@ class DShieldMCPServer:
                 }
             ]
 
-    async def _query_dshield_reputation(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _query_dshield_reputation(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Query DShield reputation data."""
         ip_addresses = arguments.get("ip_addresses", [])
         size = arguments.get("size", 1000)
@@ -1384,7 +1380,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _query_dshield_top_attackers(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _query_dshield_top_attackers(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Query DShield top attackers data."""
         hours = arguments.get("hours", 24)
         limit = arguments.get("limit", 100)
@@ -1402,8 +1398,8 @@ class DShieldMCPServer:
         ]
 
     async def _query_dshield_geographic_data(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Query DShield geographic data."""
         countries = arguments.get("countries")
         size = arguments.get("size", 1000)
@@ -1422,7 +1418,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _query_dshield_port_data(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _query_dshield_port_data(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Query DShield port data."""
         ports = arguments.get("ports")
         size = arguments.get("size", 1000)
@@ -1439,7 +1435,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _get_dshield_statistics(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _get_dshield_statistics(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get DShield statistics and summary."""
         time_range_hours = arguments.get("time_range_hours", 24)
 
@@ -1455,7 +1451,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _diagnose_data_availability(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _diagnose_data_availability(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Diagnose why queries return empty results and troubleshoot data availability issues."""
         check_indices = arguments.get("check_indices", True)
         check_mappings = arguments.get("check_mappings", True)
@@ -1485,7 +1481,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _enrich_ip_with_dshield(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _enrich_ip_with_dshield(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Enrich IP address with DShield threat intelligence."""
         ip_address = arguments["ip_address"]
 
@@ -1501,7 +1497,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _generate_attack_report(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _generate_attack_report(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Generate structured attack report."""
         events = arguments.get("events", [])
         threat_intelligence = arguments.get("threat_intelligence", {})
@@ -1517,7 +1513,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _query_events_by_ip(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _query_events_by_ip(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Query events for specific IP addresses."""
         ip_addresses = arguments["ip_addresses"]
         time_range_hours = arguments.get("time_range_hours", 24)
@@ -1540,7 +1536,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _get_security_summary(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _get_security_summary(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get security summary for the last 24 hours."""
         include_threat_intelligence = arguments.get("include_threat_intelligence", True)
 
@@ -1574,8 +1570,8 @@ class DShieldMCPServer:
         ]
 
     async def _test_elasticsearch_connection(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Test Elasticsearch connection and show available indices.
 
         This method performs a comprehensive test of the Elasticsearch
@@ -1621,7 +1617,7 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "text",
-                    "text": f"✅ Elasticsearch connection successful!\n\n"
+                    "text": "✅ Elasticsearch connection successful!\n\n"
                     + json.dumps(result, indent=2, default=str),
                 }
             ]
@@ -1640,7 +1636,7 @@ class DShieldMCPServer:
                 }
             ]
 
-    async def _get_data_dictionary(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _get_data_dictionary(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get comprehensive data dictionary for DShield SIEM fields and analysis guidelines."""
         format_type = arguments.get("format", "prompt")
         sections = arguments.get("sections", ["fields", "examples", "patterns", "guidelines"])
@@ -1669,26 +1665,26 @@ class DShieldMCPServer:
 
             return [{"type": "text", "text": json.dumps(data, indent=2, default=str)}]
 
-    async def _get_recent_dshield_events(self) -> List[Dict[str, Any]]:
+    async def _get_recent_dshield_events(self) -> list[dict[str, Any]]:
         """Get recent DShield events for resource reading."""
         events = await self.elastic_client.query_dshield_events(time_range_hours=1)
         return self.data_processor.process_security_events(events)
 
-    async def _get_recent_dshield_attacks(self) -> List[Dict[str, Any]]:
+    async def _get_recent_dshield_attacks(self) -> list[dict[str, Any]]:
         """Get recent DShield attacks for resource reading."""
         return await self.elastic_client.query_dshield_attacks(time_range_hours=1)
 
-    async def _get_dshield_top_attackers(self) -> List[Dict[str, Any]]:
+    async def _get_dshield_top_attackers(self) -> list[dict[str, Any]]:
         """Get DShield top attackers for resource reading."""
         return await self.elastic_client.query_dshield_top_attackers(hours=24)
 
-    async def _get_dshield_stats(self) -> Dict[str, Any]:
+    async def _get_dshield_stats(self) -> dict[str, Any]:
         """Get DShield statistics for resource reading."""
         return await self.elastic_client.get_dshield_statistics(time_range_hours=24)
 
     # Campaign Analysis Tool Handlers
 
-    async def _analyze_campaign(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _analyze_campaign(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Analyze attack campaigns from seed indicators."""
         seed_indicators = arguments["seed_indicators"]
         time_range_hours = arguments.get("time_range_hours", 168)
@@ -1721,7 +1717,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _expand_campaign_indicators(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _expand_campaign_indicators(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Expand IOCs to find related indicators."""
         campaign_id = arguments["campaign_id"]
         expansion_depth = arguments.get("expansion_depth", 3)
@@ -1752,7 +1748,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _get_campaign_timeline(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _get_campaign_timeline(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Build detailed attack timelines."""
         campaign_id = arguments["campaign_id"]
         timeline_granularity = arguments.get("timeline_granularity", "hourly")
@@ -1780,7 +1776,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _compare_campaigns(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _compare_campaigns(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Compare multiple campaigns for similarities."""
         campaign_ids = arguments["campaign_ids"]
         comparison_metrics = arguments.get("comparison_metrics")
@@ -1804,7 +1800,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _detect_ongoing_campaigns(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _detect_ongoing_campaigns(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Real-time detection of active campaigns."""
         time_window_hours = arguments.get("time_window_hours", 24)
         min_event_threshold = arguments.get("min_event_threshold", 15)
@@ -1833,7 +1829,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _search_campaigns(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _search_campaigns(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Search existing campaigns by criteria."""
         search_criteria = arguments["search_criteria"]
         time_range_hours = arguments.get("time_range_hours", 168)
@@ -1861,7 +1857,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _get_campaign_details(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _get_campaign_details(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get comprehensive campaign information."""
         campaign_id = arguments["campaign_id"]
         include_full_timeline = arguments.get("include_full_timeline", False)
@@ -1888,7 +1884,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _generate_latex_document(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _generate_latex_document(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Generate a complete document from a LaTeX template."""
         template_name = arguments["template_name"]
         document_data = arguments["document_data"]
@@ -1919,7 +1915,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _list_latex_templates(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _list_latex_templates(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """List all available LaTeX templates."""
         logger.info("Listing LaTeX templates")
 
@@ -1933,7 +1929,7 @@ class DShieldMCPServer:
             }
         ]
 
-    async def _get_latex_template_schema(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _get_latex_template_schema(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get the schema for a specific LaTeX template."""
         template_name = arguments["template_name"]
 
@@ -1950,8 +1946,8 @@ class DShieldMCPServer:
         ]
 
     async def _validate_latex_document_data(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Validate document data against template requirements."""
         template_name = arguments["template_name"]
         document_data = arguments["document_data"]
@@ -1970,7 +1966,7 @@ class DShieldMCPServer:
 
     # Enhanced Threat Intelligence Tool Handlers
 
-    async def _enrich_ip_comprehensive(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _enrich_ip_comprehensive(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Comprehensive IP enrichment from multiple threat intelligence sources."""
         ip_address = arguments["ip_address"]
         sources = arguments.get("sources", ["all"])
@@ -2016,7 +2012,7 @@ class DShieldMCPServer:
             logger.error("Comprehensive IP enrichment failed", ip_address=ip_address, error=str(e))
             return [{"type": "text", "text": f"Error enriching IP {ip_address}: {str(e)}"}]
 
-    async def _enrich_domain_comprehensive(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _enrich_domain_comprehensive(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Comprehensive domain enrichment from multiple threat intelligence sources."""
         domain = arguments["domain"]
         sources = arguments.get("sources", ["all"])
@@ -2064,7 +2060,7 @@ class DShieldMCPServer:
             logger.error("Comprehensive domain enrichment failed", domain=domain, error=str(e))
             return [{"type": "text", "text": f"Error enriching domain {domain}: {str(e)}"}]
 
-    async def _correlate_threat_indicators(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _correlate_threat_indicators(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Correlate multiple threat indicators across sources."""
         indicators = arguments["indicators"]
         correlation_method = arguments.get("correlation_method", "comprehensive")
@@ -2081,7 +2077,7 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "text",
-                    "text": f"Threat Indicator Correlation Results:\n\n"
+                    "text": "Threat Indicator Correlation Results:\n\n"
                     + json.dumps(result, indent=2, default=str),
                 }
             ]
@@ -2095,8 +2091,8 @@ class DShieldMCPServer:
             return [{"type": "text", "text": f"Error correlating threat indicators: {str(e)}"}]
 
     async def _get_threat_intelligence_summary(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Get summary of threat intelligence capabilities and status."""
         include_source_status = arguments.get("include_source_status", True)
         include_cache_stats = arguments.get("include_cache_stats", True)
@@ -2133,7 +2129,7 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "text",
-                    "text": f"Threat Intelligence Summary:\n\n"
+                    "text": "Threat Intelligence Summary:\n\n"
                     + json.dumps(summary, indent=2, default=str),
                 }
             ]
@@ -2145,8 +2141,8 @@ class DShieldMCPServer:
             ]
 
     async def _detect_statistical_anomalies(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Detect statistical anomalies in DShield data patterns."""
         time_range_hours = arguments.get("time_range_hours", 24)
         anomaly_methods = arguments.get("anomaly_methods", ["zscore", "iqr"])
@@ -2183,7 +2179,7 @@ class DShieldMCPServer:
                 return [
                     {
                         "type": "text",
-                        "text": f"Statistical Anomaly Detection Results:\n\n"
+                        "text": "Statistical Anomaly Detection Results:\n\n"
                         + json.dumps(result, indent=2, default=str),
                     }
                 ]
@@ -2270,7 +2266,7 @@ class DShieldMCPServer:
             return True  # Default: available if not mapped
         return self.feature_manager.is_feature_available(feature)
 
-    async def _get_error_analytics(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _get_error_analytics(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get error analytics and patterns from the error handler.
 
         Args:
@@ -2287,14 +2283,14 @@ class DShieldMCPServer:
                 {
                     "type": "error_analytics",
                     "data": analytics,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             ]
         except Exception as e:
             logger.error("Failed to get error analytics", error=str(e))
             return self.error_handler.create_internal_error("get_error_analytics", e)
 
-    async def _get_error_handling_status(self, arguments: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _get_error_handling_status(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get comprehensive error handling status and configuration.
 
         Args:
@@ -2309,7 +2305,7 @@ class DShieldMCPServer:
             status = {
                 "error_handler_status": "active",
                 "configuration": self.error_handler.get_enhanced_error_summary(),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
             if include_analytics:
@@ -2321,8 +2317,8 @@ class DShieldMCPServer:
             return self.error_handler.create_internal_error("get_error_handling_status", e)
 
     async def _get_elasticsearch_circuit_breaker_status(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Get Elasticsearch circuit breaker status.
 
         Args:
@@ -2348,7 +2344,7 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "elasticsearch_circuit_breaker_status",
-                    "data": {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()},
+                    "data": {"status": status, "timestamp": datetime.now(UTC).isoformat()},
                 }
             ]
         except Exception as e:
@@ -2358,8 +2354,8 @@ class DShieldMCPServer:
             )
 
     async def _get_dshield_circuit_breaker_status(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Get DShield API circuit breaker status.
 
         Args:
@@ -2382,7 +2378,7 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "dshield_circuit_breaker_status",
-                    "data": {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()},
+                    "data": {"status": status, "timestamp": datetime.now(UTC).isoformat()},
                 }
             ]
         except Exception as e:
@@ -2390,8 +2386,8 @@ class DShieldMCPServer:
             return self.error_handler.create_internal_error("get_dshield_circuit_breaker_status", e)
 
     async def _get_latex_circuit_breaker_status(
-        self, arguments: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, arguments: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Get LaTeX compilation circuit breaker status.
 
         Args:
@@ -2414,14 +2410,14 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "latex_circuit_breaker_status",
-                    "data": {"status": status, "timestamp": datetime.now(timezone.utc).isoformat()},
+                    "data": {"status": status, "timestamp": datetime.now(UTC).isoformat()},
                 }
             ]
         except Exception as e:
             logger.error("Failed to get LaTeX circuit breaker status", error=str(e))
             return self.error_handler.create_internal_error("get_latex_circuit_breaker_status", e)
 
-    async def _tool_unavailable_response(self, tool_name: str) -> List[Dict[str, Any]]:
+    async def _tool_unavailable_response(self, tool_name: str) -> list[dict[str, Any]]:
         """Return a JSON-RPC error response for unavailable tool, and log to stderr."""
         feature_map = {
             'query_dshield_events': 'elasticsearch_queries',

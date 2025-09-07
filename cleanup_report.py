@@ -6,15 +6,15 @@ This script generates a comprehensive report of code quality improvements
 including ruff violations, mypy issues, docstring coverage, and test coverage.
 """
 
-import subprocess
 import json
+import re
+import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, Any, List
-import re
+from typing import Any
 
 
-def run_command(cmd: List[str], cwd: Path = None) -> tuple[str, str, int]:
+def run_command(cmd: list[str], cwd: Path = None) -> tuple[str, str, int]:
     """Run a command and return stdout, stderr, and return code."""
     try:
         result = subprocess.run(
@@ -27,7 +27,7 @@ def run_command(cmd: List[str], cwd: Path = None) -> tuple[str, str, int]:
         return "", str(e), 1
 
 
-def get_ruff_violations() -> Dict[str, Any]:
+def get_ruff_violations() -> dict[str, Any]:
     """Get ruff violations and statistics."""
     print("🔍 Running ruff check...")
 
@@ -49,7 +49,7 @@ def get_ruff_violations() -> Dict[str, Any]:
     return violations
 
 
-def get_mypy_issues() -> Dict[str, Any]:
+def get_mypy_issues() -> dict[str, Any]:
     """Get mypy type checking issues."""
     print("🔍 Running mypy check...")
 
@@ -72,7 +72,7 @@ def get_mypy_issues() -> Dict[str, Any]:
     return issues
 
 
-def get_docstring_coverage() -> Dict[str, Any]:
+def get_docstring_coverage() -> dict[str, Any]:
     """Get docstring coverage statistics."""
     print("🔍 Checking docstring coverage...")
 
@@ -94,7 +94,7 @@ def get_docstring_coverage() -> Dict[str, Any]:
     return coverage
 
 
-def get_test_coverage() -> Dict[str, Any]:
+def get_test_coverage() -> dict[str, Any]:
     """Get test coverage statistics."""
     print("🔍 Running test coverage...")
 
@@ -136,7 +136,7 @@ def get_test_coverage() -> Dict[str, Any]:
     return coverage
 
 
-def generate_cleanup_report() -> Dict[str, Any]:
+def generate_cleanup_report() -> dict[str, Any]:
     """Generate comprehensive cleanup report."""
     print("📊 Generating Code Quality Cleanup Report...")
     print("=" * 50)
@@ -174,7 +174,7 @@ def generate_cleanup_report() -> Dict[str, Any]:
     return report
 
 
-def print_summary(report: Dict[str, Any]) -> None:
+def print_summary(report: dict[str, Any]) -> None:
     """Print a summary of the report."""
     print("\n" + "=" * 50)
     print("📋 CODE QUALITY SUMMARY")
@@ -203,7 +203,7 @@ def main():
             json.dump(report, f, indent=2)
 
         print_summary(report)
-        print(f"\n📄 Full report saved to: cleanup_report.json")
+        print("\n📄 Full report saved to: cleanup_report.json")
 
         return 0
 

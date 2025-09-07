@@ -1,8 +1,10 @@
 """Unit tests for DShield client."""
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
+
 from src.dshield_client import DShieldClient
 
 # Minimal valid config for DShieldClient

@@ -6,16 +6,16 @@ This script provides integration with MCP-Shield for security scanning of MCP se
 It wraps the MCP-Shield Node.js tool and provides Python-based reporting and analysis.
 """
 
-import subprocess
-import json
-import os
-import sys
-import re
-from pathlib import Path
-from typing import Dict, List, Any, Optional
-from datetime import datetime
 import argparse
+import json
 import logging
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Configure logging
 logging.basicConfig(
@@ -41,7 +41,7 @@ def is_safe_path(path: str) -> bool:
 class MCPShieldScanner:
     """Integration wrapper for MCP-Shield security scanning."""
 
-    def __init__(self, config_path: Optional[str] = None, safe_list: Optional[List[str]] = None):
+    def __init__(self, config_path: str | None = None, safe_list: list[str] | None = None):
         """
         Initialize MCP-Shield scanner.
 
@@ -53,7 +53,7 @@ class MCPShieldScanner:
         self.safe_list = safe_list or ["dshield-elastic-mcp"]
         self.scan_results = {}
 
-    def _find_mcp_config(self) -> Optional[str]:
+    def _find_mcp_config(self) -> str | None:
         """Find MCP configuration files in standard locations."""
         standard_paths = [
             Path.home() / ".config" / ".mcp",
@@ -99,8 +99,8 @@ class MCPShieldScanner:
             return False
 
     def scan(
-        self, claude_api_key: Optional[str] = None, identify_as: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, claude_api_key: str | None = None, identify_as: str | None = None
+    ) -> dict[str, Any]:
         """
         Run MCP-Shield security scan.
 
@@ -155,7 +155,7 @@ class MCPShieldScanner:
             logger.error("Scan timed out")
             return {"error": "Scan timed out", "exit_code": 1, "vulnerabilities": []}
 
-    def _parse_vulnerabilities(self, output: str) -> List[Dict[str, Any]]:
+    def _parse_vulnerabilities(self, output: str) -> list[dict[str, Any]]:
         """Parse MCP-Shield output for vulnerabilities."""
         vulnerabilities = []
 
@@ -178,7 +178,7 @@ class MCPShieldScanner:
 
         return vulnerabilities
 
-    def _extract_issues(self, output: str, start_pos: int) -> List[str]:
+    def _extract_issues(self, output: str, start_pos: int) -> list[str]:
         """Extract issues from vulnerability section."""
         issues = []
 
@@ -201,7 +201,7 @@ class MCPShieldScanner:
 
         return issues
 
-    def _extract_ai_analysis(self, output: str, start_pos: int) -> Optional[str]:
+    def _extract_ai_analysis(self, output: str, start_pos: int) -> str | None:
         """Extract AI analysis from vulnerability section."""
         section_start = output.find("AI Analysis:", start_pos)
         if section_start == -1:
@@ -214,7 +214,7 @@ class MCPShieldScanner:
 
         return output[section_start:section_end].strip()
 
-    def _generate_summary(self, output: str) -> Dict[str, Any]:
+    def _generate_summary(self, output: str) -> dict[str, Any]:
         """Generate summary statistics from scan output."""
         summary = {
             "total_servers": 0,
@@ -249,7 +249,7 @@ class MCPShieldScanner:
 
         return summary
 
-    def generate_report(self, output_file: Optional[str] = None) -> str:
+    def generate_report(self, output_file: str | None = None) -> str:
         """Generate a formatted security report."""
         if not self.scan_results:
             return "No scan results available. Run scan() first."

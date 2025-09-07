@@ -7,15 +7,16 @@ error handling configuration sections.
 """
 
 import os
-import pytest
 import tempfile
+
+import pytest
 import yaml
 
 from src.config_loader import (
+    ConfigError,
     get_config,
     get_error_handling_config,
     validate_error_handling_config,
-    ConfigError,
 )
 
 

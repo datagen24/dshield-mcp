@@ -4,20 +4,18 @@ Configuration script for DShield MCP - Elastic SIEM Integration
 Helps users set up environment variables and test connections.
 """
 
+import asyncio
 import os
 import sys
-import asyncio
-import json
 from pathlib import Path
-from typing import Dict, Any, Optional
 
 from dotenv import load_dotenv, set_key
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from elasticsearch_client import ElasticsearchClient
 from dshield_client import DShieldClient
+from elasticsearch_client import ElasticsearchClient
 
 
 class ConfigManager:
@@ -35,7 +33,7 @@ class ConfigManager:
         if not self.env_file.exists():
             if self.env_example.exists():
                 print("Creating .env file from template...")
-                with open(self.env_example, 'r') as f:
+                with open(self.env_example) as f:
                     template = f.read()
                 with open(self.env_file, 'w') as f:
                     f.write(template)

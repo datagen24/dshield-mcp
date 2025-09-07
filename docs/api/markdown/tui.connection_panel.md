@@ -50,6 +50,33 @@ Initialize API key revocation message.
         Args:
             api_key_id: ID of the API key to revoke
 
+## ConnectionRefresh
+
+Message sent when connections should be refreshed.
+
+#### __init__
+
+```python
+def __init__(self)
+```
+
+Initialize connection refresh message.
+
+## ConnectionFilter
+
+Message sent when connection filter changes.
+
+#### __init__
+
+```python
+def __init__(self, filter_text)
+```
+
+Initialize connection filter message.
+
+        Args:
+            filter_text: Text to filter connections by
+
 ## ConnectionPanel
 
 Panel for managing TCP connections and API keys.
@@ -60,13 +87,14 @@ Panel for managing TCP connections and API keys.
 #### __init__
 
 ```python
-def __init__(self, id)
+def __init__(self, id, refresh_interval)
 ```
 
 Initialize the connection panel.
 
         Args:
             id: Panel ID
+            refresh_interval: Refresh interval in seconds
 
 #### compose
 
@@ -97,6 +125,49 @@ Update the connections display.
 
         Args:
             connections: List of connection information
+
+#### _apply_filter
+
+```python
+def _apply_filter(self)
+```
+
+Apply current filter to connections.
+
+#### _update_connections_display
+
+```python
+def _update_connections_display(self)
+```
+
+Update the connections table display.
+
+#### _update_pagination_controls
+
+```python
+def _update_pagination_controls(self, total_pages)
+```
+
+Update pagination control states.
+
+        Args:
+            total_pages: Total number of pages
+
+#### _start_auto_refresh
+
+```python
+def _start_auto_refresh(self)
+```
+
+Start auto-refresh task.
+
+#### _stop_auto_refresh
+
+```python
+def _stop_auto_refresh(self)
+```
+
+Stop auto-refresh task.
 
 #### update_api_keys
 
@@ -131,6 +202,17 @@ Handle data table row selection.
         Args:
             event: Row selection event
 
+#### on_input_changed
+
+```python
+def on_input_changed(self, event)
+```
+
+Handle input change events.
+
+        Args:
+            event: Input change event
+
 #### _disconnect_selected_connection
 
 ```python
@@ -154,6 +236,30 @@ def _refresh_connections(self)
 ```
 
 Refresh the connections display.
+
+#### _toggle_auto_refresh
+
+```python
+def _toggle_auto_refresh(self)
+```
+
+Toggle auto-refresh functionality.
+
+#### _previous_page
+
+```python
+def _previous_page(self)
+```
+
+Go to previous page.
+
+#### _next_page
+
+```python
+def _next_page(self)
+```
+
+Go to next page.
 
 #### _generate_api_key
 
@@ -222,3 +328,19 @@ Get API key statistics.
 
         Returns:
             Dictionary of API key statistics
+
+#### cleanup
+
+```python
+def cleanup(self)
+```
+
+Cleanup resources when panel is destroyed.
+
+#### on_unmount
+
+```python
+def on_unmount(self)
+```
+
+Handle panel unmount event.

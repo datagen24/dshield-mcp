@@ -11,8 +11,8 @@ from unittest.mock import Mock, patch
 import pytest
 import structlog
 
-from src.tui.tui_app import DShieldTUIApp, _get_dshield_mcp_server
 from src.tcp_server import EnhancedTCPServer
+from src.tui.tui_app import DShieldTUIApp, _get_dshield_mcp_server
 
 
 class TestTCPTUIIntegration:

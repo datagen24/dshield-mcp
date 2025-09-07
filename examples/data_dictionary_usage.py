@@ -4,13 +4,14 @@ Example usage of the DShield Data Dictionary functionality.
 This demonstrates how the data dictionary helps models understand DShield data.
 """
 
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import asyncio
 import json
+
 from src.data_dictionary import DataDictionary
 
 

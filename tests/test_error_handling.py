@@ -17,12 +17,13 @@ Test coverage includes:
 """
 
 import asyncio
-import pytest
 import sys
 from typing import Any
 from unittest.mock import Mock
 
-from src.mcp_error_handler import MCPErrorHandler, ErrorHandlingConfig
+import pytest
+
+from src.mcp_error_handler import ErrorHandlingConfig, MCPErrorHandler
 
 
 class TestErrorHandlingConfig:

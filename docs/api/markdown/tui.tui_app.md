@@ -274,6 +274,46 @@ def on_log_update(self, message)
 
 Handle log update message.
 
+#### on_api_key_generate
+
+```python
+def on_api_key_generate(self, message)
+```
+
+Handle API key generation message from connection panel.
+
+#### on_api_key_revoke
+
+```python
+def on_api_key_revoke(self, message)
+```
+
+Handle API key revocation message from connection panel.
+
+#### on_connection_disconnect
+
+```python
+def on_connection_disconnect(self, message)
+```
+
+Handle connection disconnect message from connection panel.
+
+#### on_connection_refresh
+
+```python
+def on_connection_refresh(self, message)
+```
+
+Handle connection refresh message from connection panel.
+
+#### on_connection_filter
+
+```python
+def on_connection_filter(self, message)
+```
+
+Handle connection filter message from connection panel.
+
 #### watch_server_running
 
 ```python

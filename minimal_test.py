@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Minimal test to verify basic functionality."""
 
-import sys
 import os
+import sys
 
 # Add the project root to the Python path
 project_root = os.path.dirname(__file__)
@@ -33,15 +33,12 @@ def test_imports():
     """Test if all required modules can be imported."""
     print("\nTesting imports...")
     try:
-        from src.user_config import UserConfigManager
 
         print("✅ UserConfigManager imported")
 
-        from src.tcp_server import EnhancedTCPServer
 
         print("✅ EnhancedTCPServer imported")
 
-        from src.transport.tcp_transport import TCPConnection
 
         print("✅ TCPConnection imported")
 

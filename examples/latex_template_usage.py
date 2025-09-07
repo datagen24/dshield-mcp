@@ -6,12 +6,9 @@ tools to generate complete and fully referenced documents.
 """
 
 import asyncio
-import json
-from datetime import datetime
-from typing import Dict, Any
-
-import sys
 import os
+import sys
+from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -128,7 +125,7 @@ async def example_generate_document() -> None:
 
     if result["success"]:
         document = result["document"]
-        print(f"Document generated successfully!")
+        print("Document generated successfully!")
         print(f"Template: {document['template_name']}")
         print(f"Output format: {document['output_format']}")
         print(f"Generated files: {len(document['generated_files'])}")
@@ -171,7 +168,7 @@ async def example_generate_pdf_document() -> None:
 
     if result["success"]:
         document = result["document"]
-        print(f"PDF document generated successfully!")
+        print("PDF document generated successfully!")
         print(f"Template: {document['template_name']}")
         print(f"Output format: {document['output_format']}")
 
@@ -262,7 +259,7 @@ async def example_complete_workflow() -> None:
 
     if generation_result["success"]:
         document = generation_result["document"]
-        print(f"   Document generated successfully!")
+        print("   Document generated successfully!")
         print(f"   Template: {document['template_name']}")
         print(f"   Format: {document['output_format']}")
         print(f"   Files: {len(document['generated_files'])}")

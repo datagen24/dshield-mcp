@@ -1,11 +1,13 @@
 """Unit tests for 1Password secrets integration."""
 
-import pytest
 import subprocess
-import yaml
 from unittest.mock import patch
+
+import pytest
+import yaml
+
+from src.config_loader import ConfigError, _resolve_secrets, get_config
 from src.op_secrets import OnePasswordSecrets
-from src.config_loader import get_config, _resolve_secrets, ConfigError
 
 
 class TestOnePasswordSecrets:

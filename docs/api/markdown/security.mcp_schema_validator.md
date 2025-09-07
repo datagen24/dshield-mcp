@@ -45,7 +45,7 @@ Validate message size is within limits.
 def validate_json_structure(self, message)
 ```
 
-Validate JSON structure and nesting depth.
+Validate JSON structure, nesting depth, and array sizes.
 
         Args:
             message: The JSON message string
@@ -67,6 +67,20 @@ Calculate the maximum nesting depth of a JSON object.
 
         Returns:
             Maximum nesting depth
+
+#### _validate_object_bounds
+
+```python
+def _validate_object_bounds(self, obj)
+```
+
+Validate object bounds including array sizes and key counts.
+
+        Args:
+            obj: The JSON object to validate
+
+        Returns:
+            True if bounds are valid, False otherwise
 
 #### validate_request
 
@@ -139,6 +153,30 @@ Sanitize string input to prevent injection attacks.
 
         Returns:
             Sanitized string
+
+#### validate_message
+
+```python
+def validate_message(self, message)
+```
+
+Validate a complete MCP message with all security checks.
+
+        This is the main entry point for message validation that performs:
+        - Size bounds checking
+        - JSON structure validation
+        - Nesting depth validation
+        - Array size validation
+        - Object key count validation
+        - String length validation
+        - JSON-RPC 2.0 compliance
+        - Method-specific parameter validation
+
+        Args:
+            message: The raw JSON message string
+
+        Returns:
+            Validated and parsed message if valid, None otherwise
 
 #### validate_complete_message
 

@@ -222,48 +222,34 @@ class OnePasswordAPIKeyManager:
 
         """
         try:
-            import secrets
-            import uuid
-            from datetime import datetime, timedelta
-
-            # Generate a secure API key
-            key_value = f"dshield_{secrets.token_urlsafe(32)}"
-            key_id = str(uuid.uuid4())
-
-            # Set default permissions
-            if permissions is None:
-                permissions = {
-                    "read_tools": True,
-                    "write_back": False,
-                    "admin_access": False,
-                    "rate_limit": rate_limit or 60,
-                }
-            else:
-                permissions["rate_limit"] = rate_limit or permissions.get("rate_limit", 60)
-
-            # Calculate expiration
-            expires_at = None
-            if expiration_days:
-                expires_at = datetime.utcnow() + timedelta(days=expiration_days)
-
-            # Create API key object
+            from .api_key_generator import APIKeyGenerator
             from .secrets_manager.base_secrets_manager import APIKey
 
-            api_key = APIKey(
-                key_id=key_id,
-                key_value=key_value,
+            # Use the secure API key generator
+            generator = APIKeyGenerator()
+            key_data = generator.generate_key_with_metadata(
                 name=name,
-                created_at=datetime.utcnow(),
-                expires_at=expires_at,
                 permissions=permissions,
-                metadata={"generated_by": "dshield-mcp", "version": "1.0"},
+                expiration_days=expiration_days,
+                rate_limit=rate_limit,
+            )
+
+            # Create API key object
+            api_key = APIKey(
+                key_id=generator.create_key_id(),
+                key_value=key_data["key_value"],
+                name=key_data["name"],
+                created_at=key_data["created_at"],
+                expires_at=key_data["expires_at"],
+                permissions=key_data["permissions"],
+                metadata=key_data["metadata"],
             )
 
             # Store in 1Password
             success = await self.secrets_manager.store_api_key(api_key)
             if success:
-                self.logger.info(f"Generated new API key: {name} ({key_id})")
-                return key_value
+                self.logger.info(f"Generated new API key: {name} ({api_key.key_id})")
+                return key_data["key_value"]
             self.logger.error(f"Failed to store API key: {name}")
             return None
 

@@ -9,7 +9,7 @@ error handling.
 import json
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -95,7 +95,7 @@ Analysis of campaign {CAMPAIGN_NAME}.
         return LaTeXTemplateTools(str(template_dir))
 
     @pytest_asyncio.fixture
-    async def sample_document_data(self) -> Dict[str, Any]:
+    async def sample_document_data(self) -> dict[str, Any]:
         """Sample document data for testing."""
         return {
             "REPORT_NUMBER": "REP-2024-001",
@@ -173,7 +173,7 @@ Analysis of campaign {CAMPAIGN_NAME}.
 
     @pytest.mark.asyncio
     async def test_validate_document_data_valid(
-        self, latex_tools: LaTeXTemplateTools, sample_document_data: Dict[str, Any]
+        self, latex_tools: LaTeXTemplateTools, sample_document_data: dict[str, Any]
     ) -> None:
         """Test validation of valid document data."""
         result = await latex_tools.validate_document_data("Attack_Report", sample_document_data)
@@ -202,7 +202,7 @@ Analysis of campaign {CAMPAIGN_NAME}.
 
     @pytest.mark.asyncio
     async def test_validate_document_data_unused_variables(
-        self, latex_tools: LaTeXTemplateTools, sample_document_data: Dict[str, Any]
+        self, latex_tools: LaTeXTemplateTools, sample_document_data: dict[str, Any]
     ) -> None:
         """Test validation of document data with unused variables."""
         data_with_extras = sample_document_data.copy()
@@ -221,7 +221,7 @@ Analysis of campaign {CAMPAIGN_NAME}.
         self,
         mock_run: MagicMock,
         latex_tools: LaTeXTemplateTools,
-        sample_document_data: Dict[str, Any],
+        sample_document_data: dict[str, Any],
     ) -> None:
         """Test successful PDF document generation."""
         # Mock pdflatex availability check
@@ -260,7 +260,7 @@ Analysis of campaign {CAMPAIGN_NAME}.
         self,
         mock_run: MagicMock,
         latex_tools: LaTeXTemplateTools,
-        sample_document_data: Dict[str, Any],
+        sample_document_data: dict[str, Any],
     ) -> None:
         """Test PDF document generation with compilation failure."""
         # Mock pdflatex availability check
@@ -295,7 +295,7 @@ Analysis of campaign {CAMPAIGN_NAME}.
         self,
         mock_run: MagicMock,
         latex_tools: LaTeXTemplateTools,
-        sample_document_data: Dict[str, Any],
+        sample_document_data: dict[str, Any],
     ) -> None:
         """Test PDF document generation when pdflatex is not available."""
         # Mock pdflatex not found
@@ -311,7 +311,7 @@ Analysis of campaign {CAMPAIGN_NAME}.
 
     @pytest.mark.asyncio
     async def test_generate_document_tex_format(
-        self, latex_tools: LaTeXTemplateTools, sample_document_data: Dict[str, Any]
+        self, latex_tools: LaTeXTemplateTools, sample_document_data: dict[str, Any]
     ) -> None:
         """Test LaTeX document generation in TEX format."""
         result = await latex_tools.generate_document(
@@ -326,7 +326,7 @@ Analysis of campaign {CAMPAIGN_NAME}.
 
     @pytest.mark.asyncio
     async def test_generate_document_invalid_template(
-        self, latex_tools: LaTeXTemplateTools, sample_document_data: Dict[str, Any]
+        self, latex_tools: LaTeXTemplateTools, sample_document_data: dict[str, Any]
     ) -> None:
         """Test document generation with invalid template."""
         result = await latex_tools.generate_document(

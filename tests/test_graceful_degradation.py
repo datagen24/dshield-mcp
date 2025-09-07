@@ -1,7 +1,8 @@
 import pytest
-from src.health_check_manager import HealthCheckManager
-from src.feature_manager import FeatureManager
+
 from src.dynamic_tool_registry import DynamicToolRegistry
+from src.feature_manager import FeatureManager
+from src.health_check_manager import HealthCheckManager
 
 
 @pytest.mark.asyncio

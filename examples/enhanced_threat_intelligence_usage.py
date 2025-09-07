@@ -18,16 +18,12 @@ Example:
 """
 
 import asyncio
-import json
-from typing import List, Dict, Any
-
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from src.threat_intelligence_manager import ThreatIntelligenceManager
-from src.models import ThreatIntelligenceSource
 
 
 async def demonstrate_ip_enrichment() -> None:
@@ -129,7 +125,7 @@ async def demonstrate_threat_correlation() -> None:
         try:
             result = await manager.correlate_threat_indicators(indicators)
 
-            print(f"\n📊 Correlation Results:")
+            print("\n📊 Correlation Results:")
             print(f"  🆔 Correlation ID: {result['correlation_id']}")
             print(f"  🎯 Confidence Score: {result['confidence_score']}")
             print(f"  🌍 Sources Queried: {result['sources_queried']}")
@@ -138,12 +134,12 @@ async def demonstrate_threat_correlation() -> None:
             if result['correlations']:
                 print(f"  🔗 Correlations Found: {len(result['correlations'])}")
             else:
-                print(f"  🔗 No correlations found (placeholder implementation)")
+                print("  🔗 No correlations found (placeholder implementation)")
 
             if result['relationships']:
                 print(f"  🔗 Relationships Found: {len(result['relationships'])}")
             else:
-                print(f"  🔗 No relationships found (placeholder implementation)")
+                print("  🔗 No relationships found (placeholder implementation)")
 
         except Exception as e:
             print(f"  ❌ Error: {e}")
@@ -156,12 +152,12 @@ async def demonstrate_manager_capabilities() -> None:
     print("=" * 60)
 
     async with ThreatIntelligenceManager() as manager:
-        print(f"\n📋 Available Sources:")
+        print("\n📋 Available Sources:")
         sources = manager.get_available_sources()
         for source in sources:
             print(f"  - {source.value}")
 
-        print(f"\n📊 Source Status:")
+        print("\n📊 Source Status:")
         status = manager.get_source_status()
         for source_name, source_status in status.items():
             print(f"  - {source_name}:")
@@ -169,7 +165,7 @@ async def demonstrate_manager_capabilities() -> None:
             print(f"    Client Type: {source_status['client_type']}")
             print(f"    Has IP Reputation: {source_status['has_get_ip_reputation']}")
 
-        print(f"\n⚙️  Configuration:")
+        print("\n⚙️  Configuration:")
         print(f"  Confidence Threshold: {manager.confidence_threshold}")
         print(f"  Max Sources Per Query: {manager.max_sources}")
         print(f"  Cache TTL: {manager.cache_ttl}")
@@ -198,17 +194,17 @@ async def demonstrate_error_handling() -> None:
                     if "." in test_input and any(c.isdigit() for c in test_input):
                         # Looks like an IP
                         result = await manager.enrich_ip_comprehensive(test_input)
-                        print(f"  ✅ IP enrichment completed")
+                        print("  ✅ IP enrichment completed")
                     elif "." in test_input:
                         # Looks like a domain
                         result = await manager.enrich_domain_comprehensive(test_input)
-                        print(f"  ✅ Domain enrichment completed")
+                        print("  ✅ Domain enrichment completed")
                     else:
-                        print(f"  ❌ Invalid input format")
+                        print("  ❌ Invalid input format")
                 else:
                     # Empty list for indicators
                     result = await manager.correlate_threat_indicators(test_input)
-                    print(f"  ✅ Correlation completed")
+                    print("  ✅ Correlation completed")
 
             except ValueError as e:
                 print(f"  ⚠️  Validation Error: {e}")

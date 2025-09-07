@@ -6,7 +6,7 @@ handling connection lifecycle, authentication, and monitoring.
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import structlog
@@ -46,7 +46,7 @@ class APIKey:
         self.key_id = key_id
         self.key_value = key_value
         self.permissions = permissions
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(UTC)
         self.expires_at = self.created_at + timedelta(days=expires_days)
         self.last_used: datetime | None = None
         self.usage_count = 0
@@ -59,7 +59,7 @@ class APIKey:
             True if the key has expired, False otherwise
 
         """
-        return datetime.utcnow() > self.expires_at
+        return datetime.now(UTC) > self.expires_at
 
     def is_valid(self) -> bool:
         """Check if the API key is valid (active and not expired).
@@ -72,7 +72,7 @@ class APIKey:
 
     def update_usage(self) -> None:
         """Update the usage statistics for this key."""
-        self.last_used = datetime.utcnow()
+        self.last_used = datetime.now(UTC)
         self.usage_count += 1
 
     def to_dict(self) -> dict[str, Any]:
@@ -497,5 +497,5 @@ class ConnectionManager:
                 "active": active_keys,
                 "expired": expired_keys,
             },
-            "last_cleanup": datetime.utcnow().isoformat(),
+            "last_cleanup": datetime.now(UTC).isoformat(),
         }

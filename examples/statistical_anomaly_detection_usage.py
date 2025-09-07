@@ -6,11 +6,9 @@ to identify anomalies in DShield SIEM data.
 """
 
 import asyncio
-import json
-from typing import Dict, Any
 
-from src.statistical_analysis_tools import StatisticalAnalysisTools
 from src.elasticsearch_client import ElasticsearchClient
+from src.statistical_analysis_tools import StatisticalAnalysisTools
 
 
 async def example_basic_anomaly_detection() -> None:
@@ -73,7 +71,7 @@ async def example_custom_anomaly_detection() -> None:
             "max_anomalies": 100,
         }
 
-        print(f"🔧 Using custom parameters:")
+        print("🔧 Using custom parameters:")
         for key, value in custom_params.items():
             print(f"   • {key}: {value}")
 

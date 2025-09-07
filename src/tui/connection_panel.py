@@ -5,18 +5,20 @@ This module provides a terminal UI panel for managing TCP connections,
 including viewing active connections, disconnecting clients, and managing API keys.
 """
 
+import asyncio
+from datetime import datetime
 from typing import Any
 
 import structlog
-from textual.app import ComposeResult  # type: ignore
-from textual.containers import Container, Horizontal, Vertical  # type: ignore
-from textual.message import Message  # type: ignore
-from textual.widgets import Button, DataTable, Static  # type: ignore
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal, Vertical
+from textual.message import Message
+from textual.widgets import Button, DataTable, Input, Static
 
 logger = structlog.get_logger(__name__)
 
 
-class ConnectionDisconnect(Message):  # type: ignore
+class ConnectionDisconnect(Message):
     """Message sent when a connection should be disconnected."""
 
     def __init__(self, client_address: str) -> None:
@@ -30,7 +32,7 @@ class ConnectionDisconnect(Message):  # type: ignore
         self.client_address = client_address
 
 
-class APIKeyGenerate(Message):  # type: ignore
+class APIKeyGenerate(Message):
     """Message sent when a new API key should be generated."""
 
     def __init__(self, permissions: dict[str, Any] | None = None) -> None:
@@ -44,7 +46,7 @@ class APIKeyGenerate(Message):  # type: ignore
         self.permissions = permissions or {}
 
 
-class APIKeyRevoke(Message):  # type: ignore
+class APIKeyRevoke(Message):
     """Message sent when an API key should be revoked."""
 
     def __init__(self, api_key_id: str) -> None:
@@ -58,18 +60,41 @@ class APIKeyRevoke(Message):  # type: ignore
         self.api_key_id = api_key_id
 
 
-class ConnectionPanel(Container):  # type: ignore
+class ConnectionRefresh(Message):
+    """Message sent when connections should be refreshed."""
+
+    def __init__(self) -> None:
+        """Initialize connection refresh message."""
+        super().__init__()
+
+
+class ConnectionFilter(Message):
+    """Message sent when connection filter changes."""
+
+    def __init__(self, filter_text: str) -> None:
+        """Initialize connection filter message.
+
+        Args:
+            filter_text: Text to filter connections by
+
+        """
+        super().__init__()
+        self.filter_text = filter_text
+
+
+class ConnectionPanel(Container):
     """Panel for managing TCP connections and API keys.
 
     This panel displays active connections, allows disconnecting clients,
     and provides API key management functionality.
     """
 
-    def __init__(self, id: str = "connection-panel") -> None:
+    def __init__(self, id: str = "connection-panel", refresh_interval: float = 5.0) -> None:
         """Initialize the connection panel.
 
         Args:
             id: Panel ID
+            refresh_interval: Refresh interval in seconds
 
         """
         super().__init__(id=id)
@@ -78,7 +103,19 @@ class ConnectionPanel(Container):  # type: ignore
         # State
         self.connections: list[dict[str, Any]] = []
         self.api_keys: list[dict[str, Any]] = []
+        self.filtered_connections: list[dict[str, Any]] = []
         self.selected_connection: str | None = None
+        self.selected_api_key_id: str | None = None
+        
+        # Filtering and pagination
+        self.filter_text: str = ""
+        self.current_page: int = 0
+        self.page_size: int = 20
+        
+        # Refresh management
+        self.refresh_interval: float = refresh_interval
+        self.refresh_task: asyncio.Task[None] | None = None
+        self.is_refreshing: bool = False
 
     def compose(self) -> ComposeResult:
         """Compose the connection panel layout.
@@ -95,10 +132,25 @@ class ConnectionPanel(Container):  # type: ignore
                 yield Button("Disconnect Selected", id="disconnect-btn", disabled=True)
                 yield Button("Disconnect All", id="disconnect-all-btn")
                 yield Button("Refresh", id="refresh-connections-btn")
+                yield Button("Auto Refresh", id="auto-refresh-btn")
+
+            # Connection filter
+            with Horizontal(classes="connection-filter"):
+                yield Static("Filter:", classes="filter-label")
+                yield Input(
+                    placeholder="Filter by address or key ID...", 
+                    id="connection-filter-input"
+                )
 
             # Connections table
             yield Static("Active Connections:", classes="section-title")
             yield DataTable(id="connections-table")
+
+            # Pagination controls
+            with Horizontal(classes="pagination-controls"):
+                yield Button("Previous", id="prev-page-btn", disabled=True)
+                yield Static("Page 1 of 1", id="page-info")
+                yield Button("Next", id="next-page-btn", disabled=True)
 
             # API Key controls
             with Horizontal(classes="api-key-controls"):
@@ -114,14 +166,16 @@ class ConnectionPanel(Container):  # type: ignore
         """Handle panel mount event."""
         self.logger.debug("Connection panel mounted")
 
-        # Initialize connections table
+        # Initialize connections table with enhanced columns
         connections_table = self.query_one("#connections-table", DataTable)
         connections_table.add_columns(
             "Client Address",
-            "Authenticated",
-            "API Key",
-            "Last Activity",
-            "Initialized",
+            "Key ID",
+            "Permissions",
+            "RPS",
+            "Violations",
+            "Connected At",
+            "Status",
         )
 
         # Initialize API keys table
@@ -134,6 +188,9 @@ class ConnectionPanel(Container):  # type: ignore
             "Active Sessions",
         )
 
+        # Start auto-refresh if enabled
+        self._start_auto_refresh()
+
     def update_connections(self, connections: list[dict[str, Any]]) -> None:
         """Update the connections display.
 
@@ -142,22 +199,135 @@ class ConnectionPanel(Container):  # type: ignore
 
         """
         self.connections = connections
-        connections_table = self.query_one("#connections-table", DataTable)
+        self._apply_filter()
+        self._update_connections_display()
 
+    def _apply_filter(self) -> None:
+        """Apply current filter to connections."""
+        if not self.filter_text:
+            self.filtered_connections = self.connections.copy()
+        else:
+            filter_lower = self.filter_text.lower()
+            self.filtered_connections = [
+                conn for conn in self.connections
+                if (filter_lower in str(conn.get("client_address", "")).lower() or
+                    filter_lower in str(conn.get("api_key_id", "")).lower() or
+                    filter_lower in str(conn.get("key_id", "")).lower())
+            ]
+
+    def _update_connections_display(self) -> None:
+        """Update the connections table display."""
+        connections_table = self.query_one("#connections-table", DataTable)
+        
         # Clear existing data
         connections_table.clear()
 
-        # Add connection data
-        for conn in connections:
+        # Calculate pagination
+        total_pages = max(
+            1, (len(self.filtered_connections) + self.page_size - 1) // self.page_size
+        )
+        self.current_page = min(self.current_page, total_pages - 1)
+        
+        start_idx = self.current_page * self.page_size
+        end_idx = start_idx + self.page_size
+        page_connections = self.filtered_connections[start_idx:end_idx]
+
+        # Add connection data with enhanced information
+        for conn in page_connections:
+            # Format permissions
+            permissions = conn.get("permissions", {})
+            if isinstance(permissions, dict):
+                perm_str = ", ".join([f"{k}: {v}" for k, v in permissions.items() if v])
+            else:
+                perm_str = str(permissions) if permissions else "None"
+
+            # Format connected_at timestamp
+            connected_at = conn.get("connected_at")
+            if connected_at:
+                if isinstance(connected_at, str):
+                    try:
+                        dt = datetime.fromisoformat(connected_at.replace('Z', '+00:00'))
+                        connected_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+                    except ValueError:
+                        connected_str = str(connected_at)
+                else:
+                    connected_str = str(connected_at)
+            else:
+                connected_str = "Unknown"
+
+            # Determine status
+            status = "Active"
+            if not conn.get("is_authenticated", False):
+                status = "Unauthenticated"
+            elif conn.get("violations", 0) > 0:
+                status = "Violations"
+
             connections_table.add_row(
                 str(conn.get("client_address", "Unknown")),
-                "Yes" if conn.get("is_authenticated", False) else "No",
-                conn.get("api_key", "N/A"),
-                conn.get("last_activity", "Unknown"),
-                "Yes" if conn.get("is_initialized", False) else "No",
+                str(conn.get("api_key_id", conn.get("key_id", "N/A"))),
+                perm_str,
+                str(conn.get("rps", conn.get("requests_per_second", 0))),
+                str(conn.get("violations", 0)),
+                connected_str,
+                status,
             )
 
-        self.logger.debug("Updated connections display", count=len(connections))
+        # Update pagination controls
+        self._update_pagination_controls(total_pages)
+
+        self.logger.debug(
+            "Updated connections display", 
+            total=len(self.connections),
+            filtered=len(self.filtered_connections),
+            page=self.current_page + 1,
+            total_pages=total_pages
+        )
+
+    def _update_pagination_controls(self, total_pages: int) -> None:
+        """Update pagination control states.
+
+        Args:
+            total_pages: Total number of pages
+
+        """
+        try:
+            prev_btn = self.query_one("#prev-page-btn", Button)
+            next_btn = self.query_one("#next-page-btn", Button)
+            page_info = self.query_one("#page-info", Static)
+
+            # Update button states
+            prev_btn.disabled = self.current_page <= 0
+            next_btn.disabled = self.current_page >= total_pages - 1
+
+            # Update page info
+            page_info.update(f"Page {self.current_page + 1} of {total_pages}")
+        except Exception as e:
+            self.logger.warning("Error updating pagination controls", error=str(e))
+
+    def _start_auto_refresh(self) -> None:
+        """Start auto-refresh task."""
+        if self.refresh_task and not self.refresh_task.done():
+            self.refresh_task.cancel()
+        
+        self.refresh_task = asyncio.create_task(self._auto_refresh_loop())
+
+    def _stop_auto_refresh(self) -> None:
+        """Stop auto-refresh task."""
+        if self.refresh_task and not self.refresh_task.done():
+            self.refresh_task.cancel()
+            self.refresh_task = None
+
+    async def _auto_refresh_loop(self) -> None:
+        """Auto-refresh loop."""
+        while True:
+            try:
+                await asyncio.sleep(self.refresh_interval)
+                if not self.is_refreshing:
+                    self.post_message(ConnectionRefresh())
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error("Error in auto-refresh loop", error=str(e))
 
     def update_api_keys(self, api_keys: list[dict[str, Any]]) -> None:
         """Update the API keys display.
@@ -211,6 +381,12 @@ class ConnectionPanel(Container):  # type: ignore
             self._disconnect_all_connections()
         elif button_id == "refresh-connections-btn":
             self._refresh_connections()
+        elif button_id == "auto-refresh-btn":
+            self._toggle_auto_refresh()
+        elif button_id == "prev-page-btn":
+            self._previous_page()
+        elif button_id == "next-page-btn":
+            self._next_page()
         elif button_id == "generate-api-key-btn":
             self._generate_api_key()
         elif button_id == "revoke-api-key-btn":
@@ -231,6 +407,20 @@ class ConnectionPanel(Container):  # type: ignore
             self._select_connection(event.row_key)
         elif table_id == "api-keys-table":
             self._select_api_key(event.row_key)
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """Handle input change events.
+
+        Args:
+            event: Input change event
+
+        """
+        if event.input.id == "connection-filter-input":
+            self.filter_text = event.value
+            self.current_page = 0  # Reset to first page when filtering
+            self._apply_filter()
+            self._update_connections_display()
+            self.logger.debug("Filter applied", filter_text=self.filter_text)
 
     def _disconnect_selected_connection(self) -> None:
         """Disconnect the selected connection."""
@@ -261,8 +451,40 @@ class ConnectionPanel(Container):  # type: ignore
     def _refresh_connections(self) -> None:
         """Refresh the connections display."""
         self.logger.debug("Refreshing connections")
-        # This would trigger a refresh from the parent application
-        # For now, we'll just log the action
+        self.is_refreshing = True
+        try:
+            # Post refresh message to parent application
+            self.post_message(ConnectionRefresh())
+        finally:
+            self.is_refreshing = False
+
+    def _toggle_auto_refresh(self) -> None:
+        """Toggle auto-refresh functionality."""
+        if self.refresh_task and not self.refresh_task.done():
+            self._stop_auto_refresh()
+            self.query_one("#auto-refresh-btn", Button).label = "Auto Refresh"
+            self.logger.debug("Auto-refresh stopped")
+        else:
+            self._start_auto_refresh()
+            self.query_one("#auto-refresh-btn", Button).label = "Stop Auto"
+            self.logger.debug("Auto-refresh started")
+
+    def _previous_page(self) -> None:
+        """Go to previous page."""
+        if self.current_page > 0:
+            self.current_page -= 1
+            self._update_connections_display()
+            self.logger.debug("Moved to previous page", page=self.current_page + 1)
+
+    def _next_page(self) -> None:
+        """Go to next page."""
+        total_pages = max(
+            1, (len(self.filtered_connections) + self.page_size - 1) // self.page_size
+        )
+        if self.current_page < total_pages - 1:
+            self.current_page += 1
+            self._update_connections_display()
+            self.logger.debug("Moved to next page", page=self.current_page + 1)
 
     def _generate_api_key(self) -> None:
         """Generate a new API key."""
@@ -273,8 +495,18 @@ class ConnectionPanel(Container):  # type: ignore
 
     def _revoke_selected_api_key(self) -> None:
         """Revoke the selected API key."""
-        # This would be implemented to revoke a selected API key
-        self.logger.info("Revoking selected API key")
+        if not hasattr(self, 'selected_api_key_id') or not self.selected_api_key_id:
+            self.notify("No API key selected", severity="error")
+            return
+
+        self.logger.info("Revoking selected API key", key_id=self.selected_api_key_id)
+        
+        # Post API key revocation message
+        self.post_message(APIKeyRevoke(self.selected_api_key_id))
+        
+        # Clear selection
+        self.selected_api_key_id = None
+        self.query_one("#revoke-api-key-btn", Button).disabled = True
 
     def _refresh_api_keys(self) -> None:
         """Refresh the API keys display."""
@@ -288,8 +520,12 @@ class ConnectionPanel(Container):  # type: ignore
             row_key: Row key of the selected connection
 
         """
-        if row_key < len(self.connections):
-            conn = self.connections[row_key]
+        # Calculate actual index in filtered connections
+        start_idx = self.current_page * self.page_size
+        actual_idx = start_idx + row_key
+        
+        if 0 <= actual_idx < len(self.filtered_connections):
+            conn = self.filtered_connections[actual_idx]
             self.selected_connection = str(conn.get("client_address", ""))
 
             # Enable disconnect button
@@ -307,6 +543,9 @@ class ConnectionPanel(Container):  # type: ignore
         if row_key < len(self.api_keys):
             key = self.api_keys[row_key]
             key_id = key.get("key_id", "")
+            
+            # Store the selected key ID
+            self.selected_api_key_id = key_id
 
             # Enable revoke button
             self.query_one("#revoke-api-key-btn", Button).disabled = False
@@ -327,6 +566,16 @@ class ConnectionPanel(Container):  # type: ignore
         initialized_connections = len(
             [conn for conn in self.connections if conn.get("is_initialized", False)]
         )
+        connections_with_violations = len(
+            [conn for conn in self.connections if conn.get("violations", 0) > 0]
+        )
+        
+        # Calculate average RPS
+        total_rps = sum(
+            conn.get("rps", conn.get("requests_per_second", 0)) 
+            for conn in self.connections
+        )
+        avg_rps = total_rps / total_connections if total_connections > 0 else 0
 
         return {
             "total_connections": total_connections,
@@ -334,6 +583,9 @@ class ConnectionPanel(Container):  # type: ignore
             "initialized_connections": initialized_connections,
             "unauthenticated_connections": total_connections - authenticated_connections,
             "uninitialized_connections": total_connections - initialized_connections,
+            "connections_with_violations": connections_with_violations,
+            "average_rps": round(avg_rps, 2),
+            "filtered_connections": len(self.filtered_connections),
         }
 
     def get_api_key_statistics(self) -> dict[str, Any]:
@@ -351,3 +603,12 @@ class ConnectionPanel(Container):  # type: ignore
             "active_api_keys": active_keys,
             "inactive_api_keys": total_keys - active_keys,
         }
+
+    def cleanup(self) -> None:
+        """Cleanup resources when panel is destroyed."""
+        self._stop_auto_refresh()
+        self.logger.debug("Connection panel cleaned up")
+
+    def on_unmount(self) -> None:
+        """Handle panel unmount event."""
+        self.cleanup()

@@ -12,24 +12,27 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
-# Maximum allowed message size (10MB)
-MAX_MESSAGE_SIZE = 10 * 1024 * 1024
+# Resource bounds for security
+MAX_MESSAGE_BYTES = 10 * 1024 * 1024  # 10MB
+MAX_NESTING_DEPTH = 50  # Reduced for security
+MAX_ARRAY_LEN = 1000  # Maximum array length per level
+MAX_STRING_LENGTH = 10000  # Maximum string length
+MAX_OBJECT_KEYS = 100  # Maximum keys per object
 
-# Maximum allowed nesting depth
-MAX_NESTING_DEPTH = 100
-
-# MCP Protocol JSON Schemas
+# MCP Protocol JSON Schemas with bounds checking
 MCP_REQUEST_SCHEMA = {
     "type": "object",
     "required": ["jsonrpc", "id", "method"],
+    "maxProperties": MAX_OBJECT_KEYS,
     "properties": {
         "jsonrpc": {
             "type": "string",
             "const": "2.0",
+            "maxLength": MAX_STRING_LENGTH,
         },
         "id": {
             "oneOf": [
-                {"type": "string"},
+                {"type": "string", "maxLength": MAX_STRING_LENGTH},
                 {"type": "number"},
                 {"type": "null"},
             ],
@@ -42,6 +45,7 @@ MCP_REQUEST_SCHEMA = {
         },
         "params": {
             "type": "object",
+            "maxProperties": MAX_OBJECT_KEYS,
             "additionalProperties": True,
         },
     },
@@ -51,25 +55,29 @@ MCP_REQUEST_SCHEMA = {
 MCP_RESPONSE_SCHEMA = {
     "type": "object",
     "required": ["jsonrpc", "id"],
+    "maxProperties": MAX_OBJECT_KEYS,
     "properties": {
         "jsonrpc": {
             "type": "string",
             "const": "2.0",
+            "maxLength": MAX_STRING_LENGTH,
         },
         "id": {
             "oneOf": [
-                {"type": "string"},
+                {"type": "string", "maxLength": MAX_STRING_LENGTH},
                 {"type": "number"},
                 {"type": "null"},
             ],
         },
         "result": {
             "type": "object",
+            "maxProperties": MAX_OBJECT_KEYS,
             "additionalProperties": True,
         },
         "error": {
             "type": "object",
             "required": ["code", "message"],
+            "maxProperties": MAX_OBJECT_KEYS,
             "properties": {
                 "code": {
                     "type": "integer",
@@ -77,10 +85,11 @@ MCP_RESPONSE_SCHEMA = {
                 "message": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 1000,
+                    "maxLength": MAX_STRING_LENGTH,
                 },
                 "data": {
                     "type": "object",
+                    "maxProperties": MAX_OBJECT_KEYS,
                     "additionalProperties": True,
                 },
             },
@@ -97,10 +106,12 @@ MCP_RESPONSE_SCHEMA = {
 MCP_NOTIFICATION_SCHEMA = {
     "type": "object",
     "required": ["jsonrpc", "method"],
+    "maxProperties": MAX_OBJECT_KEYS,
     "properties": {
         "jsonrpc": {
             "type": "string",
             "const": "2.0",
+            "maxLength": MAX_STRING_LENGTH,
         },
         "method": {
             "type": "string",
@@ -110,39 +121,237 @@ MCP_NOTIFICATION_SCHEMA = {
         },
         "params": {
             "type": "object",
+            "maxProperties": MAX_OBJECT_KEYS,
             "additionalProperties": True,
         },
     },
     "additionalProperties": False,
 }
 
-# Tool-specific parameter schemas
+# Tool-specific parameter schemas with bounds checking
 TOOL_PARAMETER_SCHEMAS = {
+    # Core MCP methods
+    "initialize": {
+        "type": "object",
+        "maxProperties": MAX_OBJECT_KEYS,
+        "properties": {
+            "protocolVersion": {
+                "type": "string",
+                "maxLength": MAX_STRING_LENGTH,
+            },
+            "capabilities": {
+                "type": "object",
+                "maxProperties": MAX_OBJECT_KEYS,
+                "additionalProperties": True,
+            },
+            "clientInfo": {
+                "type": "object",
+                "maxProperties": MAX_OBJECT_KEYS,
+                "properties": {
+                    "name": {"type": "string", "maxLength": MAX_STRING_LENGTH},
+                    "version": {"type": "string", "maxLength": MAX_STRING_LENGTH},
+                },
+                "additionalProperties": False,
+            },
+        },
+        "additionalProperties": False,
+    },
+    "tools/list": {
+        "type": "object",
+        "maxProperties": MAX_OBJECT_KEYS,
+        "properties": {},
+        "additionalProperties": False,
+    },
+    "tools/call": {
+        "type": "object",
+        "required": ["name", "arguments"],
+        "maxProperties": MAX_OBJECT_KEYS,
+        "properties": {
+            "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            },
+            "arguments": {
+                "type": "object",
+                "maxProperties": MAX_OBJECT_KEYS,
+                "additionalProperties": True,
+            },
+        },
+        "additionalProperties": False,
+    },
+    "resources/list": {
+        "type": "object",
+        "maxProperties": MAX_OBJECT_KEYS,
+        "properties": {},
+        "additionalProperties": False,
+    },
+    "resources/read": {
+        "type": "object",
+        "required": ["uri"],
+        "maxProperties": MAX_OBJECT_KEYS,
+        "properties": {
+            "uri": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": MAX_STRING_LENGTH,
+                "pattern": "^[a-zA-Z0-9_/.-]+$",
+            },
+        },
+        "additionalProperties": False,
+    },
+    "prompts/list": {
+        "type": "object",
+        "maxProperties": MAX_OBJECT_KEYS,
+        "properties": {},
+        "additionalProperties": False,
+    },
+    "prompts/get": {
+        "type": "object",
+        "required": ["name"],
+        "maxProperties": MAX_OBJECT_KEYS,
+        "properties": {
+            "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            },
+            "arguments": {
+                "type": "object",
+                "maxProperties": MAX_OBJECT_KEYS,
+                "additionalProperties": True,
+            },
+        },
+        "additionalProperties": False,
+    },
+    # DShield-specific tools
+    "query_dshield_events": {
+        "type": "object",
+        "maxProperties": MAX_OBJECT_KEYS,
+        "properties": {
+            "time_range_hours": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 168,  # 1 week max
+            },
+            "time_range": {
+                "type": "object",
+                "maxProperties": MAX_OBJECT_KEYS,
+                "properties": {
+                    "start": {
+                        "type": "string",
+                        "maxLength": MAX_STRING_LENGTH,
+                        "pattern": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$",
+                    },
+                    "end": {
+                        "type": "string",
+                        "maxLength": MAX_STRING_LENGTH,
+                        "pattern": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$",
+                    },
+                },
+                "additionalProperties": False,
+            },
+            "relative_time": {
+                "type": "string",
+                "maxLength": MAX_STRING_LENGTH,
+                "enum": ["last_1_hour", "last_6_hours", "last_24_hours", "last_7_days"],
+            },
+            "indices": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "maxLength": MAX_STRING_LENGTH,
+                },
+                "maxItems": MAX_ARRAY_LEN,
+            },
+            "filters": {
+                "type": "object",
+                "maxProperties": MAX_OBJECT_KEYS,
+                "additionalProperties": True,
+            },
+            "fields": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "maxLength": MAX_STRING_LENGTH,
+                },
+                "maxItems": MAX_ARRAY_LEN,
+            },
+            "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000,
+            },
+            "page_size": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000,
+            },
+            "sort_by": {
+                "type": "string",
+                "maxLength": MAX_STRING_LENGTH,
+            },
+            "sort_order": {
+                "type": "string",
+                "enum": ["asc", "desc"],
+            },
+            "cursor": {
+                "type": "string",
+                "maxLength": MAX_STRING_LENGTH,
+            },
+            "optimization": {
+                "type": "string",
+                "enum": ["auto", "none"],
+            },
+            "fallback_strategy": {
+                "type": "string",
+                "enum": ["aggregate", "sample", "error"],
+            },
+            "max_result_size_mb": {
+                "type": "number",
+                "minimum": 0.1,
+                "maximum": 100.0,
+            },
+            "query_timeout_seconds": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 300,
+            },
+            "include_summary": {
+                "type": "boolean",
+            },
+        },
+        "additionalProperties": False,
+    },
     "analyze_campaign": {
         "type": "object",
         "required": ["seed_iocs"],
+        "maxProperties": MAX_OBJECT_KEYS,
         "properties": {
             "seed_iocs": {
                 "type": "array",
                 "items": {
                     "type": "string",
                     "minLength": 1,
-                    "maxLength": 1000,
+                    "maxLength": MAX_STRING_LENGTH,
                 },
                 "minItems": 1,
-                "maxItems": 100,
+                "maxItems": MAX_ARRAY_LEN,
             },
             "time_range": {
                 "type": "object",
+                "maxProperties": MAX_OBJECT_KEYS,
                 "properties": {
                     "start_time": {
                         "type": "string",
-                        "format": "date-time",
+                        "maxLength": MAX_STRING_LENGTH,
                         "pattern": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$",
                     },
                     "end_time": {
                         "type": "string",
-                        "format": "date-time",
+                        "maxLength": MAX_STRING_LENGTH,
                         "pattern": r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$",
                     },
                 },
@@ -159,6 +368,7 @@ TOOL_PARAMETER_SCHEMAS = {
     "get_campaign_timeline": {
         "type": "object",
         "required": ["campaign_id"],
+        "maxProperties": MAX_OBJECT_KEYS,
         "properties": {
             "campaign_id": {
                 "type": "string",
@@ -176,6 +386,7 @@ TOOL_PARAMETER_SCHEMAS = {
     "generate_report": {
         "type": "object",
         "required": ["campaign_id"],
+        "maxProperties": MAX_OBJECT_KEYS,
         "properties": {
             "campaign_id": {
                 "type": "string",
@@ -237,17 +448,18 @@ class MCPSchemaValidator:
             True if message size is valid, False otherwise
 
         """
-        if len(message.encode("utf-8")) > MAX_MESSAGE_SIZE:
+        message_bytes = len(message.encode("utf-8"))
+        if message_bytes > MAX_MESSAGE_BYTES:
             self.logger.warning(
                 "Message size exceeds limit",
-                size=len(message.encode("utf-8")),
-                limit=MAX_MESSAGE_SIZE,
+                size=message_bytes,
+                limit=MAX_MESSAGE_BYTES,
             )
             return False
         return True
 
     def validate_json_structure(self, message: str) -> dict[str, Any] | None:
-        """Validate JSON structure and nesting depth.
+        """Validate JSON structure, nesting depth, and array sizes.
 
         Args:
             message: The JSON message string
@@ -270,12 +482,17 @@ class MCPSchemaValidator:
             return None
 
         # Check nesting depth
-        if self._get_nesting_depth(parsed) > MAX_NESTING_DEPTH:
+        depth = self._get_nesting_depth(parsed)
+        if depth > MAX_NESTING_DEPTH:
             self.logger.warning(
                 "JSON nesting depth exceeds limit",
-                depth=self._get_nesting_depth(parsed),
+                depth=depth,
                 limit=MAX_NESTING_DEPTH,
             )
+            return None
+
+        # Check array sizes and object key counts
+        if not self._validate_object_bounds(parsed):
             return None
 
         return parsed  # type: ignore[no-any-return]
@@ -303,6 +520,74 @@ class MCPSchemaValidator:
                 return current_depth
             return max(self._get_nesting_depth(item, current_depth + 1) for item in obj)
         return current_depth  # Leaf nodes return current depth
+
+    def _validate_object_bounds(self, obj: Any) -> bool:
+        """Validate object bounds including array sizes and key counts.
+
+        Args:
+            obj: The JSON object to validate
+
+        Returns:
+            True if bounds are valid, False otherwise
+
+        """
+        if isinstance(obj, dict):
+            # Check object key count
+            if len(obj) > MAX_OBJECT_KEYS:
+                self.logger.warning(
+                    "Object has too many keys",
+                    key_count=len(obj),
+                    limit=MAX_OBJECT_KEYS,
+                )
+                return False
+
+            # Check string lengths in keys and values
+            for key, value in obj.items():
+                if isinstance(key, str) and len(key) > MAX_STRING_LENGTH:
+                    self.logger.warning(
+                        "Object key too long",
+                        key_length=len(key),
+                        limit=MAX_STRING_LENGTH,
+                    )
+                    return False
+
+                if isinstance(value, str) and len(value) > MAX_STRING_LENGTH:
+                    self.logger.warning(
+                        "String value too long",
+                        value_length=len(value),
+                        limit=MAX_STRING_LENGTH,
+                    )
+                    return False
+
+                # Recursively check nested objects
+                if not self._validate_object_bounds(value):
+                    return False
+
+        elif isinstance(obj, list):
+            # Check array length
+            if len(obj) > MAX_ARRAY_LEN:
+                self.logger.warning(
+                    "Array too long",
+                    array_length=len(obj),
+                    limit=MAX_ARRAY_LEN,
+                )
+                return False
+
+            # Check string lengths in array items
+            for item in obj:
+                if isinstance(item, str) and len(item) > MAX_STRING_LENGTH:
+                    self.logger.warning(
+                        "Array item string too long",
+                        item_length=len(item),
+                        limit=MAX_STRING_LENGTH,
+                    )
+                    return False
+
+                # Recursively check nested objects
+                if not self._validate_object_bounds(item):
+                    return False
+
+        return True
 
     def validate_request(self, message: dict[str, Any]) -> bool:
         """Validate an MCP request message.
@@ -452,8 +737,18 @@ class MCPSchemaValidator:
 
         return value.strip()
 
-    def validate_complete_message(self, message: str) -> dict[str, Any] | None:
-        """Perform complete message validation.
+    def validate_message(self, message: str) -> dict[str, Any] | None:
+        """Validate a complete MCP message with all security checks.
+
+        This is the main entry point for message validation that performs:
+        - Size bounds checking
+        - JSON structure validation
+        - Nesting depth validation
+        - Array size validation
+        - Object key count validation
+        - String length validation
+        - JSON-RPC 2.0 compliance
+        - Method-specific parameter validation
 
         Args:
             message: The raw JSON message string
@@ -466,7 +761,7 @@ class MCPSchemaValidator:
         if not self.validate_message_size(message):
             return None
 
-        # Parse and validate JSON structure
+        # Parse and validate JSON structure with bounds checking
         parsed = self.validate_json_structure(message)
         if parsed is None:
             return None
@@ -496,3 +791,15 @@ class MCPSchemaValidator:
                 return None
 
         return parsed
+
+    def validate_complete_message(self, message: str) -> dict[str, Any] | None:
+        """Perform complete message validation.
+
+        Args:
+            message: The raw JSON message string
+
+        Returns:
+            Validated and parsed message if valid, None otherwise
+
+        """
+        return self.validate_message(message)

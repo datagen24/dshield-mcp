@@ -4,8 +4,9 @@
 Tests the statistical anomaly detection functionality.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from src.statistical_analysis_tools import StatisticalAnalysisTools
 

@@ -9,28 +9,30 @@ from datetime import datetime
 from typing import Any
 
 import structlog
-from textual.app import ComposeResult  # type: ignore
-from textual.containers import Container, Horizontal, Vertical  # type: ignore
-from textual.message import Message  # type: ignore
-from textual.reactive import reactive  # type: ignore
-from textual.widgets import Button, Input, Label, Static  # type: ignore
+from textual.app import ComposeResult
+from textual.containers import Container, Horizontal, Vertical
+from textual.message import Message
+from textual.reactive import reactive
+from textual.widgets import Button, Static
+
+from .server_process_manager import ServerProcessManager, ServerStatusUpdate
 
 logger = structlog.get_logger(__name__)
 
 
-class ServerStart(Message):  # type: ignore
+class ServerStart(Message):
     """Message sent when server should be started."""
 
 
-class ServerStop(Message):  # type: ignore
+class ServerStop(Message):
     """Message sent when server should be stopped."""
 
 
-class ServerRestart(Message):  # type: ignore
+class ServerRestart(Message):
     """Message sent when server should be restarted."""
 
 
-class ServerConfigUpdate(Message):  # type: ignore
+class ServerConfigUpdate(Message):
     """Message sent when server configuration should be updated."""
 
     def __init__(self, config: dict[str, Any]) -> None:
@@ -44,18 +46,19 @@ class ServerConfigUpdate(Message):  # type: ignore
         self.config = config
 
 
-class ServerPanel(Container):  # type: ignore
+class ServerPanel(Container):
     """Panel for managing the MCP server.
 
     This panel provides controls for starting/stopping the server,
     viewing server status, and managing server configuration.
     """
 
-    def __init__(self, id: str = "server-panel") -> None:
+    def __init__(self, id: str = "server-panel", config_path: str | None = None) -> None:
         """Initialize the server panel.
 
         Args:
             id: Panel ID
+            config_path: Optional path to configuration file
 
         """
         super().__init__(id=id)
@@ -66,6 +69,10 @@ class ServerPanel(Container):  # type: ignore
         self.server_status: dict[str, Any] = {}
         self.server_config: dict[str, Any] = {}
         self.uptime_start: datetime | None = None
+
+        # Process manager
+        self.process_manager = ServerProcessManager(config_path)
+        self.process_manager.add_status_handler(self._on_server_status_update)
 
     def compose(self) -> ComposeResult:
         """Compose the server panel layout.
@@ -96,70 +103,127 @@ class ServerPanel(Container):  # type: ignore
             yield Static("Total Requests: 0", id="total-requests-text")
             yield Static("Error Rate: 0%", id="error-rate-text")
 
-            # Configuration
-            yield Static("Configuration:", classes="section-title")
-            with Horizontal():
-                yield Label("Port:")
-                yield Input(placeholder="3000", id="port-input")
-            with Horizontal():
-                yield Label("Bind Address:")
-                yield Input(placeholder="127.0.0.1", id="address-input")
-            with Horizontal():
-                yield Label("Max Connections:")
-                yield Input(placeholder="10", id="max-connections-input")
-
-            # Configuration controls
-            with Horizontal(classes="config-controls"):
-                yield Button("Apply Config", id="apply-config-btn", disabled=True)
-                yield Button("Reset Config", id="reset-config-btn")
+            # Configuration (Read-only display)
+            yield Static("Effective Configuration:", classes="section-title")
+            yield Static("Port: N/A", id="config-port-text")
+            yield Static("Bind Address: N/A", id="config-address-text")
+            yield Static("Max Connections: N/A", id="config-max-connections-text")
+            yield Static("Graceful Shutdown Timeout: N/A", id="config-timeout-text")
+            yield Static("API Key Management: N/A", id="config-api-keys-text")
+            yield Static("Rate Limit per Key: N/A", id="config-rate-limit-text")
 
     def on_mount(self) -> None:
         """Handle panel mount event."""
         self.logger.debug("Server panel mounted")
 
-        # Initialize configuration inputs
-        self._initialize_config_inputs()
+        # Initialize configuration display
+        self._initialize_config_display()
 
-    def _initialize_config_inputs(self) -> None:
-        """Initialize configuration input fields."""
-        # Set default values
-        port_input = self.query_one("#port-input", Input)
-        address_input = self.query_one("#address-input", Input)
-        max_connections_input = self.query_one("#max-connections-input", Input)
+        # Update initial status
+        self._update_server_status()
 
-        port_input.value = "3000"
-        address_input.value = "127.0.0.1"
-        max_connections_input.value = "10"
+    def _initialize_config_display(self) -> None:
+        """Initialize configuration display with effective configuration."""
+        try:
+            config = self.process_manager.get_effective_configuration()
 
-    def update_server_status(self, running: bool) -> None:
-        """Update server running status.
+            # Update configuration display
+            port_text = self.query_one("#config-port-text", Static)
+            address_text = self.query_one("#config-address-text", Static)
+            max_connections_text = self.query_one("#config-max-connections-text", Static)
+            timeout_text = self.query_one("#config-timeout-text", Static)
+            api_keys_text = self.query_one("#config-api-keys-text", Static)
+            rate_limit_text = self.query_one("#config-rate-limit-text", Static)
+
+            port_text.update(f"Port: {config.get('port', 'N/A')}")
+            address_text.update(f"Bind Address: {config.get('bind_address', 'N/A')}")
+            max_connections_text.update(f"Max Connections: {config.get('max_connections', 'N/A')}")
+            timeout_text.update(
+                f"Graceful Shutdown Timeout: {config.get('graceful_shutdown_timeout', 'N/A')}s"
+            )
+
+            api_key_mgmt = config.get("api_key_management", {})
+            enabled_status = "Enabled" if api_key_mgmt.get("enabled", False) else "Disabled"
+            api_keys_text.update(f"API Key Management: {enabled_status}")
+            rate_limit_text.update(
+                f"Rate Limit per Key: {api_key_mgmt.get('rate_limit_per_key', 'N/A')} req/min"
+            )
+
+            self.logger.debug("Initialized configuration display", config=config)
+
+        except Exception as e:
+            self.logger.error("Error initializing configuration display", error=str(e))
+
+    def _update_server_status(self) -> None:
+        """Update server status from process manager."""
+        try:
+            status = self.process_manager.get_server_status()
+            self.server_running = status.get("running", False)
+            self.server_status = status
+
+            # Update button states
+            start_btn = self.query_one("#start-server-btn", Button)
+            stop_btn = self.query_one("#stop-server-btn", Button)
+            restart_btn = self.query_one("#restart-server-btn", Button)
+
+            start_btn.disabled = bool(self.server_running)
+            stop_btn.disabled = not self.server_running
+            restart_btn.disabled = not self.server_running
+
+            # Update status text
+            status_text = self.query_one("#server-status-text", Static)
+            if self.server_running:
+                status_text.update("Status: Running")
+                if not self.uptime_start:
+                    self.uptime_start = datetime.now()
+            else:
+                status_text.update("Status: Stopped")
+                self.uptime_start = None
+
+            # Update uptime
+            uptime_text = self.query_one("#server-uptime-text", Static)
+            if self.server_running and self.uptime_start:
+                uptime = datetime.now() - self.uptime_start
+                uptime_str = str(uptime).split(".")[0]  # Remove microseconds
+                uptime_text.update(f"Uptime: {uptime_str}")
+            else:
+                uptime_text.update("Uptime: N/A")
+
+            # Update port and address
+            port_text = self.query_one("#server-port-text", Static)
+            address_text = self.query_one("#server-address-text", Static)
+
+            config = status.get("configuration", {})
+            port_text.update(f"Port: {config.get('port', 'N/A')}")
+            address_text.update(f"Address: {config.get('bind_address', 'N/A')}")
+
+            self.logger.debug("Updated server status", running=self.server_running, status=status)
+
+        except Exception as e:
+            self.logger.error("Error updating server status", error=str(e))
+
+    def _on_server_status_update(self, message: ServerStatusUpdate) -> None:
+        """Handle server status update from process manager.
 
         Args:
-            running: Whether the server is running
+            message: Server status update message
 
         """
-        self.server_running = running
+        self.server_status = message.status
+        self.server_running = message.status.get("running", False)
 
         # Update button states
         start_btn = self.query_one("#start-server-btn", Button)
         stop_btn = self.query_one("#stop-server-btn", Button)
         restart_btn = self.query_one("#restart-server-btn", Button)
 
-        start_btn.disabled = running
-        stop_btn.disabled = not running
-        restart_btn.disabled = not running
-
-        self.logger.debug(
-            "Updated server button states",
-            running=running,
-            start_disabled=start_btn.disabled,
-            stop_disabled=stop_btn.disabled,
-            restart_disabled=restart_btn.disabled,
-        )
+        start_btn.disabled = bool(self.server_running)
+        stop_btn.disabled = not self.server_running
+        restart_btn.disabled = not self.server_running
 
         # Update status text
         status_text = self.query_one("#server-status-text", Static)
-        if running:
+        if self.server_running:
             status_text.update("Status: Running")
             if not self.uptime_start:
                 self.uptime_start = datetime.now()
@@ -167,7 +231,24 @@ class ServerPanel(Container):  # type: ignore
             status_text.update("Status: Stopped")
             self.uptime_start = None
 
-        self.logger.debug("Updated server status", running=running)
+        # Update uptime
+        uptime_text = self.query_one("#server-uptime-text", Static)
+        if self.server_running and self.uptime_start:
+            uptime = datetime.now() - self.uptime_start
+            uptime_str = str(uptime).split(".")[0]  # Remove microseconds
+            uptime_text.update(f"Uptime: {uptime_str}")
+        else:
+            uptime_text.update("Uptime: N/A")
+
+        # Update port and address
+        port_text = self.query_one("#server-port-text", Static)
+        address_text = self.query_one("#server-address-text", Static)
+
+        config = message.status.get("configuration", {})
+        port_text.update(f"Port: {config.get('port', 'N/A')}")
+        address_text.update(f"Address: {config.get('bind_address', 'N/A')}")
+
+        self.logger.debug("Handled server status update", status=message.status)
 
     def update_server_statistics(self, stats: dict[str, Any]) -> None:
         """Update server statistics display.
@@ -227,139 +308,99 @@ class ServerPanel(Container):  # type: ignore
         elif button_id == "restart-server-btn":
             self.logger.debug("Restart server button pressed")
             self._restart_server()
-        elif button_id == "apply-config-btn":
-            self._apply_config()
-        elif button_id == "reset-config-btn":
-            self._reset_config()
-
-    def on_input_changed(self, event: Input.Changed) -> None:
-        """Handle input field changes.
-
-        Args:
-            event: Input change event
-
-        """
-        # Enable apply config button when inputs change
-        apply_btn = self.query_one("#apply-config-btn", Button)
-        apply_btn.disabled = False
 
     def _start_server(self) -> None:
         """Start the server."""
         self.logger.info("Starting server")
-        self.post_message(ServerStart())
+        
+        # Disable buttons during operation
+        start_btn = self.query_one("#start-server-btn", Button)
+        stop_btn = self.query_one("#stop-server-btn", Button)
+        restart_btn = self.query_one("#restart-server-btn", Button)
+        
+        start_btn.disabled = True
+        stop_btn.disabled = True
+        restart_btn.disabled = True
+        
+        # Start server asynchronously
+        import asyncio
+        asyncio.create_task(self._async_start_server())
 
     def _stop_server(self) -> None:
         """Stop the server."""
         self.logger.info("Stopping server")
-        self.post_message(ServerStop())
+        
+        # Disable buttons during operation
+        start_btn = self.query_one("#start-server-btn", Button)
+        stop_btn = self.query_one("#stop-server-btn", Button)
+        restart_btn = self.query_one("#restart-server-btn", Button)
+        
+        start_btn.disabled = True
+        stop_btn.disabled = True
+        restart_btn.disabled = True
+        
+        # Stop server asynchronously
+        import asyncio
+        asyncio.create_task(self._async_stop_server())
 
     def _restart_server(self) -> None:
         """Restart the server."""
         self.logger.info("Restarting server")
-        self.post_message(ServerRestart())
+        
+        # Disable buttons during operation
+        start_btn = self.query_one("#start-server-btn", Button)
+        stop_btn = self.query_one("#stop-server-btn", Button)
+        restart_btn = self.query_one("#restart-server-btn", Button)
+        
+        start_btn.disabled = True
+        stop_btn.disabled = True
+        restart_btn.disabled = True
+        
+        # Restart server asynchronously
+        import asyncio
+        asyncio.create_task(self._async_restart_server())
 
-    def _apply_config(self) -> None:
-        """Apply configuration changes."""
+    async def _async_start_server(self) -> None:
+        """Asynchronously start the server."""
         try:
-            # Get configuration from inputs
-            port_input = self.query_one("#port-input", Input)
-            address_input = self.query_one("#address-input", Input)
-            max_connections_input = self.query_one("#max-connections-input", Input)
-
-            config = {
-                "port": int(port_input.value) if port_input.value else 3000,
-                "bind_address": address_input.value or "127.0.0.1",
-                "max_connections": int(max_connections_input.value)
-                if max_connections_input.value
-                else 10,
-            }
-
-            # Validate configuration
-            port = config["port"]
-            max_connections = config["max_connections"]
-
-            if isinstance(port, str):
-                try:
-                    port = int(port)
-                except ValueError:
-                    self.logger.error("Invalid port number", port=port)
-                    return
-
-            if isinstance(max_connections, str):
-                try:
-                    max_connections = int(max_connections)
-                except ValueError:
-                    self.logger.error("Invalid max connections", max_connections=max_connections)
-                    return
-
-            if port < 1 or port > 65535:
-                self.logger.error("Invalid port number", port=port)
-                return
-
-            if max_connections < 1:
-                self.logger.error("Invalid max connections", max_connections=max_connections)
-                return
-
-            self.logger.info("Applying server configuration", config=config)
-
-            # Post configuration update message
-            self.post_message(ServerConfigUpdate(config))
-
-            # Disable apply button
-            apply_btn = self.query_one("#apply-config-btn", Button)
-            apply_btn.disabled = True
-
-        except ValueError as e:
-            self.logger.error("Invalid configuration value", error=str(e))
+            success = await self.process_manager.start_server()
+            if success:
+                self.logger.info("Server started successfully")
+            else:
+                self.logger.error("Failed to start server")
         except Exception as e:
-            self.logger.error("Error applying configuration", error=str(e))
+            self.logger.error("Error starting server", error=str(e))
+        finally:
+            # Re-enable buttons
+            self._update_server_status()
 
-    def _reset_config(self) -> None:
-        """Reset configuration to defaults."""
-        self.logger.info("Resetting server configuration")
-        self._initialize_config_inputs()
+    async def _async_stop_server(self) -> None:
+        """Asynchronously stop the server."""
+        try:
+            success = await self.process_manager.stop_server()
+            if success:
+                self.logger.info("Server stopped successfully")
+            else:
+                self.logger.error("Failed to stop server")
+        except Exception as e:
+            self.logger.error("Error stopping server", error=str(e))
+        finally:
+            # Re-enable buttons
+            self._update_server_status()
 
-        # Disable apply button
-        apply_btn = self.query_one("#apply-config-btn", Button)
-        apply_btn.disabled = True
-
-    def get_server_configuration(self) -> dict[str, Any]:
-        """Get current server configuration from inputs.
-
-        Returns:
-            Dictionary of server configuration
-
-        """
-        port_input = self.query_one("#port-input", Input)
-        address_input = self.query_one("#address-input", Input)
-        max_connections_input = self.query_one("#max-connections-input", Input)
-
-        return {
-            "port": int(port_input.value) if port_input.value else 3000,
-            "bind_address": address_input.value or "127.0.0.1",
-            "max_connections": int(max_connections_input.value)
-            if max_connections_input.value
-            else 10,
-        }
-
-    def set_server_configuration(self, config: dict[str, Any]) -> None:
-        """Set server configuration in inputs.
-
-        Args:
-            config: Server configuration dictionary
-
-        """
-        port_input = self.query_one("#port-input", Input)
-        address_input = self.query_one("#address-input", Input)
-        max_connections_input = self.query_one("#max-connections-input", Input)
-
-        port_input.value = str(config.get("port", 3000))
-        address_input.value = str(config.get("bind_address", "127.0.0.1"))
-        max_connections_input.value = str(config.get("max_connections", 10))
-
-        # Disable apply button since we just set the values
-        apply_btn = self.query_one("#apply-config-btn", Button)
-        apply_btn.disabled = True
+    async def _async_restart_server(self) -> None:
+        """Asynchronously restart the server."""
+        try:
+            success = await self.process_manager.restart_server()
+            if success:
+                self.logger.info("Server restarted successfully")
+            else:
+                self.logger.error("Failed to restart server")
+        except Exception as e:
+            self.logger.error("Error restarting server", error=str(e))
+        finally:
+            # Re-enable buttons
+            self._update_server_status()
 
     def get_server_health(self) -> dict[str, Any]:
         """Get server health information.
@@ -374,5 +415,5 @@ class ServerPanel(Container):  # type: ignore
             if self.uptime_start
             else 0,
             "status": self.server_status,
-            "configuration": self.get_server_configuration(),
+            "configuration": self.process_manager.get_effective_configuration(),
         }
