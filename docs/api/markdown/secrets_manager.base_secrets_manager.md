@@ -16,49 +16,49 @@ The module provides:
 ## SecretsManagerError
 
 Base exception for all secrets manager operations.
-    
+
     This is the root exception class for all secrets management errors.
     All specific error types inherit from this class.
 
 ## SecretNotFoundError
 
 Raised when a requested secret is not found.
-    
+
     This exception is raised when attempting to retrieve, update, or delete
     a secret that doesn't exist in the backend.
 
 ## PermissionDeniedError
 
 Raised when access to a secret is denied due to insufficient permissions.
-    
+
     This exception is raised when the current user or service account
     doesn't have the necessary permissions to perform the requested operation.
 
 ## RateLimitedError
 
 Raised when the secrets manager backend is rate limiting requests.
-    
+
     This exception is raised when the backend service is throttling requests
     due to rate limits or quota restrictions.
 
 ## BackendUnavailableError
 
 Raised when the secrets manager backend is unavailable.
-    
+
     This exception is raised when the backend service is down, unreachable,
     or experiencing issues that prevent normal operation.
 
 ## InvalidReferenceError
 
 Raised when a secret reference URI is invalid or malformed.
-    
+
     This exception is raised when attempting to resolve a reference URI
     that doesn't match the expected format or contains invalid components.
 
 ## SecretMetadata
 
 Metadata for a secret including tags, lifecycle, and audit information.
-    
+
     Attributes:
         name: Human-readable name for the secret
         description: Optional description of the secret's purpose
@@ -88,10 +88,10 @@ Represents an API key with metadata and permissions.
 ## SecretReference
 
 Represents a reference to a secret in a specific backend.
-    
+
     This class handles the resolution and validation of secret reference URIs
     like 'op://vault/item/field' for 1Password or 'vault://path/to/secret' for Vault.
-    
+
     Attributes:
         uri: The full reference URI
         backend: The backend type (e.g., 'op', 'vault', 'aws')
@@ -115,7 +115,7 @@ def _parse_uri(self)
 ```
 
 Parse the reference URI and extract components.
-        
+
         Supports formats like:
         - op://vault/item/field
         - vault://path/to/secret
@@ -127,7 +127,7 @@ Abstract base class for secrets management providers.
 
     This class defines the interface that all secrets management providers
     must implement, ensuring consistent behavior across different backends.
-    
+
     The class provides:
     - Abstract methods for CRUD operations on secrets
     - Error handling with proper exception translation
@@ -142,7 +142,7 @@ def __init__(self, enable_caching, cache_ttl_seconds)
 ```
 
 Initialize the base secrets manager.
-        
+
         Args:
             enable_caching: Whether to enable in-memory caching
             cache_ttl_seconds: Time-to-live for cached secrets in seconds
@@ -154,10 +154,10 @@ def _normalize_cache_key(self, key)
 ```
 
 Normalize a cache key for consistent storage and retrieval.
-        
+
         Args:
             key: The original key to normalize
-            
+
         Returns:
             Normalized cache key
 
@@ -168,10 +168,10 @@ def _is_cache_valid(self, cache_entry)
 ```
 
 Check if a cache entry is still valid based on TTL.
-        
+
         Args:
             cache_entry: Tuple of (value, timestamp)
-            
+
         Returns:
             True if the cache entry is still valid, False otherwise
 
@@ -182,10 +182,10 @@ def _get_from_cache(self, key)
 ```
 
 Retrieve a value from the cache if valid.
-        
+
         Args:
             key: The cache key to retrieve
-            
+
         Returns:
             Cached value if valid, None otherwise
 
@@ -196,7 +196,7 @@ def _set_cache(self, key, value)
 ```
 
 Store a value in the cache.
-        
+
         Args:
             key: The cache key
             value: The value to cache
@@ -208,7 +208,7 @@ def _clear_cache(self, key)
 ```
 
 Clear cache entries.
-        
+
         Args:
             key: Specific key to clear, or None to clear all
 
@@ -219,13 +219,13 @@ def validate_reference(self, reference_uri)
 ```
 
 Validate and parse a secret reference URI.
-        
+
         Args:
             reference_uri: The reference URI to validate
-            
+
         Returns:
             SecretReference object with parsed components
-            
+
         Raises:
             InvalidReferenceError: If the reference URI is invalid
 
@@ -236,5 +236,5 @@ def clear_cache(self)
 ```
 
 Clear all cached secrets.
-        
+
         This method can be called to force a refresh of all cached data.

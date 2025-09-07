@@ -35,6 +35,7 @@ ipdb>=0.13.0
 
 # TUI Development and Testing
 textual-dev>=0.1.0  # Development tools for textual
+textual-pilot>=0.1.0  # Integration testing for textual apps
 rich-cli>=1.0.0     # CLI tools for rich
 pytest-textual-snapshot>=0.1.0  # Snapshot testing for textual apps
 

@@ -54,7 +54,7 @@ def _discover_session(self)
 ```
 
 Discover existing 1Password session from environment variables.
-        
+
         Looks for OP_SESSION_* environment variables and extracts session tokens.
 
 #### _is_session_valid
@@ -64,7 +64,7 @@ def _is_session_valid(self)
 ```
 
 Check if the current session is still valid.
-        
+
         Returns:
             True if session is valid, False otherwise
 
@@ -104,10 +104,10 @@ def _redact_sensitive_args(self, cmd)
 ```
 
 Redact sensitive information from command arguments for logging.
-        
+
         Args:
             cmd: Command arguments to redact
-            
+
         Returns:
             Command with sensitive information redacted
 
@@ -118,11 +118,11 @@ def _map_op_error(self, return_code, error_msg)
 ```
 
 Map op CLI error codes and messages to appropriate SecretsManagerError subclasses.
-        
+
         Args:
             return_code: The exit code from the op command
             error_msg: The error message from stderr
-            
+
         Returns:
             Appropriate SecretsManagerError subclass or None for unmapped errors
 
@@ -133,11 +133,11 @@ def _validate_op_output(self, output, command_args)
 ```
 
 Validate op CLI output structure and content.
-        
+
         Args:
             output: The parsed JSON output from op CLI
             command_args: The command arguments that were executed
-            
+
         Raises:
             SecretsManagerError: If output validation fails
 
@@ -148,7 +148,7 @@ def _update_metrics(self, latency_ms, success)
 ```
 
 Update internal metrics for monitoring.
-        
+
         Args:
             latency_ms: Operation latency in milliseconds
             success: Whether the operation was successful
@@ -160,7 +160,7 @@ def get_metrics(self)
 ```
 
 Get current metrics for monitoring.
-        
+
         Returns:
             Dictionary containing current metrics
 
@@ -179,14 +179,14 @@ def _run_op_command_with_retry(self, args, timeout)
 ```
 
 Run op CLI command with retry logic for transient errors.
-        
+
         Args:
             args: List of arguments to pass to op CLI
             timeout: Override default timeout in seconds
-            
+
         Returns:
             Parsed JSON output from the command
-            
+
         Raises:
             SecretsManagerError: For various error conditions
 
@@ -197,9 +197,9 @@ def _should_retry(self, exception)
 ```
 
 Determine if an operation should be retried based on the exception.
-        
+
         Args:
             exception: The exception that occurred
-            
+
         Returns:
             True if the operation should be retried, False otherwise
