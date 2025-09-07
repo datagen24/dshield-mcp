@@ -64,6 +64,22 @@ def _confirm_key_generation(self)
 
 Confirm key generation and send the message.
 
+#### _clear_plaintext_key
+
+```python
+def _clear_plaintext_key(self)
+```
+
+Clear the plaintext key from memory for security.
+
+#### on_dismiss
+
+```python
+def on_dismiss(self)
+```
+
+Handle screen dismissal - clear plaintext key.
+
 #### on_mount
 
 ```python

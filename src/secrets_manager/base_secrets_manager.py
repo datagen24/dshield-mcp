@@ -21,62 +21,68 @@ from typing import Any
 
 class SecretsManagerError(Exception):
     """Base exception for all secrets manager operations.
-    
+
     This is the root exception class for all secrets management errors.
     All specific error types inherit from this class.
     """
+
     pass
 
 
 class SecretNotFoundError(SecretsManagerError):
     """Raised when a requested secret is not found.
-    
+
     This exception is raised when attempting to retrieve, update, or delete
     a secret that doesn't exist in the backend.
     """
+
     pass
 
 
 class PermissionDeniedError(SecretsManagerError):
     """Raised when access to a secret is denied due to insufficient permissions.
-    
+
     This exception is raised when the current user or service account
     doesn't have the necessary permissions to perform the requested operation.
     """
+
     pass
 
 
 class RateLimitedError(SecretsManagerError):
     """Raised when the secrets manager backend is rate limiting requests.
-    
+
     This exception is raised when the backend service is throttling requests
     due to rate limits or quota restrictions.
     """
+
     pass
 
 
 class BackendUnavailableError(SecretsManagerError):
     """Raised when the secrets manager backend is unavailable.
-    
+
     This exception is raised when the backend service is down, unreachable,
     or experiencing issues that prevent normal operation.
     """
+
     pass
 
 
 class InvalidReferenceError(SecretsManagerError):
     """Raised when a secret reference URI is invalid or malformed.
-    
+
     This exception is raised when attempting to resolve a reference URI
     that doesn't match the expected format or contains invalid components.
     """
+
     pass
 
 
 @dataclass
 class SecretMetadata:
     """Metadata for a secret including tags, lifecycle, and audit information.
-    
+
     Attributes:
         name: Human-readable name for the secret
         description: Optional description of the secret's purpose
@@ -90,6 +96,7 @@ class SecretMetadata:
         updated_by: User or service that last updated the secret
         custom_attributes: Additional custom attributes specific to the backend
     """
+
     name: str
     description: str | None = None
     tags: set[str] = field(default_factory=set)
@@ -130,10 +137,10 @@ class APIKey:
 @dataclass
 class SecretReference:
     """Represents a reference to a secret in a specific backend.
-    
+
     This class handles the resolution and validation of secret reference URIs
     like 'op://vault/item/field' for 1Password or 'vault://path/to/secret' for Vault.
-    
+
     Attributes:
         uri: The full reference URI
         backend: The backend type (e.g., 'op', 'vault', 'aws')
@@ -142,20 +149,21 @@ class SecretReference:
         field: The specific field within the item (optional)
         is_valid: Whether the reference URI is valid
     """
+
     uri: str
     backend: str | None = None
     vault: str | None = None
     item: str | None = None
     field: str | None = None
     is_valid: bool = False
-    
+
     def __post_init__(self) -> None:
         """Parse and validate the reference URI after initialization."""
         self._parse_uri()
-    
+
     def _parse_uri(self) -> None:
         """Parse the reference URI and extract components.
-        
+
         Supports formats like:
         - op://vault/item/field
         - vault://path/to/secret
@@ -164,7 +172,7 @@ class SecretReference:
         if not self.uri:
             self.is_valid = False
             return
-            
+
         # Pattern for op://vault/item/field format
         op_pattern = r'^op://([^/]+)/([^/]+)(?:/(.+))?$'
         op_match = re.match(op_pattern, self.uri)
@@ -175,7 +183,7 @@ class SecretReference:
             self.field = op_match.group(3)
             self.is_valid = True
             return
-            
+
         # Pattern for vault://path/to/secret format
         vault_pattern = r'^vault://([^/]+(?:/.*)?)$'
         vault_match = re.match(vault_pattern, self.uri)
@@ -184,17 +192,17 @@ class SecretReference:
             self.item = vault_match.group(1)
             self.is_valid = True
             return
-            
+
         # Pattern for aws://region/secret-name format
         aws_pattern = r'^aws://([^/]+)/(.+)$'
         aws_match = re.match(aws_pattern, self.uri)
         if aws_match:
             self.backend = 'aws'
             self.vault = aws_match.group(1)  # region
-            self.item = aws_match.group(2)   # secret name
+            self.item = aws_match.group(2)  # secret name
             self.is_valid = True
             return
-            
+
         self.is_valid = False
 
 
@@ -203,7 +211,7 @@ class BaseSecretsManager(ABC):
 
     This class defines the interface that all secrets management providers
     must implement, ensuring consistent behavior across different backends.
-    
+
     The class provides:
     - Abstract methods for CRUD operations on secrets
     - Error handling with proper exception translation
@@ -214,7 +222,7 @@ class BaseSecretsManager(ABC):
 
     def __init__(self, enable_caching: bool = True, cache_ttl_seconds: int = 300) -> None:
         """Initialize the base secrets manager.
-        
+
         Args:
             enable_caching: Whether to enable in-memory caching
             cache_ttl_seconds: Time-to-live for cached secrets in seconds
@@ -225,10 +233,10 @@ class BaseSecretsManager(ABC):
 
     def _normalize_cache_key(self, key: str) -> str:
         """Normalize a cache key for consistent storage and retrieval.
-        
+
         Args:
             key: The original key to normalize
-            
+
         Returns:
             Normalized cache key
         """
@@ -236,10 +244,10 @@ class BaseSecretsManager(ABC):
 
     def _is_cache_valid(self, cache_entry: tuple[Any, datetime]) -> bool:
         """Check if a cache entry is still valid based on TTL.
-        
+
         Args:
             cache_entry: Tuple of (value, timestamp)
-            
+
         Returns:
             True if the cache entry is still valid, False otherwise
         """
@@ -251,16 +259,16 @@ class BaseSecretsManager(ABC):
 
     def _get_from_cache(self, key: str) -> Any | None:
         """Retrieve a value from the cache if valid.
-        
+
         Args:
             key: The cache key to retrieve
-            
+
         Returns:
             Cached value if valid, None otherwise
         """
         if not self._enable_caching:
             return None
-            
+
         normalized_key = self._normalize_cache_key(key)
         if normalized_key in self._cache:
             cache_entry = self._cache[normalized_key]
@@ -273,26 +281,26 @@ class BaseSecretsManager(ABC):
 
     def _set_cache(self, key: str, value: Any) -> None:
         """Store a value in the cache.
-        
+
         Args:
             key: The cache key
             value: The value to cache
         """
         if not self._enable_caching:
             return
-            
+
         normalized_key = self._normalize_cache_key(key)
         self._cache[normalized_key] = (value, datetime.now(UTC))
 
     def _clear_cache(self, key: str | None = None) -> None:
         """Clear cache entries.
-        
+
         Args:
             key: Specific key to clear, or None to clear all
         """
         if not self._enable_caching:
             return
-            
+
         if key is None:
             self._cache.clear()
         else:
@@ -301,13 +309,13 @@ class BaseSecretsManager(ABC):
 
     def validate_reference(self, reference_uri: str) -> SecretReference:
         """Validate and parse a secret reference URI.
-        
+
         Args:
             reference_uri: The reference URI to validate
-            
+
         Returns:
             SecretReference object with parsed components
-            
+
         Raises:
             InvalidReferenceError: If the reference URI is invalid
         """
@@ -424,16 +432,16 @@ class BaseSecretsManager(ABC):
 
     async def get_secret_by_reference(self, reference_uri: str) -> str | None:
         """Retrieve a secret value by reference URI.
-        
+
         This is a convenience method that validates the reference URI and
         delegates to the backend-specific implementation.
-        
+
         Args:
             reference_uri: The reference URI to resolve
-            
+
         Returns:
             The secret value if found, None otherwise
-            
+
         Raises:
             InvalidReferenceError: If the reference URI is invalid
             SecretNotFoundError: If the secret is not found
@@ -448,13 +456,13 @@ class BaseSecretsManager(ABC):
     @abstractmethod
     async def _get_secret_by_reference_impl(self, reference: SecretReference) -> str | None:
         """Backend-specific implementation for retrieving secrets by reference.
-        
+
         Args:
             reference: The parsed secret reference
-            
+
         Returns:
             The secret value if found, None otherwise
-            
+
         Raises:
             SecretNotFoundError: If the secret is not found
             PermissionDeniedError: If insufficient permissions
@@ -466,7 +474,7 @@ class BaseSecretsManager(ABC):
 
     def clear_cache(self) -> None:
         """Clear all cached secrets.
-        
+
         This method can be called to force a refresh of all cached data.
         """
         self._clear_cache()

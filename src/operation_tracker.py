@@ -12,7 +12,9 @@ class OperationTracker:
         self.active_operations: dict[str, asyncio.Task[Any]] = {}
         self.operation_timeouts: dict[str, int] = {}
 
-    def register_operation(self, operation_id: str, task: asyncio.Task[Any], timeout: int = 30) -> None:
+    def register_operation(
+        self, operation_id: str, task: asyncio.Task[Any], timeout: int = 30
+    ) -> None:
         """Register an active operation for tracking.
 
         Args:

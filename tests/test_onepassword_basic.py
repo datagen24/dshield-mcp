@@ -45,7 +45,7 @@ class TestOnePasswordCLIManagerBasic:
 
         with patch.object(OnePasswordCLIManager, '_verify_op_cli'):
             manager = OnePasswordCLIManager(vault="test_vault")
-            
+
             with pytest.raises(RuntimeError, match="op command failed"):
                 manager._run_op_command(['item', 'get', 'test'])
 
@@ -60,6 +60,6 @@ class TestOnePasswordCLIManagerBasic:
 
         with patch.object(OnePasswordCLIManager, '_verify_op_cli'):
             manager = OnePasswordCLIManager(vault="test_vault")
-            
+
             with pytest.raises(RuntimeError, match="Failed to parse op CLI JSON output"):
                 manager._run_op_command(['item', 'get', 'test'])

@@ -312,52 +312,55 @@ class ServerPanel(Container):
     def _start_server(self) -> None:
         """Start the server."""
         self.logger.info("Starting server")
-        
+
         # Disable buttons during operation
         start_btn = self.query_one("#start-server-btn", Button)
         stop_btn = self.query_one("#stop-server-btn", Button)
         restart_btn = self.query_one("#restart-server-btn", Button)
-        
+
         start_btn.disabled = True
         stop_btn.disabled = True
         restart_btn.disabled = True
-        
+
         # Start server asynchronously
         import asyncio
+
         asyncio.create_task(self._async_start_server())
 
     def _stop_server(self) -> None:
         """Stop the server."""
         self.logger.info("Stopping server")
-        
+
         # Disable buttons during operation
         start_btn = self.query_one("#start-server-btn", Button)
         stop_btn = self.query_one("#stop-server-btn", Button)
         restart_btn = self.query_one("#restart-server-btn", Button)
-        
+
         start_btn.disabled = True
         stop_btn.disabled = True
         restart_btn.disabled = True
-        
+
         # Stop server asynchronously
         import asyncio
+
         asyncio.create_task(self._async_stop_server())
 
     def _restart_server(self) -> None:
         """Restart the server."""
         self.logger.info("Restarting server")
-        
+
         # Disable buttons during operation
         start_btn = self.query_one("#start-server-btn", Button)
         stop_btn = self.query_one("#stop-server-btn", Button)
         restart_btn = self.query_one("#restart-server-btn", Button)
-        
+
         start_btn.disabled = True
         stop_btn.disabled = True
         restart_btn.disabled = True
-        
+
         # Restart server asynchronously
         import asyncio
+
         asyncio.create_task(self._async_restart_server())
 
     async def _async_start_server(self) -> None:

@@ -98,10 +98,37 @@ class APIKeyPanel(Container):
     async def _on_api_key_generated(self, key_config: dict[str, Any]) -> None:
         """Handle API key generation completion."""
         try:
-            # This would typically call the connection manager to generate the key
-            # For now, we'll just refresh the list
+            # Get the connection manager from the TUI app
+            tui_app = self.app
+            if hasattr(tui_app, 'tcp_server') and tui_app.tcp_server:
+                connection_manager = getattr(tui_app.tcp_server, "connection_manager", None)
+                if connection_manager:
+                    # Generate the API key using the connection manager
+                    api_key = await connection_manager.generate_api_key(
+                        name=key_config["name"],
+                        permissions=key_config["permissions"],
+                        expiration_days=key_config["expiration_days"],
+                        rate_limit=key_config["rate_limit"],
+                    )
+
+                    if api_key:
+                        self.logger.info(
+                            "Generated new API key", key_id=api_key.key_id, name=key_config["name"]
+                        )
+                        self.notify("API key generated successfully", severity="information")
+                    else:
+                        self.notify("Failed to generate API key", severity="error")
+                        return
+                else:
+                    self.notify("Connection manager not available", severity="error")
+                    return
+            else:
+                self.notify("Server not running", severity="error")
+                return
+
+            # Refresh the API keys list
             self.refresh_api_keys()
-            self.notify("API key generated successfully", severity="information")
+
         except Exception as e:
             self.logger.error("Error handling API key generation", error=str(e))
             self.notify(f"Error generating API key: {e}", severity="error")
@@ -137,26 +164,41 @@ Status: {'Active' if not key_info['is_expired'] else 'Expired'}
     def refresh_api_keys(self) -> None:
         """Refresh the API keys list."""
         try:
-            # This would typically call the connection manager to get the keys
-            # For now, we'll use mock data
-            self.api_keys = [
-                {
-                    "key_id": "key_12345678",
-                    "name": "Development Key",
-                    "created_at": "2024-01-15T10:30:00Z",
-                    "expires_at": "2024-04-15T10:30:00Z",
-                    "permissions": {"read_tools": True, "write_back": False, "admin_access": False},
-                    "is_expired": False,
-                },
-                {
-                    "key_id": "key_87654321",
-                    "name": "Production Key",
-                    "created_at": "2024-01-10T14:20:00Z",
-                    "expires_at": None,
-                    "permissions": {"read_tools": True, "write_back": True, "admin_access": True},
-                    "is_expired": False,
-                },
-            ]
+            # Get the connection manager from the TUI app
+            tui_app = self.app
+            if hasattr(tui_app, 'tcp_server') and tui_app.tcp_server:
+                connection_manager = getattr(tui_app.tcp_server, "connection_manager", None)
+                if connection_manager:
+                    # Load API keys from the connection manager
+                    api_keys_dict = connection_manager.api_keys
+                    self.api_keys = []
+
+                    for _key_value, api_key in api_keys_dict.items():
+                        # Check if key is expired
+                        is_expired = False
+                        if api_key.expires_at:
+                            from datetime import UTC, datetime
+
+                            is_expired = api_key.expires_at < datetime.now(UTC)
+
+                        self.api_keys.append(
+                            {
+                                "key_id": api_key.key_id,
+                                "name": api_key.name,
+                                "created_at": api_key.created_at.isoformat(),
+                                "expires_at": api_key.expires_at.isoformat()
+                                if api_key.expires_at
+                                else None,
+                                "permissions": api_key.permissions,
+                                "is_expired": is_expired,
+                            }
+                        )
+                else:
+                    # Fallback to empty list if no connection manager
+                    self.api_keys = []
+            else:
+                # Fallback to empty list if no server
+                self.api_keys = []
 
             self._update_table()
 

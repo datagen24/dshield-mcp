@@ -123,8 +123,7 @@ class TestOnePasswordCLIManager:
         """Test session discovery with existing OP_SESSION_* environment variable."""
         with patch.dict(os.environ, {"OP_SESSION_test": "test-session-token"}):
             with patch.object(
-                manager, '_run_op_command_sync', 
-                return_value={"expires_at": "2024-12-31T23:59:59Z"}
+                manager, '_run_op_command_sync', return_value={"expires_at": "2024-12-31T23:59:59Z"}
             ):
                 manager._discover_session()
                 assert manager._session_token == "test-session-token"
@@ -267,28 +266,42 @@ class TestOnePasswordCLIManager:
         assert manager._should_retry(error) is False
 
     @pytest.mark.asyncio
-    async def test_store_api_key_success(self, manager: OnePasswordCLIManager, sample_api_key: APIKey) -> None:
+    async def test_store_api_key_success(
+        self, manager: OnePasswordCLIManager, sample_api_key: APIKey
+    ) -> None:
         """Test successful API key storage."""
-        with patch.object(manager, '_run_op_command_with_retry', return_value={"id": "test-item-id"}):
+        with patch.object(
+            manager, '_run_op_command_with_retry', return_value={"id": "test-item-id"}
+        ):
             result = await manager.store_api_key(sample_api_key)
             assert result is True
 
     @pytest.mark.asyncio
-    async def test_store_api_key_failure(self, manager: OnePasswordCLIManager, sample_api_key: APIKey) -> None:
+    async def test_store_api_key_failure(
+        self, manager: OnePasswordCLIManager, sample_api_key: APIKey
+    ) -> None:
         """Test failed API key storage."""
         with patch.object(manager, '_run_op_command_with_retry', return_value=None):
             result = await manager.store_api_key(sample_api_key)
             assert result is False
 
     @pytest.mark.asyncio
-    async def test_store_api_key_permission_denied(self, manager: OnePasswordCLIManager, sample_api_key: APIKey) -> None:
+    async def test_store_api_key_permission_denied(
+        self, manager: OnePasswordCLIManager, sample_api_key: APIKey
+    ) -> None:
         """Test API key storage with permission denied error."""
-        with patch.object(manager, '_run_op_command_with_retry', side_effect=PermissionDeniedError("Permission denied")):
+        with patch.object(
+            manager,
+            '_run_op_command_with_retry',
+            side_effect=PermissionDeniedError("Permission denied"),
+        ):
             with pytest.raises(PermissionDeniedError):
                 await manager.store_api_key(sample_api_key)
 
     @pytest.mark.asyncio
-    async def test_retrieve_api_key_success(self, manager: OnePasswordCLIManager, sample_op_item: dict) -> None:
+    async def test_retrieve_api_key_success(
+        self, manager: OnePasswordCLIManager, sample_op_item: dict
+    ) -> None:
         """Test successful API key retrieval."""
         with patch.object(manager, '_run_op_command_with_retry', return_value=sample_op_item):
             result = await manager.retrieve_api_key("test-key-123")
@@ -306,24 +319,34 @@ class TestOnePasswordCLIManager:
     @pytest.mark.asyncio
     async def test_retrieve_api_key_permission_denied(self, manager: OnePasswordCLIManager) -> None:
         """Test API key retrieval with permission denied error."""
-        with patch.object(manager, '_run_op_command_with_retry', side_effect=PermissionDeniedError("Permission denied")):
+        with patch.object(
+            manager,
+            '_run_op_command_with_retry',
+            side_effect=PermissionDeniedError("Permission denied"),
+        ):
             with pytest.raises(PermissionDeniedError):
                 await manager.retrieve_api_key("test-key-123")
 
     @pytest.mark.asyncio
-    async def test_list_api_keys_success(self, manager: OnePasswordCLIManager, sample_op_item: dict) -> None:
+    async def test_list_api_keys_success(
+        self, manager: OnePasswordCLIManager, sample_op_item: dict
+    ) -> None:
         """Test successful API key listing."""
         items = [{"title": "dshield-mcp-key-test-key-123", "id": "test-item-id"}]
         with patch.object(manager, '_run_op_command_with_retry', return_value=items):
-            with patch.object(manager, 'retrieve_api_key', return_value=APIKey(
-                key_id="test-key-123",
-                key_value="test-value",
-                name="Test Key",
-                created_at=datetime.now(UTC),
-                expires_at=None,
-                permissions={},
-                metadata={},
-            )):
+            with patch.object(
+                manager,
+                'retrieve_api_key',
+                return_value=APIKey(
+                    key_id="test-key-123",
+                    key_value="test-value",
+                    name="Test Key",
+                    created_at=datetime.now(UTC),
+                    expires_at=None,
+                    permissions={},
+                    metadata={},
+                ),
+            ):
                 result = await manager.list_api_keys()
                 assert len(result) == 1
                 assert result[0].key_id == "test-key-123"
@@ -331,14 +354,20 @@ class TestOnePasswordCLIManager:
     @pytest.mark.asyncio
     async def test_list_api_keys_permission_denied(self, manager: OnePasswordCLIManager) -> None:
         """Test API key listing with permission denied error."""
-        with patch.object(manager, '_run_op_command_with_retry', side_effect=PermissionDeniedError("Permission denied")):
+        with patch.object(
+            manager,
+            '_run_op_command_with_retry',
+            side_effect=PermissionDeniedError("Permission denied"),
+        ):
             with pytest.raises(PermissionDeniedError):
                 await manager.list_api_keys()
 
     @pytest.mark.asyncio
     async def test_delete_api_key_success(self, manager: OnePasswordCLIManager) -> None:
         """Test successful API key deletion."""
-        with patch.object(manager, '_run_op_command_with_retry', return_value={"id": "deleted-item-id"}):
+        with patch.object(
+            manager, '_run_op_command_with_retry', return_value={"id": "deleted-item-id"}
+        ):
             result = await manager.delete_api_key("test-key-123")
             assert result is True
 
@@ -352,12 +381,16 @@ class TestOnePasswordCLIManager:
     @pytest.mark.asyncio
     async def test_delete_api_key_not_found(self, manager: OnePasswordCLIManager) -> None:
         """Test API key deletion when not found."""
-        with patch.object(manager, '_run_op_command_with_retry', side_effect=SecretNotFoundError("Not found")):
+        with patch.object(
+            manager, '_run_op_command_with_retry', side_effect=SecretNotFoundError("Not found")
+        ):
             with pytest.raises(SecretNotFoundError):
                 await manager.delete_api_key("nonexistent-key")
 
     @pytest.mark.asyncio
-    async def test_update_api_key_success(self, manager: OnePasswordCLIManager, sample_api_key: APIKey) -> None:
+    async def test_update_api_key_success(
+        self, manager: OnePasswordCLIManager, sample_api_key: APIKey
+    ) -> None:
         """Test successful API key update."""
         with patch.object(manager, 'delete_api_key', return_value=True):
             with patch.object(manager, 'store_api_key', return_value=True):
@@ -365,7 +398,9 @@ class TestOnePasswordCLIManager:
                 assert result is True
 
     @pytest.mark.asyncio
-    async def test_update_api_key_delete_fails(self, manager: OnePasswordCLIManager, sample_api_key: APIKey) -> None:
+    async def test_update_api_key_delete_fails(
+        self, manager: OnePasswordCLIManager, sample_api_key: APIKey
+    ) -> None:
         """Test API key update when delete fails."""
         with patch.object(manager, 'delete_api_key', side_effect=SecretNotFoundError("Not found")):
             with pytest.raises(SecretNotFoundError):
@@ -381,7 +416,11 @@ class TestOnePasswordCLIManager:
     @pytest.mark.asyncio
     async def test_health_check_failure(self, manager: OnePasswordCLIManager) -> None:
         """Test failed health check."""
-        with patch.object(manager, '_run_op_command_with_retry', side_effect=BackendUnavailableError("Unavailable")):
+        with patch.object(
+            manager,
+            '_run_op_command_with_retry',
+            side_effect=BackendUnavailableError("Unavailable"),
+        ):
             with pytest.raises(BackendUnavailableError):
                 await manager.health_check()
 
@@ -394,7 +433,9 @@ class TestOnePasswordCLIManager:
             assert result == "secret-value"
 
     @pytest.mark.asyncio
-    async def test_get_secret_by_reference_unsupported_backend(self, manager: OnePasswordCLIManager) -> None:
+    async def test_get_secret_by_reference_unsupported_backend(
+        self, manager: OnePasswordCLIManager
+    ) -> None:
         """Test secret retrieval with unsupported backend."""
         reference = SecretReference(uri="vault://test-path")
         with pytest.raises(InvalidReferenceError, match="Unsupported backend"):
@@ -412,7 +453,9 @@ class TestOnePasswordCLIManager:
     async def test_get_secret_by_reference_not_found(self, manager: OnePasswordCLIManager) -> None:
         """Test secret retrieval when not found."""
         reference = SecretReference(uri="op://test-vault/test-item/password")
-        with patch.object(manager, '_run_op_command_with_retry', side_effect=SecretNotFoundError("Not found")):
+        with patch.object(
+            manager, '_run_op_command_with_retry', side_effect=SecretNotFoundError("Not found")
+        ):
             with pytest.raises(SecretNotFoundError):
                 await manager._get_secret_by_reference_impl(reference)
 
@@ -464,35 +507,46 @@ class TestOnePasswordCLIManager:
             with pytest.raises(SecretsManagerError, match="Failed to parse op CLI JSON output"):
                 manager._run_op_command_sync(["item", "list"])
 
-    def test_run_op_command_with_retry_success_first_attempt(self, manager: OnePasswordCLIManager) -> None:
+    def test_run_op_command_with_retry_success_first_attempt(
+        self, manager: OnePasswordCLIManager
+    ) -> None:
         """Test retry logic with success on first attempt."""
-        with patch.object(manager, '_run_op_command_sync', return_value={"success": True}) as mock_sync:
+        with patch.object(
+            manager, '_run_op_command_sync', return_value={"success": True}
+        ) as mock_sync:
             result = manager._run_op_command_with_retry(["item", "list"])
             assert result == {"success": True}
             assert mock_sync.call_count == 1
 
-    def test_run_op_command_with_retry_success_after_retry(self, manager: OnePasswordCLIManager) -> None:
+    def test_run_op_command_with_retry_success_after_retry(
+        self, manager: OnePasswordCLIManager
+    ) -> None:
         """Test retry logic with success after retry."""
         with patch.object(manager, '_run_op_command_sync') as mock_sync:
-            mock_sync.side_effect = [
-                RateLimitedError("Rate limited"),
-                {"success": True}
-            ]
+            mock_sync.side_effect = [RateLimitedError("Rate limited"), {"success": True}]
             with patch('time.sleep'):  # Mock sleep to speed up test
                 result = manager._run_op_command_with_retry(["item", "list"])
                 assert result == {"success": True}
                 assert mock_sync.call_count == 2
 
-    def test_run_op_command_with_retry_max_retries_exceeded(self, manager: OnePasswordCLIManager) -> None:
+    def test_run_op_command_with_retry_max_retries_exceeded(
+        self, manager: OnePasswordCLIManager
+    ) -> None:
         """Test retry logic when max retries exceeded."""
-        with patch.object(manager, '_run_op_command_sync', side_effect=RateLimitedError("Rate limited")):
+        with patch.object(
+            manager, '_run_op_command_sync', side_effect=RateLimitedError("Rate limited")
+        ):
             with patch('time.sleep'):  # Mock sleep to speed up test
                 with pytest.raises(RateLimitedError, match="Rate limited"):
                     manager._run_op_command_with_retry(["item", "list"])
 
-    def test_run_op_command_with_retry_non_retryable_error(self, manager: OnePasswordCLIManager) -> None:
+    def test_run_op_command_with_retry_non_retryable_error(
+        self, manager: OnePasswordCLIManager
+    ) -> None:
         """Test retry logic with non-retryable error."""
-        with patch.object(manager, '_run_op_command_sync', side_effect=SecretNotFoundError("Not found")):
+        with patch.object(
+            manager, '_run_op_command_sync', side_effect=SecretNotFoundError("Not found")
+        ):
             with pytest.raises(SecretNotFoundError):
                 manager._run_op_command_with_retry(["item", "get", "nonexistent"])
 
@@ -518,7 +572,9 @@ class TestOnePasswordCLIManager:
 
     def test_verify_op_cli_timeout(self, manager: OnePasswordCLIManager) -> None:
         """Test op CLI verification timeout."""
-        with patch.object(manager, '_run_op_command_sync', side_effect=subprocess.TimeoutExpired("op", 10)):
+        with patch.object(
+            manager, '_run_op_command_sync', side_effect=subprocess.TimeoutExpired("op", 10)
+        ):
             with pytest.raises(BackendUnavailableError, match="timed out"):
                 manager._verify_op_cli()
 

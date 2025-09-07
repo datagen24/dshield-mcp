@@ -150,24 +150,29 @@ class APIKeyGenerationScreen(ModalScreen):
             expiration_select = self.query_one("#expiration", Select)
             expiration_days = expiration_select.value
 
-            # Generate the API key using the generator
+            # Generate the API key using the secure generator
             from ...api_key_generator import APIKeyGenerator
 
             generator = APIKeyGenerator()
-            key_data = generator.generate_key_with_metadata(
+            key_data = generator.generate_api_key(
                 name=key_name,
                 permissions=permissions,
                 expiration_days=expiration_days,
                 rate_limit=rate_limit,
             )
 
-            # Store the generated key and config
-            self.generated_key = key_data["key_value"]
+            # Store the generated key and config for one-time display
+            self.generated_key = key_data["plaintext_key"]
             self.key_config = {
+                "key_id": key_data["key_id"],
                 "name": key_name,
                 "permissions": permissions,
                 "expiration_days": expiration_days,
                 "rate_limit": rate_limit,
+                "hashed_key": key_data["hashed_key"],
+                "salt": key_data["salt"],
+                "algorithm": key_data["algorithm"],
+                "metadata": key_data["metadata"],
             }
 
             # Switch to key display mode
@@ -184,12 +189,29 @@ class APIKeyGenerationScreen(ModalScreen):
             if self.key_config and self.generated_key:
                 # Send message with configuration
                 self.post_message(APIKeyGenerated(self.key_config))
+                # Clear plaintext key immediately after sending message
+                self._clear_plaintext_key()
                 self.dismiss()
             else:
                 self.notify("No key to confirm", severity="error")
         except Exception as e:
             self.logger.error("Error confirming key generation", error=str(e))
             self.notify(f"Error confirming key generation: {e}", severity="error")
+
+    def _clear_plaintext_key(self) -> None:
+        """Clear the plaintext key from memory for security."""
+        if self.generated_key:
+            # Overwrite the plaintext key with random data
+            import secrets
+
+            self.generated_key = secrets.token_hex(len(self.generated_key))
+            self.generated_key = None
+            self.logger.debug("Cleared plaintext API key from memory")
+
+    def on_dismiss(self) -> None:
+        """Handle screen dismissal - clear plaintext key."""
+        self._clear_plaintext_key()
+        # Don't call super().on_dismiss() as ModalScreen doesn't have this method
 
     def on_mount(self) -> None:
         """Handle screen mount event."""

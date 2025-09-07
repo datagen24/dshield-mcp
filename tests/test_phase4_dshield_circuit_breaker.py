@@ -440,9 +440,7 @@ class TestDShieldCircuitBreakerRecovery:
         # Simulate time passing (recovery timeout)
         from datetime import datetime, timedelta
 
-        dshield_client.circuit_breaker.last_failure_time = datetime.now(UTC) - timedelta(
-            seconds=70
-        )
+        dshield_client.circuit_breaker.last_failure_time = datetime.now(UTC) - timedelta(seconds=70)
 
         # Check if circuit breaker allows execution (should set to half-open)
         result = dshield_client._check_circuit_breaker("test_operation")

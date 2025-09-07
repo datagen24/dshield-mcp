@@ -76,7 +76,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
         self.max_retries = max_retries
         self.retry_delay_seconds = retry_delay_seconds
         self.enable_metrics = enable_metrics
-        
+
         self.logger = logging.getLogger(__name__)
         self._metrics = {
             "successful_operations": 0,
@@ -84,26 +84,26 @@ class OnePasswordCLIManager(BaseSecretsManager):
             "total_latency_ms": 0.0,
             "retry_attempts": 0,
         }
-        
+
         self._session_token: str | None = None
         self._session_expires_at: datetime | None = None
-        
+
         self._discover_session()
         self._verify_op_cli()
 
     def _discover_session(self) -> None:
         """Discover existing 1Password session from environment variables.
-        
+
         Looks for OP_SESSION_* environment variables and extracts session tokens.
         """
         session_vars = {k: v for k, v in os.environ.items() if k.startswith("OP_SESSION_")}
-        
+
         if session_vars:
             # Use the first available session
             session_var, session_token = next(iter(session_vars.items()))
             self._session_token = session_token
             self.logger.debug(f"Discovered session from {session_var}")
-            
+
             # Try to get session expiry info
             try:
                 result = self._run_op_command_sync(["whoami"], timeout=5)
@@ -119,16 +119,16 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     def _is_session_valid(self) -> bool:
         """Check if the current session is still valid.
-        
+
         Returns:
             True if session is valid, False otherwise
         """
         if not self._session_token:
             return False
-            
+
         if self._session_expires_at and datetime.now(UTC) >= self._session_expires_at:
             return False
-            
+
         return True
 
     def _verify_op_cli(self) -> None:
@@ -176,7 +176,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
         """
         timeout_seconds = timeout or self.timeout_seconds
         cmd = ["op"] + args + ["--format", "json"]
-        
+
         # Add session token if available
         if self._session_token:
             cmd.extend(["--session", self._session_token])
@@ -184,7 +184,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
         start_time = time.time()
         latency_ms = 0.0
         result = None
-        
+
         try:
             # Log command with redacted sensitive information
             safe_cmd = self._redact_sensitive_args(cmd)
@@ -200,11 +200,11 @@ class OnePasswordCLIManager(BaseSecretsManager):
             )
 
             latency_ms = (time.time() - start_time) * 1000
-            
+
             if result.returncode != 0:
                 error_msg = result.stderr.strip() or "Unknown op CLI error"
                 self.logger.error(f"op command failed (exit {result.returncode}): {error_msg}")
-                
+
                 # Map specific error conditions to appropriate exceptions
                 mapped_error = self._map_op_error(result.returncode, error_msg)
                 if mapped_error:
@@ -239,16 +239,16 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     def _redact_sensitive_args(self, cmd: list[str]) -> list[str]:
         """Redact sensitive information from command arguments for logging.
-        
+
         Args:
             cmd: Command arguments to redact
-            
+
         Returns:
             Command with sensitive information redacted
         """
         redacted = []
         skip_next = False
-        
+
         for i, arg in enumerate(cmd):
             if skip_next:
                 redacted.append("[REDACTED]")
@@ -260,21 +260,21 @@ class OnePasswordCLIManager(BaseSecretsManager):
                 redacted.append(arg.split("=")[0] + "=[REDACTED]")
             else:
                 redacted.append(arg)
-                
+
         return redacted
 
     def _map_op_error(self, return_code: int, error_msg: str) -> SecretsManagerError | None:
         """Map op CLI error codes and messages to appropriate SecretsManagerError subclasses.
-        
+
         Args:
             return_code: The exit code from the op command
             error_msg: The error message from stderr
-            
+
         Returns:
             Appropriate SecretsManagerError subclass or None for unmapped errors
         """
         error_msg_lower = error_msg.lower()
-        
+
         # Common 1Password CLI error patterns
         if return_code == 1:
             if "not found" in error_msg_lower or "no such" in error_msg_lower:
@@ -291,30 +291,32 @@ class OnePasswordCLIManager(BaseSecretsManager):
                 return SecretNotFoundError(f"Item not found: {error_msg}")
             elif "field not found" in error_msg_lower:
                 return SecretNotFoundError(f"Field not found: {error_msg}")
-        
+
         elif return_code == 2:
             # Usually indicates authentication issues
             return PermissionDeniedError(f"Authentication failed: {error_msg}")
-        
+
         elif return_code == 3:
             # Usually indicates network or service issues
             return BackendUnavailableError(f"Service unavailable: {error_msg}")
-        
+
         return None
 
     def _validate_op_output(self, output: Any, command_args: list[str]) -> None:
         """Validate op CLI output structure and content.
-        
+
         Args:
             output: The parsed JSON output from op CLI
             command_args: The command arguments that were executed
-            
+
         Raises:
             SecretsManagerError: If output validation fails
         """
         if not isinstance(output, (dict, list)):
-            raise SecretsManagerError(f"Invalid op CLI output format: expected dict or list, got {type(output)}")
-        
+            raise SecretsManagerError(
+                f"Invalid op CLI output format: expected dict or list, got {type(output)}"
+            )
+
         # Additional validation based on command type
         if "item" in command_args and "get" in command_args:
             if isinstance(output, dict) and "fields" not in output:
@@ -325,32 +327,31 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     def _update_metrics(self, latency_ms: float, success: bool) -> None:
         """Update internal metrics for monitoring.
-        
+
         Args:
             latency_ms: Operation latency in milliseconds
             success: Whether the operation was successful
         """
         if not self.enable_metrics:
             return
-            
+
         if success:
             self._metrics["successful_operations"] += 1
         else:
             self._metrics["failed_operations"] += 1
-            
+
         self._metrics["total_latency_ms"] += latency_ms
 
     def get_metrics(self) -> dict[str, Any]:
         """Get current metrics for monitoring.
-        
+
         Returns:
             Dictionary containing current metrics
         """
         metrics = self._metrics.copy()
         if metrics["successful_operations"] + metrics["failed_operations"] > 0:
-            metrics["average_latency_ms"] = (
-                metrics["total_latency_ms"] / 
-                (metrics["successful_operations"] + metrics["failed_operations"])
+            metrics["average_latency_ms"] = metrics["total_latency_ms"] / (
+                metrics["successful_operations"] + metrics["failed_operations"]
             )
         else:
             metrics["average_latency_ms"] = 0.0
@@ -367,37 +368,39 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     def _run_op_command_with_retry(self, args: list[str], timeout: int | None = None) -> Any:
         """Run op CLI command with retry logic for transient errors.
-        
+
         Args:
             args: List of arguments to pass to op CLI
             timeout: Override default timeout in seconds
-            
+
         Returns:
             Parsed JSON output from the command
-            
+
         Raises:
             SecretsManagerError: For various error conditions
         """
         last_exception = None
-        
+
         for attempt in range(self.max_retries + 1):
             try:
                 if attempt > 0:
                     # Check if we should retry based on the last exception
                     if not self._should_retry(last_exception):
                         raise last_exception
-                    
+
                     # Calculate exponential backoff delay
                     delay = self.retry_delay_seconds * (2 ** (attempt - 1))
-                    self.logger.debug(f"Retrying op command in {delay}s (attempt {attempt + 1}/{self.max_retries + 1})")
+                    self.logger.debug(
+                        f"Retrying op command in {delay}s (attempt {attempt + 1}/{self.max_retries + 1})"
+                    )
                     time.sleep(delay)
-                    
+
                     # Update retry metrics
                     if self.enable_metrics:
                         self._metrics["retry_attempts"] += 1
-                
+
                 return self._run_op_command_sync(args, timeout)
-                
+
             except (RateLimitedError, BackendUnavailableError) as e:
                 last_exception = e
                 if attempt == self.max_retries:
@@ -405,27 +408,27 @@ class OnePasswordCLIManager(BaseSecretsManager):
                     raise
                 else:
                     self.logger.warning(f"Transient error on attempt {attempt + 1}: {e}")
-                    
+
             except (SecretNotFoundError, PermissionDeniedError, InvalidReferenceError):
                 # These errors are not transient, don't retry
                 raise
-                
+
             except SecretsManagerError as e:
                 last_exception = e
                 if attempt == self.max_retries:
                     raise
                 else:
                     self.logger.warning(f"Error on attempt {attempt + 1}: {e}")
-        
+
         # This should never be reached, but just in case
         raise last_exception or SecretsManagerError("Unknown error in retry logic")
 
     def _should_retry(self, exception: Exception) -> bool:
         """Determine if an operation should be retried based on the exception.
-        
+
         Args:
             exception: The exception that occurred
-            
+
         Returns:
             True if the operation should be retried, False otherwise
         """
@@ -573,7 +576,13 @@ class OnePasswordCLIManager(BaseSecretsManager):
                 metadata=metadata,
             )
 
-        except (SecretNotFoundError, PermissionDeniedError, BackendUnavailableError, RateLimitedError, SecretsManagerError):
+        except (
+            SecretNotFoundError,
+            PermissionDeniedError,
+            BackendUnavailableError,
+            RateLimitedError,
+            SecretsManagerError,
+        ):
             # Re-raise specific exceptions
             raise
         except Exception as e:
@@ -618,13 +627,20 @@ class OnePasswordCLIManager(BaseSecretsManager):
                             api_keys.append(api_key)
                     except SecretNotFoundError:
                         # Skip items that can't be retrieved
-                        self.logger.warning(f"Skipping API key {key_id} - not found during retrieval")
+                        self.logger.warning(
+                            f"Skipping API key {key_id} - not found during retrieval"
+                        )
                         continue
 
             self.logger.info(f"Retrieved {len(api_keys)} API keys from 1Password")
             return api_keys
 
-        except (PermissionDeniedError, BackendUnavailableError, RateLimitedError, SecretsManagerError):
+        except (
+            PermissionDeniedError,
+            BackendUnavailableError,
+            RateLimitedError,
+            SecretsManagerError,
+        ):
             # Re-raise specific exceptions
             raise
         except Exception as e:
@@ -665,7 +681,12 @@ class OnePasswordCLIManager(BaseSecretsManager):
             self.logger.error(f"Failed to delete API key: {key_id}")
             return False
 
-        except (SecretNotFoundError, PermissionDeniedError, BackendUnavailableError, SecretsManagerError):
+        except (
+            SecretNotFoundError,
+            PermissionDeniedError,
+            BackendUnavailableError,
+            SecretsManagerError,
+        ):
             # Re-raise specific exceptions
             raise
         except Exception as e:
@@ -694,7 +715,12 @@ class OnePasswordCLIManager(BaseSecretsManager):
             await self.delete_api_key(api_key.key_id)
             return await self.store_api_key(api_key)
 
-        except (SecretNotFoundError, PermissionDeniedError, BackendUnavailableError, SecretsManagerError):
+        except (
+            SecretNotFoundError,
+            PermissionDeniedError,
+            BackendUnavailableError,
+            SecretsManagerError,
+        ):
             # Re-raise specific exceptions
             raise
         except Exception as e:
@@ -727,46 +753,57 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
     async def _get_secret_by_reference_impl(self, reference: SecretReference) -> str | None:
         """Backend-specific implementation for retrieving secrets by reference.
-        
+
         Args:
             reference: The parsed secret reference
-            
+
         Returns:
             The secret value if found, None otherwise
-            
+
         Raises:
             SecretNotFoundError: If the secret is not found
             PermissionDeniedError: If insufficient permissions
             BackendUnavailableError: If the backend is unavailable
             RateLimitedError: If the request is rate limited
             SecretsManagerError: For other errors
-            
+
         """
         try:
             if reference.backend != 'op':
                 raise InvalidReferenceError(f"Unsupported backend: {reference.backend}")
-                
+
             if not reference.item:
                 raise InvalidReferenceError("No item specified in reference")
-                
+
             # Build the op CLI command to get the secret
             args = ["item", "get", reference.item, "--vault", reference.vault or self.vault]
-            
+
             if reference.field:
                 args.extend(["--field", reference.field])
             else:
                 # If no field specified, get the password field by default
                 args.extend(["--field", "password"])
-                
+
             result = self._run_op_command_with_retry(args)
-            
+
             if result:
                 return str(result.strip())
             return None
-            
-        except (SecretNotFoundError, PermissionDeniedError, BackendUnavailableError, RateLimitedError, InvalidReferenceError, SecretsManagerError):
+
+        except (
+            SecretNotFoundError,
+            PermissionDeniedError,
+            BackendUnavailableError,
+            RateLimitedError,
+            InvalidReferenceError,
+            SecretsManagerError,
+        ):
             # Re-raise specific exceptions
             raise
         except Exception as e:
-            self.logger.error(f"Unexpected error retrieving secret by reference {reference.uri}: {e}")
-            raise SecretsManagerError(f"Unexpected error retrieving secret by reference: {e}") from e
+            self.logger.error(
+                f"Unexpected error retrieving secret by reference {reference.uri}: {e}"
+            )
+            raise SecretsManagerError(
+                f"Unexpected error retrieving secret by reference: {e}"
+            ) from e

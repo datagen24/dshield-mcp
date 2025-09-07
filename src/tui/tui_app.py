@@ -342,9 +342,11 @@ class DShieldTUIApp(App):  # type: ignore
                     try:
                         api_keys = self.tcp_server.connection_manager.get_api_keys_info()
                     except Exception as e:
-                        self.logger.error("Error getting API keys from connection manager", error=str(e))
+                        self.logger.error(
+                            "Error getting API keys from connection manager", error=str(e)
+                        )
                         api_keys = []
-                
+
                 self.logger.debug(
                     "Updating connection panel", api_keys_count=len(api_keys), api_keys=api_keys
                 )
@@ -363,20 +365,22 @@ class DShieldTUIApp(App):  # type: ignore
                                 conn['rps'] = conn.get('requests_per_second', 0)
                             if 'violations' not in conn:
                                 conn['violations'] = conn.get('rate_limit_violations', 0)
-                            
+
                             # Ensure permissions are properly formatted
                             if 'permissions' not in conn and 'api_key_permissions' in conn:
                                 conn['permissions'] = conn['api_key_permissions']
                     except Exception as e:
-                        self.logger.error("Error getting connections from connection manager", error=str(e))
+                        self.logger.error(
+                            "Error getting connections from connection manager", error=str(e)
+                        )
                         connections = []
-                
+
                 connection_panel.update_connections(connections)
 
                 self.logger.debug(
-                    "Updated connection panel successfully", 
+                    "Updated connection panel successfully",
                     api_keys_count=len(api_keys),
-                    connections_count=len(connections)
+                    connections_count=len(connections),
                 )
 
         except Exception as e:
@@ -776,7 +780,9 @@ class DShieldTUIApp(App):  # type: ignore
 
     def on_api_key_revoke(self, message: Any) -> None:
         """Handle API key revocation message from connection panel."""
-        self.logger.info("Received API key revocation message", key_id=getattr(message, 'api_key_id', 'unknown'))
+        self.logger.info(
+            "Received API key revocation message", key_id=getattr(message, 'api_key_id', 'unknown')
+        )
         asyncio.create_task(self._revoke_api_key(getattr(message, 'api_key_id', None)))
 
     def on_connection_disconnect(self, message: Any) -> None:
@@ -816,12 +822,12 @@ class DShieldTUIApp(App):  # type: ignore
             # Find and disconnect the connection
             connections = connection_manager.get_connections_info()
             target_connection = None
-            
+
             for conn in connections:
                 if str(conn.get("client_address", "")) == str(client_address):
                     target_connection = conn
                     break
-            
+
             if not target_connection:
                 self.notify(f"Connection not found: {client_address}", severity="error")
                 return
@@ -831,15 +837,17 @@ class DShieldTUIApp(App):  # type: ignore
             # and calling a disconnect method on it
             self.logger.info("Disconnecting connection", client_address=client_address)
             self.notify(f"Disconnected connection: {client_address}", timeout=3)
-            
+
             # Add log entry
             self._add_log_entry("info", f"Disconnected connection: {client_address}")
-            
+
             # Update connection panel
             self._update_connection_panel()
 
         except Exception as e:
-            self.logger.error("Failed to disconnect connection", error=str(e), client_address=client_address)
+            self.logger.error(
+                "Failed to disconnect connection", error=str(e), client_address=client_address
+            )
             self.notify(f"Failed to disconnect connection: {e}", severity="error")
 
     async def _revoke_api_key(self, key_id: str | None) -> None:

@@ -111,52 +111,51 @@ def generate_markdown_documentation(project_root: Path, output_dir: Path) -> boo
     markdown_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        
         # Add src to Python path
         src_path = str(project_root / "src")
         if src_path not in sys.path:
             sys.path.insert(0, src_path)
-        
+
         # Generate documentation for all modules in src
         src_dir = project_root / "src"
         created_files = 0
-        
+
         # Find all Python modules
         for py_file in src_dir.rglob("*.py"):
             if py_file.name == "__init__.py":
                 continue
-                
+
             try:
                 # Read the source file
                 source_code = py_file.read_text(encoding="utf-8")
-                
+
                 # Parse the AST
                 tree = ast.parse(source_code)
-                
+
                 # Generate markdown content
                 markdown_content = generate_module_markdown(py_file, tree, source_code)
-                
+
                 # Create output file path
                 rel_path = py_file.relative_to(src_dir)
                 module_name = str(rel_path.with_suffix("")).replace("/", ".")
                 output_file = markdown_dir / f"{module_name}.md"
                 output_file.parent.mkdir(parents=True, exist_ok=True)
-                
+
                 # Write markdown content
                 output_file.write_text(markdown_content, encoding="utf-8")
                 created_files += 1
-                
+
             except Exception as e:
                 print(f"Warning: Could not document {py_file}: {e}")
                 continue
-        
+
         if created_files == 0:
             print(f"ERROR: No markdown files created in {markdown_dir}")
             return False
-        
+
         print(f"Created {created_files} markdown files")
         return True
-        
+
     except Exception as e:
         print(f"ERROR: Failed to generate markdown documentation: {e}")
         return False
@@ -165,37 +164,41 @@ def generate_markdown_documentation(project_root: Path, output_dir: Path) -> boo
 def generate_module_markdown(file_path: Path, tree: ast.AST, source_code: str) -> str:
     """
     Generate markdown documentation for a single module.
-    
+
     Args:
         file_path: Path to the Python file
         tree: Parsed AST of the file
         source_code: Raw source code
-        
+
     Returns:
         Markdown content for the module
     """
     lines = []
-    
+
     # Module header
     module_name = file_path.stem
     lines.append(f"# {module_name}")
     lines.append("")
-    
+
     # Module docstring
-    if tree.body and isinstance(tree.body[0], ast.Expr) and isinstance(tree.body[0].value, ast.Constant):
+    if (
+        tree.body
+        and isinstance(tree.body[0], ast.Expr)
+        and isinstance(tree.body[0].value, ast.Constant)
+    ):
         if isinstance(tree.body[0].value.value, str):
             docstring = tree.body[0].value.value.strip()
             if docstring:
                 lines.append(docstring)
                 lines.append("")
-    
+
     # Process classes and functions
     for node in tree.body:
         if isinstance(node, ast.ClassDef):
             lines.extend(generate_class_markdown(node))
         elif isinstance(node, ast.FunctionDef):
             lines.extend(generate_function_markdown(node))
-    
+
     return "\n".join(lines)
 
 
@@ -204,20 +207,24 @@ def generate_class_markdown(node: ast.ClassDef) -> list[str]:
     lines = []
     lines.append(f"## {node.name}")
     lines.append("")
-    
+
     # Class docstring
-    if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+    if (
+        node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+    ):
         if isinstance(node.body[0].value.value, str):
             docstring = node.body[0].value.value.strip()
             if docstring:
                 lines.append(docstring)
                 lines.append("")
-    
+
     # Methods
     for item in node.body:
         if isinstance(item, ast.FunctionDef):
             lines.extend(generate_method_markdown(item))
-    
+
     return lines
 
 
@@ -226,7 +233,7 @@ def generate_function_markdown(node: ast.FunctionDef) -> list[str]:
     lines = []
     lines.append(f"### {node.name}")
     lines.append("")
-    
+
     # Function signature
     args = []
     for arg in node.args.args:
@@ -236,15 +243,19 @@ def generate_function_markdown(node: ast.FunctionDef) -> list[str]:
     lines.append(signature)
     lines.append("```")
     lines.append("")
-    
+
     # Function docstring
-    if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+    if (
+        node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+    ):
         if isinstance(node.body[0].value.value, str):
             docstring = node.body[0].value.value.strip()
             if docstring:
                 lines.append(docstring)
                 lines.append("")
-    
+
     return lines
 
 
@@ -253,7 +264,7 @@ def generate_method_markdown(node: ast.FunctionDef) -> list[str]:
     lines = []
     lines.append(f"#### {node.name}")
     lines.append("")
-    
+
     # Method signature
     args = []
     for arg in node.args.args:
@@ -263,15 +274,19 @@ def generate_method_markdown(node: ast.FunctionDef) -> list[str]:
     lines.append(signature)
     lines.append("```")
     lines.append("")
-    
+
     # Method docstring
-    if node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+    if (
+        node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+    ):
         if isinstance(node.body[0].value.value, str):
             docstring = node.body[0].value.value.strip()
             if docstring:
                 lines.append(docstring)
                 lines.append("")
-    
+
     return lines
 
 
@@ -385,11 +400,7 @@ def verify_documentation_exists(output_dir: Path) -> dict:
     Returns:
         Dictionary with verification results
     """
-    results = {
-        "html_files": 0,
-        "markdown_files": 0,
-        "total_size": 0
-    }
+    results = {"html_files": 0, "markdown_files": 0, "total_size": 0}
 
     # Check HTML files
     html_dir = output_dir / "src"
@@ -539,12 +550,12 @@ def main() -> int:
     print(f"Documentation location: {output_dir}")
     print(f"HTML documentation: {output_dir / 'index.html'}")
     print(f"Markdown documentation: {output_dir / 'markdown'}")
-    
+
     print("\nVerification Results:")
     print(f"  HTML files created: {verification['html_files']}")
     print(f"  Markdown files created: {verification['markdown_files']}")
     print(f"  Total documentation size: {verification['total_size'] / 1024:.1f} KB")
-    
+
     print("\nFormats available:")
     print("- HTML: Interactive, searchable documentation")
     print("- Markdown: AI-friendly plain text format")

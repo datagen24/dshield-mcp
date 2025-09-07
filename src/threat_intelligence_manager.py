@@ -769,7 +769,9 @@ class ThreatIntelligenceManager:
                         break
                     except asyncio.CancelledError:
                         logger.warning("Rate limit wait cancelled", source=source.value)
-                        raise RuntimeError(f"Rate limit wait cancelled for {source.value}") from None
+                        raise RuntimeError(
+                            f"Rate limit wait cancelled for {source.value}"
+                        ) from None
 
                 # Re-check after waiting
                 current_time = time.time()

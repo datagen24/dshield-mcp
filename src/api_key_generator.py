@@ -176,6 +176,107 @@ class APIKeyGenerator:
 
         return result
 
+    def generate_api_key(
+        self,
+        name: str,
+        permissions: dict[str, Any],
+        expiration_days: int | None = None,
+        rate_limit: int | None = None,
+        length: int | None = None,
+        charset: str | None = None,
+        prefix: str = "dshield_",
+        encoding: str = "base32",
+    ) -> dict[str, Any]:
+        """Generate a cryptographically secure API key with hashing for storage.
+
+        This method generates a secure API key and immediately hashes it for storage.
+        The plaintext key is returned only once and should be shown to the user
+        immediately before being discarded.
+
+        Args:
+            name: Human-readable name for the key
+            permissions: Dictionary of permissions
+            expiration_days: Days until expiration (None for no expiration)
+            rate_limit: Rate limit in requests per minute
+            length: Key length in characters
+            charset: Character set to use
+            prefix: Prefix to add to the key
+            encoding: Encoding format for the key (base32, hex, base64)
+
+        Returns:
+            Dictionary containing the plaintext key, hashed key, salt, and metadata
+
+        Raises:
+            ValueError: If parameters are invalid
+
+        """
+        # Validate inputs
+        if not name or not name.strip():
+            raise ValueError("Key name cannot be empty")
+        if not isinstance(permissions, dict):
+            raise ValueError("Permissions must be a dictionary")
+        if expiration_days is not None and expiration_days <= 0:
+            raise ValueError("Expiration days must be positive")
+        if rate_limit is not None and rate_limit <= 0:
+            raise ValueError("Rate limit must be positive")
+        if encoding not in ["base32", "hex", "base64"]:
+            raise ValueError("Encoding must be one of: base32, hex, base64")
+
+        # Generate the plaintext key
+        plaintext_key = self.generate_key(length, charset, prefix)
+
+        # Generate a unique key ID (short hash + timestamp)
+        key_id = self.create_key_id()
+
+        # Hash the key for secure storage
+        hash_data = self.hash_key(plaintext_key)
+
+        # Calculate expiration date
+        expires_at = None
+        if expiration_days:
+            expires_at = datetime.now(UTC) + timedelta(days=expiration_days)
+
+        # Set default rate limit
+        if rate_limit is None:
+            rate_limit = permissions.get("rate_limit", 60)
+
+        # Create metadata
+        metadata = {
+            "generated_by": "dshield-mcp",
+            "version": "1.0",
+            "generated_at": datetime.now(UTC).isoformat(),
+            "key_type": "api_key",
+            "encoding": encoding,
+            "key_length": len(plaintext_key),
+        }
+
+        # Create the result with both plaintext and hashed versions
+        result = {
+            "key_id": key_id,
+            "plaintext_key": plaintext_key,  # Only for one-time display
+            "hashed_key": hash_data["hash"],
+            "salt": hash_data["salt"],
+            "algorithm": hash_data["algorithm"],
+            "name": name.strip(),
+            "permissions": permissions,
+            "expires_at": expires_at.isoformat() if expires_at else None,
+            "rate_limit": rate_limit,
+            "metadata": metadata,
+            "created_at": datetime.now(UTC),
+        }
+
+        self.logger.info(
+            "Generated secure API key",
+            name=name,
+            key_id=key_id,
+            key_length=len(plaintext_key),
+            encoding=encoding,
+            expiration_days=expiration_days,
+            rate_limit=rate_limit,
+        )
+
+        return result
+
     def hash_key(self, key_value: str, salt: bytes | None = None) -> dict[str, str]:
         """Hash an API key for secure storage.
 

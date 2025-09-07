@@ -42,7 +42,7 @@ class TestOnePasswordCLIManagerFocused:
         mock_run.return_value = mock_result
 
         manager = OnePasswordCLIManager()
-        
+
         with pytest.raises(RuntimeError, match="op command failed"):
             manager._run_op_command(['item', 'get', 'test'])
 
@@ -56,14 +56,14 @@ class TestOnePasswordCLIManagerFocused:
         mock_run.return_value = mock_result
 
         manager = OnePasswordCLIManager()
-        
+
         with pytest.raises(RuntimeError, match="Failed to parse op command output"):
             manager._run_op_command(['item', 'get', 'test'])
 
     def test_get_secret_success(self) -> None:
         """Test successful secret retrieval."""
         manager = OnePasswordCLIManager()
-        
+
         with patch.object(manager, '_run_op_command', return_value={"value": "secret_value"}):
             result = manager.get_secret("op://vault/item/field")
             assert result == "secret_value"
@@ -71,15 +71,17 @@ class TestOnePasswordCLIManagerFocused:
     def test_get_secret_failure(self) -> None:
         """Test failed secret retrieval."""
         manager = OnePasswordCLIManager()
-        
-        with patch.object(manager, '_run_op_command', side_effect=RuntimeError("op command failed")):
+
+        with patch.object(
+            manager, '_run_op_command', side_effect=RuntimeError("op command failed")
+        ):
             with pytest.raises(RuntimeError, match="op command failed"):
                 manager.get_secret("op://vault/item/field")
 
     def test_store_api_key_success(self) -> None:
         """Test successful API key storage."""
         manager = OnePasswordCLIManager()
-        
+
         with patch.object(manager, '_run_op_command', return_value={"uuid": "test-uuid"}):
             result = manager.store_api_key("test-key", "test-secret", 30)
             assert result is True
@@ -87,22 +89,24 @@ class TestOnePasswordCLIManagerFocused:
     def test_store_api_key_failure(self) -> None:
         """Test failed API key storage."""
         manager = OnePasswordCLIManager()
-        
-        with patch.object(manager, '_run_op_command', side_effect=RuntimeError("op command failed")):
+
+        with patch.object(
+            manager, '_run_op_command', side_effect=RuntimeError("op command failed")
+        ):
             result = manager.store_api_key("test-key", "test-secret", 30)
             assert result is False
 
     def test_retrieve_api_key_success(self) -> None:
         """Test successful API key retrieval."""
         manager = OnePasswordCLIManager()
-        
+
         mock_key_data = {
             "fields": [
                 {"id": "api_key", "value": "test-api-key"},
-                {"id": "secret", "value": "test-secret"}
+                {"id": "secret", "value": "test-secret"},
             ]
         }
-        
+
         with patch.object(manager, '_run_op_command', return_value=mock_key_data):
             result = manager.retrieve_api_key("test-key")
             assert result is not None
@@ -112,20 +116,22 @@ class TestOnePasswordCLIManagerFocused:
     def test_retrieve_api_key_not_found(self) -> None:
         """Test API key retrieval when key doesn't exist."""
         manager = OnePasswordCLIManager()
-        
-        with patch.object(manager, '_run_op_command', side_effect=RuntimeError("op command failed")):
+
+        with patch.object(
+            manager, '_run_op_command', side_effect=RuntimeError("op command failed")
+        ):
             result = manager.retrieve_api_key("nonexistent-key")
             assert result is None
 
     def test_list_api_keys_success(self) -> None:
         """Test successful API key listing."""
         manager = OnePasswordCLIManager()
-        
+
         mock_list_data = [
             {"uuid": "key1", "title": "API Key 1"},
-            {"uuid": "key2", "title": "API Key 2"}
+            {"uuid": "key2", "title": "API Key 2"},
         ]
-        
+
         with patch.object(manager, '_run_op_command', return_value=mock_list_data):
             result = manager.list_api_keys()
             assert len(result) == 2
@@ -135,15 +141,17 @@ class TestOnePasswordCLIManagerFocused:
     def test_list_api_keys_failure(self) -> None:
         """Test failed API key listing."""
         manager = OnePasswordCLIManager()
-        
-        with patch.object(manager, '_run_op_command', side_effect=RuntimeError("op command failed")):
+
+        with patch.object(
+            manager, '_run_op_command', side_effect=RuntimeError("op command failed")
+        ):
             result = manager.list_api_keys()
             assert result == []
 
     def test_delete_api_key_success(self) -> None:
         """Test successful API key deletion."""
         manager = OnePasswordCLIManager()
-        
+
         with patch.object(manager, '_run_op_command', return_value={}):
             result = manager.delete_api_key("test-key")
             assert result is True
@@ -151,15 +159,17 @@ class TestOnePasswordCLIManagerFocused:
     def test_delete_api_key_failure(self) -> None:
         """Test failed API key deletion."""
         manager = OnePasswordCLIManager()
-        
-        with patch.object(manager, '_run_op_command', side_effect=RuntimeError("op command failed")):
+
+        with patch.object(
+            manager, '_run_op_command', side_effect=RuntimeError("op command failed")
+        ):
             result = manager.delete_api_key("test-key")
             assert result is False
 
     def test_update_api_key_success(self) -> None:
         """Test successful API key update."""
         manager = OnePasswordCLIManager()
-        
+
         with patch.object(manager, '_run_op_command', return_value={}):
             result = manager.update_api_key("test-key", "new-secret", 60)
             assert result is True
@@ -167,7 +177,9 @@ class TestOnePasswordCLIManagerFocused:
     def test_update_api_key_failure(self) -> None:
         """Test failed API key update."""
         manager = OnePasswordCLIManager()
-        
-        with patch.object(manager, '_run_op_command', side_effect=RuntimeError("op command failed")):
+
+        with patch.object(
+            manager, '_run_op_command', side_effect=RuntimeError("op command failed")
+        ):
             result = manager.update_api_key("test-key", "new-secret", 60)
             assert result is False

@@ -106,12 +106,12 @@ class ConnectionPanel(Container):
         self.filtered_connections: list[dict[str, Any]] = []
         self.selected_connection: str | None = None
         self.selected_api_key_id: str | None = None
-        
+
         # Filtering and pagination
         self.filter_text: str = ""
         self.current_page: int = 0
         self.page_size: int = 20
-        
+
         # Refresh management
         self.refresh_interval: float = refresh_interval
         self.refresh_task: asyncio.Task[None] | None = None
@@ -138,8 +138,7 @@ class ConnectionPanel(Container):
             with Horizontal(classes="connection-filter"):
                 yield Static("Filter:", classes="filter-label")
                 yield Input(
-                    placeholder="Filter by address or key ID...", 
-                    id="connection-filter-input"
+                    placeholder="Filter by address or key ID...", id="connection-filter-input"
                 )
 
             # Connections table
@@ -209,16 +208,19 @@ class ConnectionPanel(Container):
         else:
             filter_lower = self.filter_text.lower()
             self.filtered_connections = [
-                conn for conn in self.connections
-                if (filter_lower in str(conn.get("client_address", "")).lower() or
-                    filter_lower in str(conn.get("api_key_id", "")).lower() or
-                    filter_lower in str(conn.get("key_id", "")).lower())
+                conn
+                for conn in self.connections
+                if (
+                    filter_lower in str(conn.get("client_address", "")).lower()
+                    or filter_lower in str(conn.get("api_key_id", "")).lower()
+                    or filter_lower in str(conn.get("key_id", "")).lower()
+                )
             ]
 
     def _update_connections_display(self) -> None:
         """Update the connections table display."""
         connections_table = self.query_one("#connections-table", DataTable)
-        
+
         # Clear existing data
         connections_table.clear()
 
@@ -227,7 +229,7 @@ class ConnectionPanel(Container):
             1, (len(self.filtered_connections) + self.page_size - 1) // self.page_size
         )
         self.current_page = min(self.current_page, total_pages - 1)
-        
+
         start_idx = self.current_page * self.page_size
         end_idx = start_idx + self.page_size
         page_connections = self.filtered_connections[start_idx:end_idx]
@@ -276,11 +278,11 @@ class ConnectionPanel(Container):
         self._update_pagination_controls(total_pages)
 
         self.logger.debug(
-            "Updated connections display", 
+            "Updated connections display",
             total=len(self.connections),
             filtered=len(self.filtered_connections),
             page=self.current_page + 1,
-            total_pages=total_pages
+            total_pages=total_pages,
         )
 
     def _update_pagination_controls(self, total_pages: int) -> None:
@@ -308,7 +310,7 @@ class ConnectionPanel(Container):
         """Start auto-refresh task."""
         if self.refresh_task and not self.refresh_task.done():
             self.refresh_task.cancel()
-        
+
         self.refresh_task = asyncio.create_task(self._auto_refresh_loop())
 
     def _stop_auto_refresh(self) -> None:
@@ -500,10 +502,10 @@ class ConnectionPanel(Container):
             return
 
         self.logger.info("Revoking selected API key", key_id=self.selected_api_key_id)
-        
+
         # Post API key revocation message
         self.post_message(APIKeyRevoke(self.selected_api_key_id))
-        
+
         # Clear selection
         self.selected_api_key_id = None
         self.query_one("#revoke-api-key-btn", Button).disabled = True
@@ -523,7 +525,7 @@ class ConnectionPanel(Container):
         # Calculate actual index in filtered connections
         start_idx = self.current_page * self.page_size
         actual_idx = start_idx + row_key
-        
+
         if 0 <= actual_idx < len(self.filtered_connections):
             conn = self.filtered_connections[actual_idx]
             self.selected_connection = str(conn.get("client_address", ""))
@@ -543,7 +545,7 @@ class ConnectionPanel(Container):
         if row_key < len(self.api_keys):
             key = self.api_keys[row_key]
             key_id = key.get("key_id", "")
-            
+
             # Store the selected key ID
             self.selected_api_key_id = key_id
 
@@ -569,11 +571,10 @@ class ConnectionPanel(Container):
         connections_with_violations = len(
             [conn for conn in self.connections if conn.get("violations", 0) > 0]
         )
-        
+
         # Calculate average RPS
         total_rps = sum(
-            conn.get("rps", conn.get("requests_per_second", 0)) 
-            for conn in self.connections
+            conn.get("rps", conn.get("requests_per_second", 0)) for conn in self.connections
         )
         avg_rps = total_rps / total_connections if total_connections > 0 else 0
 

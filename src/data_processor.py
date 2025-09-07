@@ -859,7 +859,9 @@ class DataProcessor:
     def _calculate_average_reputation(self, events: list[dict[str, Any]]) -> float | None:
         """Calculate average reputation score."""
         scores = [
-            float(e.get("reputation_score", 0)) for e in events if e.get("reputation_score") is not None
+            float(e.get("reputation_score", 0))
+            for e in events
+            if e.get("reputation_score") is not None
         ]
         return sum(scores) / len(scores) if scores else None
 
@@ -1106,7 +1108,9 @@ class DataProcessor:
 
         # Immediate actions
         high_reputation_ips = [
-            str(i.get("value", "")) for i in threat_indicators if i.get("type") == "high_reputation_score"
+            str(i.get("value", ""))
+            for i in threat_indicators
+            if i.get("type") == "high_reputation_score"
         ]
         if high_reputation_ips:
             actions.append(f"Block IP addresses: {', '.join(high_reputation_ips[:5])}")

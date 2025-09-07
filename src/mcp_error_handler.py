@@ -1316,7 +1316,9 @@ class ErrorAggregator:
         recent_errors = self._get_recent_errors(window_seconds)
 
         # Group errors by type and code
-        error_summary: defaultdict[str, dict[str, Any]] = defaultdict(lambda: {"count": 0, "examples": []})
+        error_summary: defaultdict[str, dict[str, Any]] = defaultdict(
+            lambda: {"count": 0, "examples": []}
+        )
 
         for error in recent_errors:
             key = f"{error['error_code']}_{error['error_type']}"

@@ -38,9 +38,7 @@ class TestServerProcessManager:
         return mock_config
 
     @pytest.fixture
-    def process_manager(
-        self, mock_user_config: MagicMock
-    ) -> ServerProcessManager:
+    def process_manager(self, mock_user_config: MagicMock) -> ServerProcessManager:
         """Create a ServerProcessManager instance with mocked dependencies."""
         with patch(
             "src.tui.server_process_manager.UserConfigManager",
@@ -85,7 +83,7 @@ class TestServerProcessManager:
         # Verify handlers were called with ServerStatusUpdate message
         handler1.assert_called_once()
         handler2.assert_called_once()
-        
+
         # Check the message type
         call1 = handler1.call_args[0][0]
         call2 = handler2.call_args[0][0]
@@ -99,7 +97,7 @@ class TestServerProcessManager:
         """Test successful server start."""
         # Mock the underlying process manager
         process_manager.process_manager.start_server = AsyncMock(return_value=True)
-        
+
         # Add a status handler to verify emission
         status_handler = MagicMock()
         process_manager.add_status_handler(status_handler)
@@ -138,7 +136,7 @@ class TestServerProcessManager:
 
         # Mock the underlying process manager
         process_manager.process_manager.stop_server = AsyncMock(return_value=True)
-        
+
         # Add a status handler to verify emission
         status_handler = MagicMock()
         process_manager.add_status_handler(status_handler)
@@ -255,7 +253,7 @@ class TestServerPanel:
         """Test getting server health information."""
         with patch("src.tui.server_panel.ServerProcessManager"):
             panel = ServerPanel("test-panel", "test_config.yaml")
-            
+
             # Set up state
             panel.server_running = True
             panel.uptime_start = datetime.now()

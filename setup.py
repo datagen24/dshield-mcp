@@ -3,7 +3,6 @@
 Setup script for DShield MCP - Elastic SIEM Integration
 """
 
-
 from setuptools import find_packages, setup
 
 

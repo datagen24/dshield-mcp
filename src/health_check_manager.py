@@ -2,7 +2,7 @@
 
 import asyncio
 import subprocess
-from typing import Any
+from typing import Any, Callable
 
 import structlog
 

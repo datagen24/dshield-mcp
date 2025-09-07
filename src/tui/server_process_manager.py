@@ -267,7 +267,7 @@ class ServerProcessManager:
         """
         uptime_seconds = 0
         if self.server_start_time:
-                uptime_seconds = int((datetime.now() - self.server_start_time).total_seconds())
+            uptime_seconds = int((datetime.now() - self.server_start_time).total_seconds())
 
         return {
             "running": self.server_running,

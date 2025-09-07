@@ -80,6 +80,34 @@ Generate an API key with associated metadata.
         Raises:
             ValueError: If parameters are invalid
 
+#### generate_api_key
+
+```python
+def generate_api_key(self, name, permissions, expiration_days, rate_limit, length, charset, prefix, encoding)
+```
+
+Generate a cryptographically secure API key with hashing for storage.
+
+        This method generates a secure API key and immediately hashes it for storage.
+        The plaintext key is returned only once and should be shown to the user
+        immediately before being discarded.
+
+        Args:
+            name: Human-readable name for the key
+            permissions: Dictionary of permissions
+            expiration_days: Days until expiration (None for no expiration)
+            rate_limit: Rate limit in requests per minute
+            length: Key length in characters
+            charset: Character set to use
+            prefix: Prefix to add to the key
+            encoding: Encoding format for the key (base32, hex, base64)
+
+        Returns:
+            Dictionary containing the plaintext key, hashed key, salt, and metadata
+
+        Raises:
+            ValueError: If parameters are invalid
+
 #### hash_key
 
 ```python

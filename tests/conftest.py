@@ -10,6 +10,7 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+
 # Register custom pytest marks
 def pytest_configure(config):
     """Configure custom pytest marks."""

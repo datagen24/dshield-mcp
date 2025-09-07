@@ -451,9 +451,9 @@ class TestElasticsearchCircuitBreakerRecovery:
         # Simulate time passing (recovery timeout)
         from datetime import datetime, timedelta
 
-        elasticsearch_client.circuit_breaker.last_failure_time = datetime.now(
-            UTC
-        ) - timedelta(seconds=70)
+        elasticsearch_client.circuit_breaker.last_failure_time = datetime.now(UTC) - timedelta(
+            seconds=70
+        )
 
         # Check if circuit breaker allows execution (should set to half-open)
         result = elasticsearch_client._check_circuit_breaker("test_operation")

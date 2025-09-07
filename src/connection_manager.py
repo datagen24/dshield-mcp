@@ -183,38 +183,47 @@ class ConnectionManager:
 
         """
         try:
-            # Generate API key using the new manager
-            key_value = await self.api_key_manager.generate_api_key(
+            # Generate API key using the secure generator
+            from .api_key_generator import APIKeyGenerator
+
+            generator = APIKeyGenerator()
+            key_data = generator.generate_api_key(
                 name=name,
-                permissions=permissions,
+                permissions=permissions or {},
                 expiration_days=expiration_days,
                 rate_limit=rate_limit,
             )
 
-            if key_value:
-                # Retrieve the full API key info
-                key_info = await self.api_key_manager.validate_api_key(key_value)
-                if key_info:
-                    # Create local APIKey instance
-                    api_key = APIKey(
-                        key_id=key_info["key_id"],
-                        key_value=key_value,
-                        permissions=key_info["permissions"],
-                        expires_days=90,  # Will be overridden
-                    )
+            # Create APIKey object with hashed key for storage
+            api_key = APIKey(
+                key_id=key_data["key_id"],
+                key_value=key_data["hashed_key"],  # Store only the hash
+                name=key_data["name"],
+                created_at=key_data["created_at"],
+                expires_at=datetime.fromisoformat(key_data["expires_at"])
+                if key_data["expires_at"]
+                else None,
+                permissions=key_data["permissions"],
+                metadata={
+                    **key_data["metadata"],
+                    "salt": key_data["salt"],
+                    "algorithm": key_data["algorithm"],
+                },
+            )
 
-                    # Update timestamps
-                    api_key.created_at = key_info["created_at"]
-                    if key_info["expires_at"]:
-                        api_key.expires_at = key_info["expires_at"]
+            # Store in 1Password using the secrets manager
+            success = await self.secrets_manager.store_api_key(api_key)
+            if success:
+                # Store in memory cache (using hashed key as the key)
+                self.api_keys[key_data["hashed_key"]] = api_key
 
-                    # Store in memory cache
-                    self.api_keys[key_value] = api_key
-
-                    self.logger.info("Generated new API key", key_id=key_info["key_id"], name=name)
-                    return api_key
-
-            return None
+                self.logger.info(
+                    "Generated new API key", key_id=key_data["key_id"], name=name, hashed=True
+                )
+                return api_key
+            else:
+                self.logger.error("Failed to store API key in 1Password", key_id=key_data["key_id"])
+                return None
 
         except Exception as e:
             self.logger.error("Failed to generate API key", error=str(e))

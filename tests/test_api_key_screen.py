@@ -39,7 +39,7 @@ class TestAPIKeyGenerationScreen:
         """Test screen composition in form mode."""
         # Set up screen state
         screen.showing_key = False
-        
+
         # Test that the screen is in form mode
         assert not screen.showing_key
         assert screen.generated_key is None
@@ -51,7 +51,7 @@ class TestAPIKeyGenerationScreen:
         screen.showing_key = True
         screen.generated_key = "test_key_123"
         screen.key_config = {"name": "Test Key", "permissions": {}}
-        
+
         # Test that the screen is in key display mode
         assert screen.showing_key
         assert screen.generated_key == "test_key_123"
@@ -60,24 +60,28 @@ class TestAPIKeyGenerationScreen:
     def test_on_button_pressed_generate(self, screen: APIKeyGenerationScreen) -> None:
         """Test generate button press handling."""
         # Mock Textual methods that require app context
-        with patch.object(screen, 'notify'), patch.object(screen, 'refresh'), patch.object(screen, 'query_one') as mock_query:
+        with (
+            patch.object(screen, 'notify'),
+            patch.object(screen, 'refresh'),
+            patch.object(screen, 'query_one') as mock_query,
+        ):
             # Mock form inputs
             mock_key_name = Mock(spec=Input)
             mock_key_name.value = "Test Key"
-            
+
             mock_read_checkbox = Mock(spec=Checkbox)
             mock_read_checkbox.value = True
             mock_write_checkbox = Mock(spec=Checkbox)
             mock_write_checkbox.value = False
             mock_admin_checkbox = Mock(spec=Checkbox)
             mock_admin_checkbox.value = False
-            
+
             mock_rate_limit = Mock(spec=Input)
             mock_rate_limit.value = "60"
-            
+
             mock_expiration = Mock(spec=Select)
             mock_expiration.value = 30
-            
+
             # Configure query_one to return appropriate mocks
             def query_side_effect(selector, widget_type=None):
                 if selector == "#key-name":
@@ -93,9 +97,9 @@ class TestAPIKeyGenerationScreen:
                 elif selector == "#expiration":
                     return mock_expiration
                 return Mock()
-            
+
             mock_query.side_effect = query_side_effect
-            
+
             # Mock the API key generator
             with patch('src.api_key_generator.APIKeyGenerator') as mock_generator_class:
                 mock_generator = Mock()
@@ -107,9 +111,9 @@ class TestAPIKeyGenerationScreen:
                     "expires_at": "2024-12-31T23:59:59",
                     "rate_limit": 60,
                     "metadata": {"generated_by": "dshield-mcp"},
-                    "created_at": "2024-01-01T00:00:00"
+                    "created_at": "2024-01-01T00:00:00",
                 }
-                
+
                 # Mock refresh method
                 with patch.object(screen, 'refresh'):
                     # Create a mock button press event
@@ -117,13 +121,13 @@ class TestAPIKeyGenerationScreen:
                     mock_button.id = "generate-btn"
                     mock_event = Mock()
                     mock_event.button = mock_button
-                    
+
                     # Call the method
                     screen.on_button_pressed(mock_event)
-                    
+
                     # Verify the generator was called
                     mock_generator.generate_key_with_metadata.assert_called_once()
-                    
+
                     # Verify screen state was updated
                     assert screen.generated_key == "test_key_123"
                     assert screen.key_config is not None
@@ -135,14 +139,14 @@ class TestAPIKeyGenerationScreen:
             # Mock form inputs with empty name
             mock_key_name = Mock(spec=Input)
             mock_key_name.value = ""
-            
+
             def query_side_effect(selector, widget_type=None):
                 if selector == "#key-name":
                     return mock_key_name
                 return Mock()
-            
+
             mock_query.side_effect = query_side_effect
-            
+
             # Mock notify method
             with patch.object(screen, 'notify') as mock_notify:
                 # Create a mock button press event
@@ -150,10 +154,10 @@ class TestAPIKeyGenerationScreen:
                 mock_button.id = "generate-btn"
                 mock_event = Mock()
                 mock_event.button = mock_button
-                
+
                 # Call the method
                 screen.on_button_pressed(mock_event)
-                
+
                 # Verify error notification
                 mock_notify.assert_called_once_with("Key name is required", severity="error")
 
@@ -165,10 +169,10 @@ class TestAPIKeyGenerationScreen:
             mock_button.id = "cancel-btn"
             mock_event = Mock()
             mock_event.button = mock_button
-            
+
             # Call the method
             screen.on_button_pressed(mock_event)
-            
+
             # Verify dismiss was called
             mock_dismiss.assert_called_once()
 
@@ -177,19 +181,20 @@ class TestAPIKeyGenerationScreen:
         # Set up screen state
         screen.generated_key = "test_key_123"
         screen.key_config = {"name": "Test Key", "permissions": {}}
-        
-        with patch.object(screen, 'post_message') as mock_post_message, \
-             patch.object(screen, 'dismiss') as mock_dismiss:
-            
+
+        with (
+            patch.object(screen, 'post_message') as mock_post_message,
+            patch.object(screen, 'dismiss') as mock_dismiss,
+        ):
             # Create a mock button press event
             mock_button = Mock(spec=Button)
             mock_button.id = "confirm-btn"
             mock_event = Mock()
             mock_event.button = mock_button
-            
+
             # Call the method
             screen.on_button_pressed(mock_event)
-            
+
             # Verify message was posted and screen dismissed
             mock_post_message.assert_called_once()
             mock_dismiss.assert_called_once()
@@ -202,10 +207,10 @@ class TestAPIKeyGenerationScreen:
             mock_button.id = "confirm-btn"
             mock_event = Mock()
             mock_event.button = mock_button
-            
+
             # Call the method
             screen.on_button_pressed(mock_event)
-            
+
             # Verify error notification
             mock_notify.assert_called_once_with("No key to confirm", severity="error")
 
@@ -217,10 +222,10 @@ class TestAPIKeyGenerationScreen:
             mock_button.id = "cancel-confirm-btn"
             mock_event = Mock()
             mock_event.button = mock_button
-            
+
             # Call the method
             screen.on_button_pressed(mock_event)
-            
+
             # Verify dismiss was called
             mock_dismiss.assert_called_once()
 
@@ -229,13 +234,14 @@ class TestAPIKeyGenerationScreen:
         # Set up screen state
         screen.generated_key = "test_key_123"
         screen.key_config = {"name": "Test Key", "permissions": {}}
-        
-        with patch.object(screen, 'post_message') as mock_post_message, \
-             patch.object(screen, 'dismiss') as mock_dismiss:
-            
+
+        with (
+            patch.object(screen, 'post_message') as mock_post_message,
+            patch.object(screen, 'dismiss') as mock_dismiss,
+        ):
             # Call the method
             screen._confirm_key_generation()
-            
+
             # Verify message was posted and screen dismissed
             mock_post_message.assert_called_once()
             mock_dismiss.assert_called_once()
@@ -245,7 +251,7 @@ class TestAPIKeyGenerationScreen:
         with patch.object(screen, 'notify') as mock_notify:
             # Call the method
             screen._confirm_key_generation()
-            
+
             # Verify error notification
             mock_notify.assert_called_once_with("No key to confirm", severity="error")
 
@@ -255,30 +261,31 @@ class TestAPIKeyGenerationScreen:
             # Mock form inputs
             mock_key_name = Mock(spec=Input)
             mock_key_name.value = "Test Key"
-            
+
             def query_side_effect(selector, widget_type=None):
                 if selector == "#key-name":
                     return mock_key_name
                 return Mock()
-            
+
             mock_query.side_effect = query_side_effect
-            
+
             # Mock the API key generator to raise an exception
             with patch('src.api_key_generator.APIKeyGenerator') as mock_generator_class:
                 mock_generator_class.side_effect = Exception("Test error")
-                
-                with patch.object(screen, 'notify') as mock_notify, \
-                     patch.object(screen, 'logger') as mock_logger:
-                    
+
+                with (
+                    patch.object(screen, 'notify') as mock_notify,
+                    patch.object(screen, 'logger') as mock_logger,
+                ):
                     # Create a mock button press event
                     mock_button = Mock(spec=Button)
                     mock_button.id = "generate-btn"
                     mock_event = Mock()
                     mock_event.button = mock_button
-                    
+
                     # Call the method
                     screen.on_button_pressed(mock_event)
-                    
+
                     # Verify error handling
                     mock_logger.error.assert_called_once()
                     mock_notify.assert_called_once()
@@ -288,10 +295,10 @@ class TestAPIKeyGenerationScreen:
         with patch.object(screen, 'query_one') as mock_query:
             mock_input = Mock(spec=Input)
             mock_query.return_value = mock_input
-            
+
             # Call the method
             screen.on_mount()
-            
+
             # Verify focus was set
             mock_input.focus.assert_called_once()
 
@@ -299,7 +306,7 @@ class TestAPIKeyGenerationScreen:
         """Test APIKeyGenerated message creation."""
         key_config = {"name": "Test Key", "permissions": {}}
         message = APIKeyGenerated(key_config)
-        
+
         assert message.key_config == key_config
 
     def test_screen_state_transitions(self, screen: APIKeyGenerationScreen) -> None:
@@ -308,12 +315,12 @@ class TestAPIKeyGenerationScreen:
         assert screen.showing_key is False
         assert screen.generated_key is None
         assert screen.key_config is None
-        
+
         # Simulate key generation
         screen.generated_key = "test_key_123"
         screen.key_config = {"name": "Test Key"}
         screen.showing_key = True
-        
+
         # Verify state
         assert screen.showing_key is True
         assert screen.generated_key == "test_key_123"
@@ -325,20 +332,20 @@ class TestAPIKeyGenerationScreen:
             # Mock form inputs with valid data
             mock_key_name = Mock(spec=Input)
             mock_key_name.value = "Valid Key Name"
-            
+
             mock_read_checkbox = Mock(spec=Checkbox)
             mock_read_checkbox.value = True
             mock_write_checkbox = Mock(spec=Checkbox)
             mock_write_checkbox.value = False
             mock_admin_checkbox = Mock(spec=Checkbox)
             mock_admin_checkbox.value = False
-            
+
             mock_rate_limit = Mock(spec=Input)
             mock_rate_limit.value = "120"
-            
+
             mock_expiration = Mock(spec=Select)
             mock_expiration.value = 90
-            
+
             def query_side_effect(selector, widget_type=None):
                 if selector == "#key-name":
                     return mock_key_name
@@ -353,9 +360,9 @@ class TestAPIKeyGenerationScreen:
                 elif selector == "#expiration":
                     return mock_expiration
                 return Mock()
-            
+
             mock_query.side_effect = query_side_effect
-            
+
             # Mock the API key generator
             with patch('src.api_key_generator.APIKeyGenerator') as mock_generator_class:
                 mock_generator = Mock()
@@ -367,9 +374,9 @@ class TestAPIKeyGenerationScreen:
                     "expires_at": "2024-12-31T23:59:59",
                     "rate_limit": 120,
                     "metadata": {"generated_by": "dshield-mcp"},
-                    "created_at": "2024-01-01T00:00:00"
+                    "created_at": "2024-01-01T00:00:00",
                 }
-                
+
                 # Mock refresh method
                 with patch.object(screen, 'refresh'):
                     # Create a mock button press event
@@ -377,14 +384,19 @@ class TestAPIKeyGenerationScreen:
                     mock_button.id = "generate-btn"
                     mock_event = Mock()
                     mock_event.button = mock_button
-                    
+
                     # Call the method
                     screen.on_button_pressed(mock_event)
-                    
+
                     # Verify the generator was called with correct parameters
                     mock_generator.generate_key_with_metadata.assert_called_once_with(
                         name="Valid Key Name",
-                        permissions={"read_tools": True, "write_back": False, "admin_access": False, "rate_limit": 120},
+                        permissions={
+                            "read_tools": True,
+                            "write_back": False,
+                            "admin_access": False,
+                            "rate_limit": 120,
+                        },
                         expiration_days=90,
-                        rate_limit=120
+                        rate_limit=120,
                     )
