@@ -9,7 +9,7 @@ project_root = os.path.dirname(__file__)
 sys.path.insert(0, project_root)
 
 # Import using the module path
-from src.tui.tui_app import DShieldTUIApp
+from src.tui.tui_app import DShieldTUIApp  # noqa: E402
 
 
 def test_tui_startup():
@@ -23,7 +23,8 @@ def test_tui_startup():
         # Test configuration loading
         config = app.user_config
         print(
-            f"✅ Configuration loaded: TUI={config.tui_settings.enabled}, TCP={config.tcp_transport_settings.enabled}"
+            f"✅ Configuration loaded: TUI={config.tui_settings.enabled}, "
+            f"TCP={config.tcp_transport_settings.enabled}"
         )
 
         # Test basic app properties

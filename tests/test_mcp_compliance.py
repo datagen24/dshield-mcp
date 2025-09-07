@@ -144,7 +144,7 @@ class TestJSONRPCCompliance:
 
         # Optional fields
         if 'data' in error['error']:
-            assert isinstance(error['error']['data'], (str, dict, list))
+            assert isinstance(error['error']['data'], str | dict | list)
 
 
 class TestErrorHandlingCompliance:

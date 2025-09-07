@@ -236,7 +236,7 @@ class TestDShieldCircuitBreakerInOperations:
             mock_context.__aexit__.return_value = None
             mock_session.get.return_value = mock_context
 
-            result = await dshield_client.get_ip_reputation("8.8.8.8")
+            await dshield_client.get_ip_reputation("8.8.8.8")
 
         # Verify success was recorded
         assert dshield_client.circuit_breaker.failure_count == 0
@@ -280,7 +280,7 @@ class TestDShieldCircuitBreakerInOperations:
             mock_context.__aexit__.return_value = None
             mock_session.get.return_value = mock_context
 
-            result = await dshield_client.get_ip_details("8.8.8.8")
+            await dshield_client.get_ip_details("8.8.8.8")
 
         # Verify success was recorded
         assert dshield_client.circuit_breaker.failure_count == 0
@@ -324,7 +324,7 @@ class TestDShieldCircuitBreakerInOperations:
             mock_context.__aexit__.return_value = None
             mock_session.get.return_value = mock_context
 
-            result = await dshield_client.get_top_attackers(24)
+            await dshield_client.get_top_attackers(24)
 
         # Verify success was recorded
         assert dshield_client.circuit_breaker.failure_count == 0
@@ -368,7 +368,7 @@ class TestDShieldCircuitBreakerInOperations:
             mock_context.__aexit__.return_value = None
             mock_session.get.return_value = mock_context
 
-            result = await dshield_client.get_attack_summary(24)
+            await dshield_client.get_attack_summary(24)
 
         # Verify success was recorded
         assert dshield_client.circuit_breaker.failure_count == 0

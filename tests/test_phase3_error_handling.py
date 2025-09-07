@@ -182,7 +182,7 @@ class TestCircuitBreaker:
         cb = CircuitBreaker("test_service")
 
         # Simulate failures
-        for i in range(4):  # Below threshold
+        for _i in range(4):  # Below threshold
             cb.on_failure(Exception("Test failure"))
             assert cb.state == CircuitBreakerState.CLOSED
 
@@ -196,7 +196,7 @@ class TestCircuitBreaker:
         cb = CircuitBreaker("test_service")
 
         # Open circuit
-        for i in range(5):
+        for _i in range(5):
             cb.on_failure(Exception("Test failure"))
 
         assert cb.state == CircuitBreakerState.OPEN
@@ -216,7 +216,7 @@ class TestCircuitBreaker:
         cb = CircuitBreaker("test_service")
 
         # Open circuit
-        for i in range(5):
+        for _i in range(5):
             cb.on_failure(Exception("Test failure"))
 
         # Simulate recovery timeout
@@ -304,8 +304,8 @@ class TestErrorAggregator:
         aggregator = ErrorAggregator()
 
         # Record some errors
-        for i in range(5):
-            aggregator.record_error(100, "test_error", {"count": i})
+        for _i in range(5):
+            aggregator.record_error(100, "test_error", {"count": _i})
 
         for i in range(3):
             aggregator.record_error(200, "another_error", {"count": i})
@@ -365,7 +365,7 @@ class TestPhase3Integration:
         error_handler = MCPErrorHandler(config)
 
         # Create an error
-        error = error_handler.create_error(100, "Test error", {"test": "data"})
+        error_handler.create_error(100, "Test error", {"test": "data"})
 
         # Check that error was recorded
         analytics = error_handler.get_error_analytics()

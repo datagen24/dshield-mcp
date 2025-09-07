@@ -242,7 +242,7 @@ class TestElasticsearchClient:
 
         client = ElasticsearchClient()
 
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="Connection failed"):
             await client.connect()
 
     @pytest.mark.asyncio
@@ -313,7 +313,8 @@ class TestElasticsearchClient:
 
         indices = await client.get_available_indices()
 
-        # The method should return an empty list since no index patterns are configured in TEST_CONFIG
+        # The method should return an empty list since no index patterns are
+        # configured in TEST_CONFIG
         assert indices == []
 
     @pytest.mark.asyncio

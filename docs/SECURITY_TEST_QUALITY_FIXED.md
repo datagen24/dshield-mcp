@@ -45,10 +45,10 @@
 ```python
 def test_rate_limiter_actually_limits_requests(self) -> None:
     limiter = RateLimiter(requests_per_minute=60, burst_limit=3)
-    
+
     # Verify initial state
     assert limiter.tokens == 3
-    
+
     # These consume tokens and verify state changes
     assert limiter.is_allowed() is True
     assert limiter.tokens == 2  # REAL token consumption verified
@@ -59,7 +59,7 @@ def test_rate_limiter_actually_limits_requests(self) -> None:
 @pytest.mark.asyncio
 async def test_authenticate_connection_real_success(self):
     result = await tcp_authenticator_real.authenticate_connection(connection, auth_message)
-    
+
     # Verify REAL authentication results
     assert result["authenticated"] is True
     assert connection.is_authenticated is True  # REAL object modification
@@ -144,7 +144,7 @@ def test_validate_message_real_jsonrpc_format(self):
 ### **Success Metrics Achieved**
 
 1. **NO tests that mock everything** ✅
-2. **ALL tests exercise real code paths** ✅  
+2. **ALL tests exercise real code paths** ✅
 3. **Failed tests fixed by understanding implementation** ✅
 4. **API documentation generates successfully** ✅
 5. **Coverage reflects actual tested code** ✅

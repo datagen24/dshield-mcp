@@ -316,7 +316,7 @@ class TestThreatIntelligenceManager:
     async def test_cache_behavior(self, threat_manager):
         """Test that repeated enrichment uses cache."""
         ip = "8.8.8.8"
-        result1 = await threat_manager.enrich_ip_comprehensive(ip)
+        await threat_manager.enrich_ip_comprehensive(ip)
         result2 = await threat_manager.enrich_ip_comprehensive(ip)
         assert result2.cache_hit
 

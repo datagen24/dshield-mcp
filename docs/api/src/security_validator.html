@@ -788,17 +788,17 @@
             <span class="name">logger</span>        =
 <span class="default_value">&lt;Logger <a href="">src.security_validator</a> (WARNING)&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#logger"></a>
-    
-    
+
+
 
                 </section>
                 <section id="SecurityRiskLevel">
                             <input id="SecurityRiskLevel-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">SecurityRiskLevel</span><wbr>(<span class="base">enum.Enum</span>):
 
@@ -825,11 +825,11 @@
             <span class="name">LOW</span>        =
 <span class="default_value">&lt;<a href="#SecurityRiskLevel.LOW">SecurityRiskLevel.LOW</a>: &#39;low&#39;&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityRiskLevel.LOW"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityRiskLevel.MEDIUM" class="classattr">
@@ -837,11 +837,11 @@
             <span class="name">MEDIUM</span>        =
 <span class="default_value">&lt;<a href="#SecurityRiskLevel.MEDIUM">SecurityRiskLevel.MEDIUM</a>: &#39;medium&#39;&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityRiskLevel.MEDIUM"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityRiskLevel.HIGH" class="classattr">
@@ -849,11 +849,11 @@
             <span class="name">HIGH</span>        =
 <span class="default_value">&lt;<a href="#SecurityRiskLevel.HIGH">SecurityRiskLevel.HIGH</a>: &#39;high&#39;&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityRiskLevel.HIGH"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityRiskLevel.CRITICAL" class="classattr">
@@ -861,11 +861,11 @@
             <span class="name">CRITICAL</span>        =
 <span class="default_value">&lt;<a href="#SecurityRiskLevel.CRITICAL">SecurityRiskLevel.CRITICAL</a>: &#39;critical&#39;&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityRiskLevel.CRITICAL"></a>
-    
-    
+
+
 
                             </div>
                 </section>
@@ -912,69 +912,69 @@
 
                             <div id="SecurityIssue.__init__" class="classattr">
                                 <div class="attr function">
-            
+
         <span class="name">SecurityIssue</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">issue_type</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">severity</span><span class="p">:</span> <span class="n"><a href="#SecurityRiskLevel">SecurityRiskLevel</a></span>,</span><span class="param">	<span class="n">description</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">location</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">details</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityIssue.__init__"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityIssue.issue_type" class="classattr">
                                 <div class="attr variable">
             <span class="name">issue_type</span><span class="annotation">: str</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityIssue.issue_type"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityIssue.severity" class="classattr">
                                 <div class="attr variable">
             <span class="name">severity</span><span class="annotation">: <a href="#SecurityRiskLevel">SecurityRiskLevel</a></span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityIssue.severity"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityIssue.description" class="classattr">
                                 <div class="attr variable">
             <span class="name">description</span><span class="annotation">: str</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityIssue.description"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityIssue.location" class="classattr">
                                 <div class="attr variable">
             <span class="name">location</span><span class="annotation">: str</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityIssue.location"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityIssue.details" class="classattr">
                                 <div class="attr variable">
             <span class="name">details</span><span class="annotation">: dict[str, typing.Any]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityIssue.details"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityIssue.timestamp" class="classattr">
@@ -982,17 +982,17 @@
             <span class="name">timestamp</span><span class="annotation">: datetime.datetime | None</span>        =
 <span class="default_value">None</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityIssue.timestamp"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityIssue.to_dict" class="classattr">
                                         <input id="SecurityIssue.to_dict-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">to_dict</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -1018,7 +1018,7 @@
                 <section id="SecurityValidator">
                             <input id="SecurityValidator-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">SecurityValidator</span>:
 
@@ -1476,7 +1476,7 @@
                             <div id="SecurityValidator.__init__" class="classattr">
                                         <input id="SecurityValidator.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">SecurityValidator</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">enable_logging</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span>)</span>
 
                 <label class="view-source-button" for="SecurityValidator.__init__-view-source"><span>View Source</span></label>
@@ -1591,127 +1591,127 @@
                                 <div class="attr variable">
             <span class="name">enable_logging</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.enable_logging"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.issues" class="classattr">
                                 <div class="attr variable">
             <span class="name">issues</span><span class="annotation">: list[<a href="#SecurityIssue">SecurityIssue</a>]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.issues"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.sensitive_patterns" class="classattr">
                                 <div class="attr variable">
             <span class="name">sensitive_patterns</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.sensitive_patterns"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.sensitive_exact_patterns" class="classattr">
                                 <div class="attr variable">
             <span class="name">sensitive_exact_patterns</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.sensitive_exact_patterns"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.hidden_instruction_patterns" class="classattr">
                                 <div class="attr variable">
             <span class="name">hidden_instruction_patterns</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.hidden_instruction_patterns"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.suspicious_parameters" class="classattr">
                                 <div class="attr variable">
             <span class="name">suspicious_parameters</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.suspicious_parameters"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.tool_shadowing_patterns" class="classattr">
                                 <div class="attr variable">
             <span class="name">tool_shadowing_patterns</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.tool_shadowing_patterns"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.sensitive_regex" class="classattr">
                                 <div class="attr variable">
             <span class="name">sensitive_regex</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.sensitive_regex"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.sensitive_exact_regex" class="classattr">
                                 <div class="attr variable">
             <span class="name">sensitive_exact_regex</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.sensitive_exact_regex"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.hidden_instruction_regex" class="classattr">
                                 <div class="attr variable">
             <span class="name">hidden_instruction_regex</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.hidden_instruction_regex"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.tool_shadowing_regex" class="classattr">
                                 <div class="attr variable">
             <span class="name">tool_shadowing_regex</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityValidator.tool_shadowing_regex"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityValidator.validate_tool_description" class="classattr">
                                         <input id="SecurityValidator.validate_tool_description-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_tool_description</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">description</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#SecurityIssue">SecurityIssue</a></span><span class="p">]</span>:</span></span>
 
@@ -1821,7 +1821,7 @@
                             <div id="SecurityValidator.validate_tool_schema" class="classattr">
                                         <input id="SecurityValidator.validate_tool_schema-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_tool_schema</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#SecurityIssue">SecurityIssue</a></span><span class="p">]</span>:</span></span>
 
@@ -1917,7 +1917,7 @@
                             <div id="SecurityValidator.validate_tool_arguments" class="classattr">
                                         <input id="SecurityValidator.validate_tool_arguments-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_tool_arguments</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">arguments</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#SecurityIssue">SecurityIssue</a></span><span class="p">]</span>:</span></span>
 
@@ -2015,7 +2015,7 @@
                             <div id="SecurityValidator.validate_server_configuration" class="classattr">
                                         <input id="SecurityValidator.validate_server_configuration-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_server_configuration</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#SecurityIssue">SecurityIssue</a></span><span class="p">]</span>:</span></span>
 
@@ -2095,7 +2095,7 @@
                             <div id="SecurityValidator.get_security_summary" class="classattr">
                                         <input id="SecurityValidator.get_security_summary-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_security_summary</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2149,7 +2149,7 @@
                             <div id="SecurityValidator.clear_issues" class="classattr">
                                         <input id="SecurityValidator.clear_issues-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">clear_issues</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -2172,7 +2172,7 @@
                 <section id="SecurityMonitor">
                             <input id="SecurityMonitor-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">SecurityMonitor</span>:
 
@@ -2266,7 +2266,7 @@
                             <div id="SecurityMonitor.__init__" class="classattr">
                                         <input id="SecurityMonitor.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">SecurityMonitor</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">validator</span><span class="p">:</span> <span class="n"><a href="#SecurityValidator">SecurityValidator</a></span></span>)</span>
 
                 <label class="view-source-button" for="SecurityMonitor.__init__-view-source"><span>View Source</span></label>
@@ -2298,39 +2298,39 @@
                                 <div class="attr variable">
             <span class="name">validator</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityMonitor.validator"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityMonitor.monitoring_enabled" class="classattr">
                                 <div class="attr variable">
             <span class="name">monitoring_enabled</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityMonitor.monitoring_enabled"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityMonitor.alert_threshold" class="classattr">
                                 <div class="attr variable">
             <span class="name">alert_threshold</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityMonitor.alert_threshold"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityMonitor.monitor_tool_registration" class="classattr">
                                         <input id="SecurityMonitor.monitor_tool_registration-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">monitor_tool_registration</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">description</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#SecurityIssue">SecurityIssue</a></span><span class="p">]</span>:</span></span>
 
@@ -2368,7 +2368,7 @@
                             <div id="SecurityMonitor.monitor_tool_execution" class="classattr">
                                         <input id="SecurityMonitor.monitor_tool_execution-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">monitor_tool_execution</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">arguments</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#SecurityIssue">SecurityIssue</a></span><span class="p">]</span>:</span></span>
 
@@ -2404,7 +2404,7 @@
                             <div id="SecurityMonitor.get_security_metrics" class="classattr">
                                         <input id="SecurityMonitor.get_security_metrics-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_security_metrics</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2435,7 +2435,7 @@
                             <div id="SecurityMonitor.set_alert_threshold" class="classattr">
                                         <input id="SecurityMonitor.set_alert_threshold-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">set_alert_threshold</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">threshold</span><span class="p">:</span> <span class="n"><a href="#SecurityRiskLevel">SecurityRiskLevel</a></span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -2457,7 +2457,7 @@
                             <div id="SecurityMonitor.enable_monitoring" class="classattr">
                                         <input id="SecurityMonitor.enable_monitoring-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">enable_monitoring</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -2479,7 +2479,7 @@
                             <div id="SecurityMonitor.disable_monitoring" class="classattr">
                                         <input id="SecurityMonitor.disable_monitoring-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">disable_monitoring</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 

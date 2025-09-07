@@ -219,7 +219,8 @@ def get_error_handling_config(config_path: str | None = None) -> ErrorHandlingCo
                 valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
                 if not isinstance(value, str) or value.upper() not in valid_levels:
                     raise ConfigError(
-                        f"Invalid log_level value: {value}. Must be one of: {', '.join(valid_levels)}"
+                        f"Invalid log_level value: {value}. "
+                        f"Must be one of: {', '.join(valid_levels)}"
                     )
                 custom_config.logging["log_level"] = value.upper()
 

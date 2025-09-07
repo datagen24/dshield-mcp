@@ -206,7 +206,7 @@ class TestConnectionPanelIntegration:
             # Post the disconnect message directly (this is what the button click does)
             disconnect_msg = ConnectionDisconnect(connection_panel.selected_connection)
             capture_message(disconnect_msg)
-        
+
         # Verify ConnectionDisconnect message was emitted
         assert len(emitted_messages) == 1
         assert isinstance(emitted_messages[0], ConnectionDisconnect)

@@ -365,7 +365,8 @@ class StatisticalAnalysisTools:
 
                     if "count" in stats_data and stats_data["count"] > 0:
                         # Extract percentiles for IQR calculation
-                        # Note: Elasticsearch stats aggregation doesn't provide percentiles by default
+                        # Note: Elasticsearch stats aggregation doesn't provide percentiles
+                        # by default
                         # We'd need to use percentiles aggregation for full IQR analysis
                         mean = stats_data.get("avg", 0)
                         min_val = stats_data.get("min", 0)

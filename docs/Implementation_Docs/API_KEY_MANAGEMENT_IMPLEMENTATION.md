@@ -81,23 +81,23 @@ class BaseSecretsManager(ABC):
     @abstractmethod
     async def store_api_key(self, api_key: APIKey) -> bool:
         pass
-    
+
     @abstractmethod
     async def retrieve_api_key(self, key_id: str) -> Optional[APIKey]:
         pass
-    
+
     @abstractmethod
     async def list_api_keys(self) -> List[APIKey]:
         pass
-    
+
     @abstractmethod
     async def delete_api_key(self, key_id: str) -> bool:
         pass
-    
+
     @abstractmethod
     async def update_api_key(self, api_key: APIKey) -> bool:
         pass
-    
+
     @abstractmethod
     async def health_check(self) -> bool:
         pass
@@ -112,7 +112,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
     def __init__(self, vault: str) -> None:
         self.vault = vault
         self._verify_op_cli()
-    
+
     async def store_api_key(self, api_key: APIKey) -> bool:
         # Create structured item in 1Password
         item_data = {
@@ -127,7 +127,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
                 # ... other fields
             ]
         }
-        
+
         # Use op CLI to create item
         return self._run_op_command(['item', 'create', '--vault', self.vault, json.dumps(item_data)])
 ```
@@ -144,8 +144,8 @@ class ConnectionManager:
         )
         # Load existing keys on startup
         asyncio.create_task(self._load_api_keys())
-    
-    async def generate_api_key(self, name: str, permissions: Optional[Dict[str, Any]] = None, 
+
+    async def generate_api_key(self, name: str, permissions: Optional[Dict[str, Any]] = None,
                               expiration_days: Optional[int] = None, rate_limit: Optional[int] = None) -> Optional[APIKey]:
         # Generate key using the API key manager
         key_value = await self.api_key_manager.generate_api_key(
@@ -154,7 +154,7 @@ class ConnectionManager:
             expiration_days=expiration_days,
             rate_limit=rate_limit
         )
-        
+
         if key_value:
             # Retrieve full key info and create local APIKey instance
             key_info = await self.api_key_manager.validate_api_key(key_value)
@@ -168,7 +168,7 @@ class ConnectionManager:
                 # Store in memory cache
                 self.api_keys[key_value] = api_key
                 return api_key
-        
+
         return None
 ```
 
@@ -181,20 +181,20 @@ class APIKeyGenerationScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         with Container(id="api-key-dialog"):
             yield Static("Generate API Key", id="title")
-            
+
             with Vertical(id="form-container"):
                 yield Label("Key Name:")
                 yield Input(placeholder="Enter a name for this API key", id="key-name")
-                
+
                 yield Label("Permissions:")
                 with Vertical(id="permissions-container"):
                     yield Checkbox("Read Tools", id="perm-read", value=True)
                     yield Checkbox("Write Back", id="perm-write")
                     yield Checkbox("Admin Access", id="perm-admin")
-                
+
                 yield Label("Rate Limit (requests per minute):")
                 yield Input(placeholder="60", id="rate-limit", value="60")
-                
+
                 yield Label("Expiration:")
                 yield Select([
                     ("30 days", 30),
@@ -202,7 +202,7 @@ class APIKeyGenerationScreen(ModalScreen):
                     ("1 year", 365),
                     ("Never", None)
                 ], prompt="Select expiration period", id="expiration")
-            
+
             with Horizontal(id="button-container"):
                 yield Button("Generate", id="generate-btn", variant="primary")
                 yield Button("Cancel", id="cancel-btn", variant="default")

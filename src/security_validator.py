@@ -406,7 +406,8 @@ class SecurityValidator:
                                 details={
                                     "environment_variable": env_var_name,
                                     "sensitive_pattern": sensitive_pattern,
-                                    "recommendation": "Use environment variables or secure secret management",
+                                    "recommendation": "Use environment variables or secure secret "
+                                    "management",
                                 },
                             )
                         )
@@ -424,7 +425,8 @@ class SecurityValidator:
                         location="config:command",
                         details={
                             "command": command,
-                            "recommendation": "Use specific executable paths instead of shell commands",
+                            "recommendation": "Use specific executable paths instead of shell "
+                            "commands",
                         },
                     )
                 )
@@ -488,7 +490,8 @@ class SecurityValidator:
 
                 logger.log(
                     log_level,
-                    f"Security issue detected: {issue.issue_type} - {issue.description} at {issue.location}",
+                    f"Security issue detected: {issue.issue_type} - {issue.description} at "
+                    f"{issue.location}",
                 )
 
 

@@ -434,7 +434,8 @@ class InputValidator:
             if len(value) > self.max_field_length:
                 raise SecurityViolation(
                     "PARAM_VALUE_TOO_LONG",
-                    f"Parameter value at '{path}' exceeds maximum length of {self.max_field_length}",
+                    f"Parameter value at '{path}' exceeds maximum length of "
+                    f"{self.max_field_length}",
                     {"path": path, "value_length": len(value)},
                 )
         elif isinstance(value, dict | list):

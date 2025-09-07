@@ -882,7 +882,9 @@ class TestEventParsing:
                         event['description'] = f"Request with user agent: {user_agent[:50]}..."
                     else:
                         event['description'] = (
-                            f"{event['event_type']} event from {event['source_ip'] or 'unknown'} to {event['destination_ip'] or 'unknown'}"
+                            f"{event['event_type']} event from "
+                            f"{event['source_ip'] or 'unknown'} to "
+                            f"{event['destination_ip'] or 'unknown'}"
                         )
 
                 # Derive protocol from HTTP fields if not directly available
@@ -962,7 +964,8 @@ class TestEventParsing:
                 'http.request.method': 'POST',
                 'http.response.status_code': 401,
                 'http.version': '1.1',
-                'user_agent.original': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'user_agent.original': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                'AppleWebKit/537.36',
             },
         }
 

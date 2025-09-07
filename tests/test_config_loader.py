@@ -1,9 +1,8 @@
 """Tests for config_loader module."""
 
-import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from src.config_loader import get_config, get_error_handling_config, ConfigError
+from src.config_loader import ConfigError, get_config, get_error_handling_config
 
 
 class TestConfigFunctions:
@@ -21,11 +20,7 @@ class TestConfigFunctions:
     @patch('builtins.open')
     def test_get_error_handling_config(self, mock_open, mock_yaml) -> None:
         """Test get_error_handling_config function."""
-        mock_yaml.return_value = {
-            "error_handling": {
-                "timeouts": {"tool_execution": 30}
-            }
-        }
+        mock_yaml.return_value = {"error_handling": {"timeouts": {"tool_execution": 30}}}
         config = get_error_handling_config("test.yaml")
         assert config is not None
 

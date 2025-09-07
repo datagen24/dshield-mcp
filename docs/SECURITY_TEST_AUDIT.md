@@ -12,7 +12,7 @@
 ### 2. **Meaningless Performance Test**
 **Problem**: `test_security_manager_performance` just calls methods without validation
 - **Claims to test**: Performance under load
-- **Actually tests**: Nothing - ends with `assert True`  
+- **Actually tests**: Nothing - ends with `assert True`
 - **Should test**: Actual performance metrics, memory usage, or rate limiting under load
 
 ### 3. **Wrong Message Validation**
@@ -71,7 +71,7 @@ Current "36% coverage" is misleading because:
 ## 🔧 **FIX STRATEGY**
 
 1. **Read actual implementation** before writing tests
-2. **Use real objects** instead of mocks where possible  
+2. **Use real objects** instead of mocks where possible
 3. **Test actual behavior** not expected behavior
 4. **Verify internal state changes** not just return values
 5. **Test error conditions** with real error inputs

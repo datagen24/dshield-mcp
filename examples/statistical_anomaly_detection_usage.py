@@ -26,13 +26,16 @@ async def example_basic_anomaly_detection() -> None:
         if result["success"]:
             print("✅ Anomaly detection completed successfully!")
             print(
-                f"📊 Total anomalies detected: {result['anomaly_analysis']['summary']['total_anomalies_detected']}"
+                f"📊 Total anomalies detected: "
+                f"{result['anomaly_analysis']['summary']['total_anomalies_detected']}"
             )
             print(
-                f"🔍 Methods used: {', '.join(result['anomaly_analysis']['summary']['methods_applied'])}"
+                f"🔍 Methods used: "
+                f"{', '.join(result['anomaly_analysis']['summary']['methods_applied'])}"
             )
             print(
-                f"⚙️ Sensitivity threshold: {result['anomaly_analysis']['summary']['sensitivity_threshold']}"
+                f"⚙️ Sensitivity threshold: "
+                f"{result['anomaly_analysis']['summary']['sensitivity_threshold']}"
             )
 
             # Show risk assessment
@@ -81,7 +84,8 @@ async def example_custom_anomaly_detection() -> None:
         if result["success"]:
             print("\n✅ Custom anomaly detection completed successfully!")
             print(
-                f"📊 Total anomalies detected: {result['anomaly_analysis']['summary']['total_anomalies_detected']}"
+                f"📊 Total anomalies detected: "
+                f"{result['anomaly_analysis']['summary']['total_anomalies_detected']}"
             )
 
             # Show detailed results by method
@@ -98,13 +102,15 @@ async def example_custom_anomaly_detection() -> None:
             if patterns.get('method_agreement'):
                 agreement = patterns['method_agreement']
                 print(
-                    f"\n🤝 Method Agreement: {agreement['agreement_level']} ({agreement['total_methods']} methods)"
+                    f"\n🤝 Method Agreement: {agreement['agreement_level']} "
+                    f"({agreement['total_methods']} methods)"
                 )
 
             if patterns.get('field_concentration'):
                 concentration = patterns['field_concentration']
                 print(
-                    f"\n🎯 Field Concentration: {concentration['total_fields_with_anomalies']} fields have anomalies"
+                    f"\n🎯 Field Concentration: "
+                    f"{concentration['total_fields_with_anomalies']} fields have anomalies"
                 )
                 if concentration.get('most_anomalous_fields'):
                     print("   • Most anomalous fields:")

@@ -43,7 +43,7 @@
    # Linux/macOS
    chmod +x setup_venv.sh
    ./setup_venv.sh
-   
+
    # Windows
    setup_venv.bat
    ```
@@ -201,4 +201,4 @@ After installation:
 
 ---
 
-**DShield MCP v1.0** - Enhanced security analysis with AI-powered threat intelligence 
+**DShield MCP v1.0** - Enhanced security analysis with AI-powered threat intelligence

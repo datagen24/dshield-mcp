@@ -35,7 +35,8 @@ class ElasticsearchClient:
 
         New config option:
             - 'compatibility_mode' (bool, default: false):
-                If true, sets compatibility_mode=True on the Elasticsearch Python client (for ES 8.x servers).
+                If true, sets compatibility_mode=True on the Elasticsearch Python client
+                (for ES 8.x servers).
 
         """
         self.client: AsyncElasticsearch | None = None
@@ -111,7 +112,8 @@ class ElasticsearchClient:
             self.dshield_indices.extend(patterns.get(group, []))
         self.fallback_indices = patterns.get("fallback", [])
 
-        # DShield specific field mappings - updated to match actual available fields from Elasticsearch
+        # DShield specific field mappings - updated to match actual available fields
+        # from Elasticsearch
         self.dshield_field_mappings = {
             "timestamp": ["@timestamp", "timestamp", "time", "date", "event.ingested"],
             "source_ip": [
@@ -378,7 +380,8 @@ class ElasticsearchClient:
                 **ssl_options,
             )
 
-            # Only add compatibility_mode if the client supports it (>=8.7.0) and the argument exists
+            # Only add compatibility_mode if the client supports it (>=8.7.0)
+            # and the argument exists
             try:
                 es_version_raw = getattr(es_module, "__version__", "0.0.0")
                 if isinstance(es_version_raw, tuple):
@@ -410,7 +413,8 @@ class ElasticsearchClient:
                     logger.debug("Added compatibility_mode to client kwargs")
                 elif self.compatibility_mode and not compat_mode_supported:
                     logger.warning(
-                        "compatibility_mode requested but not supported by this elasticsearch client version or class signature"
+                        "compatibility_mode requested but not supported by this elasticsearch "
+                        "client version or class signature"
                     )
             except Exception as e:
                 logger.error(
@@ -546,7 +550,8 @@ class ElasticsearchClient:
             # Step 2: Apply optimizations if needed
             if estimated_size_mb > max_result_size_mb:
                 logger.warning(
-                    f"Estimated size ({estimated_size_mb:.2f} MB) exceeds limit ({max_result_size_mb} MB)"
+                    f"Estimated size ({estimated_size_mb:.2f} MB) exceeds limit "
+                    f"({max_result_size_mb} MB)"
                 )
 
                 # Try field reduction first
@@ -587,7 +592,8 @@ class ElasticsearchClient:
                 # If still too large, apply fallback strategy
                 if estimated_size_mb > max_result_size_mb:
                     logger.warning(
-                        f"Query still too large after optimizations, applying fallback: {fallback_strategy}"
+                        f"Query still too large after optimizations, applying fallback: "
+                        f"{fallback_strategy}"
                     )
                     return await self._apply_fallback_strategy(
                         fallback_strategy,
@@ -1038,7 +1044,8 @@ class ElasticsearchClient:
                             "source_ip": bucket["key"],
                             "event_type": "aggregation",
                             "category": ["summary", "source_analysis"],
-                            "description": f"Top source IP: {bucket['key']} with {bucket['doc_count']} events",
+                            "description": f"Top source IP: {bucket['key']} with "
+                            f"{bucket['doc_count']} events",
                             "raw_data": {
                                 "aggregation_type": "top_sources",
                                 "doc_count": bucket["doc_count"],
@@ -1055,7 +1062,8 @@ class ElasticsearchClient:
                             "destination_port": bucket["key"],
                             "event_type": "aggregation",
                             "category": ["summary", "destination_analysis"],
-                            "description": f"Top destination port: {bucket['key']} with {bucket['doc_count']} events",
+                            "description": f"Top destination port: {bucket['key']} with "
+                            f"{bucket['doc_count']} events",
                             "raw_data": {
                                 "aggregation_type": "top_destinations",
                                 "doc_count": bucket["doc_count"],
@@ -1162,7 +1170,8 @@ class ElasticsearchClient:
                 "sort_order": sort_order,
                 "optimization_applied": optimization_applied,
                 "fallback_strategy": strategy,
-                "note": f"Sample of {len(events)} events from {total_count} total (dataset too large)",
+                "note": f"Sample of {len(events)} events from {total_count} total "
+                f"(dataset too large)",
             }
 
             return events, total_count, pagination_info
@@ -2085,7 +2094,8 @@ class ElasticsearchClient:
                 elif user_agent:
                     description = f"Request with user agent: {str(user_agent)[:50]}..."
                 else:
-                    description = f"{event_type} event from {source_ip or 'unknown'} to {destination_ip or 'unknown'}"
+                    description = f"{event_type} event from {source_ip or 'unknown'} to "
+                    f"{destination_ip or 'unknown'}"
 
             # Extract protocol using DShield field mappings
             protocol = self._extract_field_mapped(source, "protocol")
@@ -2167,7 +2177,8 @@ class ElasticsearchClient:
     ) -> Any:
         """Extract field value using DShield field mappings.
 
-        Supports dot notation for both top-level and nested fields. Attempts to map the requested field type
+        Supports dot notation for both top-level and nested fields. Attempts to map the
+        requested field type
         to the correct field in the source document using the DShield field mapping configuration.
 
         Args:
@@ -2308,7 +2319,8 @@ class ElasticsearchClient:
             total_count: Total number of results available
 
         Returns:
-            Dictionary containing pagination metadata, including current page, total pages, and navigation info
+            Dictionary containing pagination metadata, including current page, total pages,
+            and navigation info
 
         """
         total_pages = (total_count + page_size - 1) // page_size
@@ -2690,8 +2702,10 @@ class ElasticsearchClient:
             filters: Additional query filters to apply
             fields: Specific fields to return (reduces payload size)
             chunk_size: Number of events per chunk (default: 500, max: 1000)
-            session_fields: Fields to use for session grouping (default: ['source.ip', 'destination.ip', 'user.name', 'session.id'])
-            max_session_gap_minutes: Maximum time gap within a session before starting new session (default: 30)
+            session_fields: Fields to use for session grouping
+                (default: ['source.ip', 'destination.ip', 'user.name', 'session.id'])
+            max_session_gap_minutes: Maximum time gap within a session before starting
+                new session (default: 30)
             include_session_summary: Include session metadata in response (default: True)
             stream_id: Resume streaming from specific point
 
@@ -2932,7 +2946,8 @@ class ElasticsearchClient:
             session_context["performance_metrics"] = performance_metrics
 
             logger.info(
-                f"Streamed {len(events)} events in {sessions_in_chunk} sessions from {len(indices)} indices",
+                f"Streamed {len(events)} events in {sessions_in_chunk} sessions from "
+                f"{len(indices)} indices",
                 total_count=total_count,
                 chunk_size=chunk_size,
                 stream_id=stream_id,

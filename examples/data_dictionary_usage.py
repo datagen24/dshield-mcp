@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Example usage of the DShield Data Dictionary functionality.
+
 This demonstrates how the data dictionary helps models understand DShield data.
 """
 
@@ -35,7 +36,7 @@ async def demonstrate_data_dictionary():
     # Show a few key fields
     key_fields = ["source_ip", "reputation_score", "attack_count", "country"]
     for field in key_fields:
-        for category, fields in field_descriptions.items():
+        for _category, fields in field_descriptions.items():
             if field in fields:
                 field_info = fields[field]
                 print(f"• {field}: {field_info['description']}")
@@ -102,7 +103,8 @@ async def demonstrate_data_dictionary():
         "analysis_guidelines": DataDictionary.get_analysis_guidelines(),
     }
     print(
-        f"Complete data dictionary available in JSON format ({len(json.dumps(json_data))} characters)"
+        f"Complete data dictionary available in JSON format "
+        f"({len(json.dumps(json_data))} characters)"
     )
     print("This can be used by applications to build dynamic queries and analysis tools.")
     print()
@@ -115,22 +117,27 @@ def show_usage_scenarios():
     scenarios = [
         {
             "title": "Model Initialization",
-            "description": "When a model first connects to the DShield MCP server, it receives the data dictionary as part of the initialization, helping it understand the available data structure.",
+            "description": "When a model first connects to the DShield MCP server, it receives "
+            "the data dictionary as part of the initialization, helping it understand the "
+            "available data structure.",
             "benefit": "Reduces trial and error in query formulation",
         },
         {
             "title": "Dynamic Query Building",
-            "description": "Applications can use the JSON format to dynamically build queries based on available fields and patterns.",
+            "description": "Applications can use the JSON format to dynamically build queries "
+            "based on available fields and patterns.",
             "benefit": "Enables intelligent query construction",
         },
         {
             "title": "Threat Analysis",
-            "description": "Analysts can use the correlation rules and threat levels to prioritize investigations and responses.",
+            "description": "Analysts can use the correlation rules and threat levels to "
+            "prioritize investigations and responses.",
             "benefit": "Standardizes threat assessment and response",
         },
         {
             "title": "Training and Documentation",
-            "description": "The data dictionary serves as comprehensive documentation for new team members and automated systems.",
+            "description": "The data dictionary serves as comprehensive documentation for new "
+            "team members and automated systems.",
             "benefit": "Accelerates onboarding and reduces errors",
         },
     ]

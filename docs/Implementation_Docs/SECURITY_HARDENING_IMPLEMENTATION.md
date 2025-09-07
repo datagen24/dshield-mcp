@@ -27,32 +27,32 @@ class MCPSchemaValidator:
         self.request_validator = jsonschema.Draft7Validator(MCP_REQUEST_SCHEMA)
         self.response_validator = jsonschema.Draft7Validator(MCP_RESPONSE_SCHEMA)
         self.notification_validator = jsonschema.Draft7Validator(MCP_NOTIFICATION_SCHEMA)
-        
+
         # Tool-specific parameter validators
         self.tool_validators = {}
         for tool_name, schema in TOOL_PARAMETER_SCHEMAS.items():
             self.tool_validators[tool_name] = jsonschema.Draft7Validator(schema)
-    
+
     def validate_complete_message(self, message: str) -> Optional[Dict[str, Any]]:
         """Perform complete message validation."""
         # Check message size
         if not self.validate_message_size(message):
             return None
-        
+
         # Parse and validate JSON structure
         parsed = self.validate_json_structure(message)
         if parsed is None:
             return None
-        
+
         # Validate against MCP protocol schemas
         if not self._validate_protocol_message(parsed):
             return None
-        
+
         # Validate tool parameters if applicable
         if self._is_tool_call(parsed):
             if not self.validate_tool_parameters(parsed["method"], parsed["params"]):
                 return None
-        
+
         return parsed
 ```
 
@@ -85,20 +85,20 @@ class APIKeyRateLimiter:
         self.rate_limiters: Dict[str, RateLimiter] = {}
         self.blocked_keys: Set[str] = set()
         self.lock = asyncio.Lock()
-    
+
     async def is_allowed(self, key_id: str) -> bool:
         """Check if a request is allowed for an API key."""
         # Check if key is blocked
         if key_id in self.blocked_keys:
             return False
-        
+
         # Get or create rate limiter
         if key_id not in self.rate_limiters:
             self.rate_limiters[key_id] = RateLimiter(10)  # Conservative default
-        
+
         rate_limiter = self.rate_limiters[key_id]
         return await rate_limiter.is_allowed()
-    
+
     async def block_key(self, key_id: str, reason: str = "Manual block") -> None:
         """Block an API key from making requests."""
         async with self.lock:
@@ -134,7 +134,7 @@ async def validate_api_key(self, key_value: str) -> Optional[APIKey]:
     """Validate an API key with comprehensive security checks."""
     # First check the in-memory cache
     api_key = self.api_keys.get(key_value)
-    
+
     if api_key is None:
         # Try to validate using the API key manager
         key_info = await self.api_key_manager.validate_api_key(key_value)
@@ -146,24 +146,24 @@ async def validate_api_key(self, key_value: str) -> Optional[APIKey]:
                 permissions=key_info["permissions"],
                 expires_days=90
             )
-            
+
             # Update timestamps
             api_key.created_at = key_info["created_at"]
             if key_info["expires_at"]:
                 api_key.expires_at = key_info["expires_at"]
-            
+
             # Store in memory cache
             self.api_keys[key_value] = api_key
         else:
             return None
-    
+
     # Check if expired
     if not api_key.is_valid():
         return None
-    
+
     # Update usage statistics
     api_key.update_usage()
-    
+
     return api_key
 ```
 
@@ -187,22 +187,22 @@ async def validate_message_security(self, message: str, connection_id: Optional[
     if not await self.global_rate_limiter.is_allowed():
         wait_time = await self.global_rate_limiter.get_wait_time()
         return self.create_rate_limit_error("global", retry_after=wait_time)
-    
+
     # Connection rate limiting
     if connection_id and not await self.connection_rate_limiter.is_allowed(connection_id):
         wait_time = await self.connection_rate_limiter.get_wait_time()
         return self.create_rate_limit_error("connection", retry_after=wait_time)
-    
+
     # API key rate limiting
     if api_key_id and not await self.api_key_rate_limiter.is_allowed(api_key_id):
         wait_time = await self.api_key_rate_limiter.get_wait_time()
         return self.create_rate_limit_error("api_key", retry_after=wait_time)
-    
+
     # Schema validation
     parsed_message = self.schema_validator.validate_complete_message(message)
     if parsed_message is None:
         return self.create_schema_validation_error("Invalid message format or content")
-    
+
     return None
 ```
 
@@ -234,7 +234,7 @@ def test_oversized_message(self, validator: MCPSchemaValidator) -> None:
         "method": "test",
         "params": {"data": large_data}
     })
-    
+
     result = validator.validate_complete_message(large_message)
     assert result is None
 
@@ -246,7 +246,7 @@ def test_sql_injection_attempts(self, validator: MCPSchemaValidator) -> None:
         "admin'--",
         "1' UNION SELECT * FROM users--"
     ]
-    
+
     for injection in sql_injection_tests:
         sanitized = validator.sanitize_string_input(injection)
         assert "DROP" not in sanitized.upper()
@@ -275,13 +275,13 @@ Comprehensive tests for rate limiting functionality.
 async def test_api_key_rate_limiting(self, api_key_limiter: APIKeyRateLimiter) -> None:
     """Test rate limiting for individual API keys."""
     key_id = "test_key_123"
-    
+
     await api_key_limiter.create_rate_limiter(key_id, requests_per_minute=2)
-    
+
     # First two requests should be allowed
     assert await api_key_limiter.is_allowed(key_id) is True
     assert await api_key_limiter.is_allowed(key_id) is True
-    
+
     # Third request should be denied
     assert await api_key_limiter.is_allowed(key_id) is False
 
@@ -290,16 +290,16 @@ async def test_burst_handling_under_load(self) -> None:
     """Test burst handling under concurrent load."""
     limiter = APIKeyRateLimiter()
     key_id = "burst_key"
-    
+
     await limiter.create_rate_limiter(key_id, requests_per_minute=100, burst_size=5)
-    
+
     # Simulate concurrent requests
     async def make_request():
         return await limiter.is_allowed(key_id)
-    
+
     tasks = [make_request() for _ in range(10)]
     results = await asyncio.gather(*tasks)
-    
+
     # Only 5 should be allowed (burst size)
     allowed_count = sum(results)
     assert allowed_count == 5
@@ -326,7 +326,7 @@ Comprehensive tests for authentication edge cases and security scenarios.
 async def test_expired_key_rejection(self, connection_manager: ConnectionManager, expired_api_key: APIKey) -> None:
     """Test that expired keys are immediately rejected."""
     mock_secrets_manager.list_api_keys.return_value = [expired_api_key]
-    
+
     result = await connection_manager.validate_api_key(expired_api_key.key_value)
     assert result is None
 
@@ -336,11 +336,11 @@ async def test_key_revocation_session_termination(self, connection_manager: Conn
     mock_connection = Mock()
     mock_connection.api_key = valid_api_key
     mock_connection.close = AsyncMock()
-    
+
     connection_manager.connections.add(mock_connection)
-    
+
     await connection_manager.delete_api_key(valid_api_key.key_id)
-    
+
     mock_connection.close.assert_called_once()
     assert mock_connection not in connection_manager.connections
 ```
@@ -367,7 +367,7 @@ security:
     max_nesting_depth: 100
     enable_sql_injection_protection: true
     enable_xss_protection: true
-  
+
   rate_limiting:
     global:
       requests_per_minute: 1000
@@ -377,7 +377,7 @@ security:
     connection:
       default_requests_per_minute: 100
       burst_size_multiplier: 1.0
-  
+
   authentication:
     enable_key_expiration_check: true
     enable_session_termination: true
@@ -395,7 +395,7 @@ All security events are logged with structured logging for monitoring and analys
 self.logger.warning("Rate limit exceeded for API key", key_id=key_id)
 
 # Security violations
-self.logger.warning("Security violation detected", 
+self.logger.warning("Security violation detected",
                    violation_type="sql_injection",
                    input=malicious_input)
 

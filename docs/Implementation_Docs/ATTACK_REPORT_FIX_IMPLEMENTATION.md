@@ -68,7 +68,7 @@ def _calculate_time_range(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
             else:
                 # Skip non-datetime objects
                 continue
-    
+
     if timestamps:
         return {
             'start': min(timestamps),
@@ -155,7 +155,7 @@ This fix ensures that:
 
 - Consider adding timestamp validation at the data ingestion level
 - Monitor for other similar patterns in the codebase
-- Add logging for malformed timestamp data for debugging purposes 
+- Add logging for malformed timestamp data for debugging purposes
 
 ## Dependencies
 
@@ -196,4 +196,4 @@ events = [
 report = data_processor.generate_attack_report(events)
 print(report["time_range"])
 # Output: {'start': datetime.datetime(2025, 7, 6, 10, 0, tzinfo=datetime.timezone.utc), 'end': datetime.datetime(2025, 7, 6, 10, 0, tzinfo=datetime.timezone.utc)}
-``` 
+```

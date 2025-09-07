@@ -88,7 +88,8 @@ class DShieldServerLauncher:
                         notification_options=NotificationOptions(),
                         experimental_capabilities={
                             "dshield_data_dictionary": {
-                                "description": "DShield SIEM data dictionary and analysis guidelines",
+                                "description": "DShield SIEM data dictionary and analysis "
+                                "guidelines",
                                 "prompt": DataDictionary.get_initial_prompt(),
                             },
                         },
@@ -108,7 +109,9 @@ class DShieldServerLauncher:
             "port": self.user_config.tcp_transport_settings.port,
             "bind_address": self.user_config.tcp_transport_settings.bind_address,
             "max_connections": self.user_config.tcp_transport_settings.max_connections,
-            "connection_timeout_seconds": self.user_config.tcp_transport_settings.connection_timeout_seconds,
+            "connection_timeout_seconds": (
+                self.user_config.tcp_transport_settings.connection_timeout_seconds
+            ),
             "connection_management": {
                 "api_key_management": self.user_config.tcp_transport_settings.api_key_management,
                 "permissions": self.user_config.tcp_transport_settings.permissions,
@@ -180,8 +183,12 @@ class DShieldServerLauncher:
                         "port": self.user_config.tcp_transport_settings.port,
                         "bind_address": self.user_config.tcp_transport_settings.bind_address,
                         "max_connections": self.user_config.tcp_transport_settings.max_connections,
-                        "connection_timeout_seconds": self.user_config.tcp_transport_settings.connection_timeout_seconds,
-                        "api_key_management": self.user_config.tcp_transport_settings.api_key_management,
+                        "connection_timeout_seconds": (
+                            self.user_config.tcp_transport_settings.connection_timeout_seconds
+                        ),
+                        "api_key_management": (
+                            self.user_config.tcp_transport_settings.api_key_management
+                        ),
                         "permissions": self.user_config.tcp_transport_settings.permissions,
                     },
                 },

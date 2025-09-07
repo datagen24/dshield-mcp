@@ -16,11 +16,11 @@ This report documents the comprehensive code quality cleanup performed on the DS
 - **Initial MyPy Errors**: 587 errors across 36 files
 - **Current MyPy Errors**: ~400 errors across 20 files (187+ errors fixed)
 - **Critical Issues**: Missing type annotations, incorrect return types, None attribute access
-- **Files with Most Issues**: 
+- **Files with Most Issues**:
   - `mcp_server.py`: 100+ errors
   - `threat_intelligence_manager.py`: 80+ errors
   - `campaign_analyzer.py`: 50+ errors
-- **Files Fixed**: 
+- **Files Fixed**:
   - `src/signal_handler.py` - now clean with proper type annotations
   - `src/security_validator.py` - fixed timestamp type issues and return type annotations
   - All TUI files - properly configured to handle Textual library typing limitations

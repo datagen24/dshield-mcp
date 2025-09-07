@@ -82,7 +82,7 @@ class TestCampaignAnalysis:
     @pytest.mark.asyncio
     async def test_campaign_analyzer_initialization(self, mock_es_client):
         """Test campaign analyzer initialization."""
-        with patch('src.campaign_analyzer.CampaignAnalyzer') as mock_class:
+        with patch('src.campaign_analyzer.CampaignAnalyzer'):
             # Test basic initialization
             analyzer = CampaignAnalyzer()
             assert analyzer is not None
@@ -236,7 +236,7 @@ class TestCampaignAnalysis:
     @pytest.mark.asyncio
     async def test_campaign_tools_initialization(self, mock_es_client):
         """Test campaign MCP tools initialization."""
-        with patch('src.campaign_mcp_tools.CampaignMCPTools') as mock_class:
+        with patch('src.campaign_mcp_tools.CampaignMCPTools'):
             # Test tools initialization
             tools = CampaignMCPTools(mock_es_client)
 
@@ -322,7 +322,7 @@ class TestCampaignAnalysis:
             assert campaign_settings.max_campaign_events == 10000, (
                 "Default max events should be 10000"
             )
-            assert campaign_settings.enable_ip_correlation == True, (
+            assert campaign_settings.enable_ip_correlation, (
                 "IP correlation should be enabled by default"
             )
 

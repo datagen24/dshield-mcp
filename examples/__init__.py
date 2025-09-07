@@ -1,1 +1,1 @@
-# Examples package for DShield MCP
+"""Examples package for dshield-mcp project."""

@@ -51,16 +51,16 @@ Based on the DShield MCP project's current capabilities, this feature will lever
 ```python
 class CampaignAnalyzer:
     """Core campaign analysis and correlation engine"""
-    
+
     def correlate_events(self, seed_events, correlation_criteria, time_window):
         """Correlate events based on specified criteria"""
-        
+
     def expand_indicators(self, seed_iocs, expansion_strategy):
         """Expand IOCs to find related indicators"""
-        
+
     def build_campaign_timeline(self, correlated_events):
         """Build chronological timeline of campaign events"""
-        
+
     def score_campaign(self, campaign_data):
         """Score campaign based on sophistication and impact"""
 ```
@@ -93,7 +93,7 @@ class Campaign:
     attack_vectors: List[str]
     related_indicators: List[str]
     suspected_actor: Optional[str]
-    
+
 @dataclass
 class CampaignEvent:
     """Individual event within a campaign context"""
@@ -104,7 +104,7 @@ class CampaignEvent:
     attack_type: str
     indicators: List[str]
     confidence: float
-    
+
 @dataclass
 class IndicatorRelationship:
     """Relationship between indicators in a campaign"""
@@ -130,8 +130,8 @@ def analyze_campaign(
     max_events: int = 10000
 ) -> dict:
     """Analyze attack campaign from seed indicators"""
-    
-@mcp_tool("expand_campaign_indicators") 
+
+@mcp_tool("expand_campaign_indicators")
 def expand_campaign_indicators(
     campaign_id: str,
     expansion_depth: int = 2,
@@ -139,7 +139,7 @@ def expand_campaign_indicators(
     include_malware_families: bool = True
 ) -> dict:
     """Expand campaign indicators to find related IOCs"""
-    
+
 @mcp_tool("get_campaign_timeline")
 def get_campaign_timeline(
     campaign_id: str,
@@ -147,14 +147,14 @@ def get_campaign_timeline(
     include_annotations: bool = True
 ) -> dict:
     """Get detailed timeline of campaign events"""
-    
+
 @mcp_tool("compare_campaigns")
 def compare_campaigns(
     campaign_ids: List[str],
     comparison_criteria: List[str] = None
 ) -> dict:
     """Compare multiple campaigns for similarities"""
-    
+
 @mcp_tool("detect_ongoing_campaigns")
 def detect_ongoing_campaigns(
     time_window_hours: int = 24,
@@ -174,7 +174,7 @@ def search_campaigns(
     limit: int = 50
 ) -> dict:
     """Search existing campaigns by various criteria"""
-    
+
 @mcp_tool("get_campaign_details")
 def get_campaign_details(
     campaign_id: str,
@@ -204,13 +204,13 @@ def get_campaign_details(
 ```python
 class ThreatAttribution:
     """Threat actor attribution and profiling"""
-    
+
     def attribute_campaign(self, campaign_data):
         """Attempt to attribute campaign to known threat actors"""
-        
+
     def profile_threat_actor(self, campaigns):
         """Build threat actor profile from multiple campaigns"""
-        
+
     def compare_with_known_actors(self, campaign_ttps):
         """Compare campaign TTPs with known threat actor profiles"""
 ```
@@ -265,22 +265,22 @@ def correlate_campaign_events(seed_events, correlation_config):
     3. Tertiary correlation (behavioral similarity)
     4. Confidence scoring and filtering
     """
-    
+
     # Stage 1: Direct IOC matches
     direct_matches = find_direct_ioc_matches(seed_events)
-    
+
     # Stage 2: Infrastructure correlation
     infra_matches = correlate_infrastructure(direct_matches)
-    
+
     # Stage 3: Behavioral correlation
     behavioral_matches = correlate_behavior_patterns(infra_matches)
-    
+
     # Stage 4: Temporal correlation
     temporal_clusters = cluster_by_time_proximity(behavioral_matches)
-    
+
     # Stage 5: Confidence scoring
     scored_campaigns = score_campaign_confidence(temporal_clusters)
-    
+
     return filter_by_confidence(scored_campaigns, correlation_config.min_confidence)
 ```
 
@@ -288,31 +288,31 @@ def correlate_campaign_events(seed_events, correlation_config):
 ```python
 class CampaignAnalysisWorkflow:
     """End-to-end campaign analysis workflow"""
-    
+
     def analyze_from_seed(self, seed_indicators):
         """Complete campaign analysis from seed indicators"""
-        
+
         # 1. Validate and normalize indicators
         normalized_iocs = self.normalize_indicators(seed_indicators)
-        
+
         # 2. Find initial correlated events
         initial_events = self.find_related_events(normalized_iocs)
-        
+
         # 3. Expand indicators through correlation
         expanded_iocs = self.expand_indicators(initial_events)
-        
+
         # 4. Build complete event timeline
         campaign_timeline = self.build_timeline(expanded_iocs)
-        
+
         # 5. Analyze attack patterns
         attack_patterns = self.analyze_patterns(campaign_timeline)
-        
+
         # 6. Score and classify campaign
         campaign_score = self.score_campaign(attack_patterns)
-        
+
         # 7. Attempt threat actor attribution
         attribution = self.attribute_threat_actor(attack_patterns)
-        
+
         return Campaign(
             events=campaign_timeline,
             patterns=attack_patterns,
@@ -448,17 +448,17 @@ requirements.txt additions:
 ### Technical Risks
 1. **Performance**: Large campaigns may impact query performance
    - *Mitigation*: Implement streaming and pagination for large datasets
-   
+
 2. **False Positives**: Over-correlation may create false campaigns
    - *Mitigation*: Tunable confidence thresholds and validation
-   
+
 3. **Memory Usage**: Large correlation graphs may consume significant memory
    - *Mitigation*: Implement graph pruning and memory management
 
 ### Security Risks
 1. **Data Exposure**: Campaign analysis may reveal sensitive information
    - *Mitigation*: Implement access controls and data sanitization
-   
+
 2. **Attribution Accuracy**: Incorrect threat actor attribution
    - *Mitigation*: Clear confidence scoring and uncertainty indicators
 
@@ -477,8 +477,8 @@ This Campaign Analysis implementation will provide the DShield MCP project with 
 
 ---
 
-**Implementation Status**: Ready to begin  
-**Next Steps**: 
+**Implementation Status**: Ready to begin
+**Next Steps**:
 1. Review and approve campaign analysis implementation plan
 2. Set up development environment with required dependencies
 3. Begin Phase 1 development with core correlation engine

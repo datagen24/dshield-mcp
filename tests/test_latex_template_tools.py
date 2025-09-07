@@ -566,7 +566,8 @@ class TestLaTeXTemplateToolsErrorHandling:
 
     @pytest_asyncio.fixture
     async def latex_tools_with_error_handler(self, tmp_path: Path) -> LaTeXTemplateTools:
-        """Create LaTeXTemplateTools instance with error handler and temporary template directory."""
+        """Create LaTeXTemplateTools instance with error handler and temporary template
+        directory."""
         template_dir = tmp_path / "templates" / "Attack_Report"
         template_dir.mkdir(parents=True)
 

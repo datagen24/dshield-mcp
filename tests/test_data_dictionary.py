@@ -31,8 +31,8 @@ class TestDataDictionary:
             assert len(field_descriptions[category]) > 0
 
         # Verify field structure
-        for category, fields in field_descriptions.items():
-            for field_name, field_info in fields.items():
+        for _category, fields in field_descriptions.items():
+            for _field_name, field_info in fields.items():
                 assert isinstance(field_info, dict)
                 assert "description" in field_info
                 assert "type" in field_info
@@ -50,7 +50,7 @@ class TestDataDictionary:
         assert len(query_examples) > 0
 
         # Verify example structure
-        for example_name, example_info in query_examples.items():
+        for _example_name, example_info in query_examples.items():
             assert isinstance(example_info, dict)
             assert "description" in example_info
             assert "query_type" in example_info
@@ -77,7 +77,7 @@ class TestDataDictionary:
         # Verify attack patterns
         attack_patterns = data_patterns["attack_patterns"]
         assert isinstance(attack_patterns, dict)
-        for pattern_name, pattern_info in attack_patterns.items():
+        for _pattern_name, pattern_info in attack_patterns.items():
             assert isinstance(pattern_info, dict)
             assert "description" in pattern_info
             assert "indicators" in pattern_info
@@ -86,7 +86,7 @@ class TestDataDictionary:
         # Verify threat levels
         threat_levels = data_patterns["threat_levels"]
         assert isinstance(threat_levels, dict)
-        for level_name, level_info in threat_levels.items():
+        for _level_name, level_info in threat_levels.items():
             assert isinstance(level_info, dict)
             assert "reputation_score" in level_info
             assert "attack_count" in level_info
@@ -95,7 +95,7 @@ class TestDataDictionary:
         # Verify time patterns
         time_patterns = data_patterns["time_patterns"]
         assert isinstance(time_patterns, dict)
-        for pattern_name, pattern_info in time_patterns.items():
+        for _pattern_name, pattern_info in time_patterns.items():
             assert isinstance(pattern_info, dict)
             assert "description" in pattern_info
             assert "analysis" in pattern_info
@@ -117,7 +117,7 @@ class TestDataDictionary:
 
         # Verify correlation rules
         correlation_rules = analysis_guidelines["correlation_rules"]
-        for rule_name, rule_info in correlation_rules.items():
+        for _rule_name, rule_info in correlation_rules.items():
             assert isinstance(rule_info, dict)
             assert "description" in rule_info
             assert "action" in rule_info
@@ -125,7 +125,7 @@ class TestDataDictionary:
 
         # Verify response priorities
         response_priorities = analysis_guidelines["response_priorities"]
-        for priority_name, priority_info in response_priorities.items():
+        for _priority_name, priority_info in response_priorities.items():
             assert isinstance(priority_info, dict)
             assert "criteria" in priority_info
             assert "actions" in priority_info
@@ -247,7 +247,7 @@ class TestDataDictionary:
         assert len(attack_patterns) > 0
 
         # Verify attack patterns have required fields
-        for pattern_name, pattern_info in attack_patterns.items():
+        for _pattern_name, pattern_info in attack_patterns.items():
             assert "description" in pattern_info
             assert "indicators" in pattern_info
             assert "severity" in pattern_info
@@ -258,7 +258,7 @@ class TestDataDictionary:
         assert len(threat_levels) > 0
 
         # Verify threat level structure
-        for level_name, level_info in threat_levels.items():
+        for _level_name, level_info in threat_levels.items():
             assert "reputation_score" in level_info
             assert "attack_count" in level_info
             assert "description" in level_info
@@ -273,7 +273,7 @@ class TestDataDictionary:
         correlation_rules = analysis_guidelines["correlation_rules"]
         assert len(correlation_rules) > 0
 
-        for rule_name, rule_info in correlation_rules.items():
+        for _rule_name, rule_info in correlation_rules.items():
             assert "description" in rule_info
             assert "action" in rule_info
             assert "threshold" in rule_info or "pattern" in rule_info
@@ -282,7 +282,7 @@ class TestDataDictionary:
         response_priorities = analysis_guidelines["response_priorities"]
         assert len(response_priorities) > 0
 
-        for priority_name, priority_info in response_priorities.items():
+        for _priority_name, priority_info in response_priorities.items():
             assert "criteria" in priority_info
             assert "actions" in priority_info
             assert isinstance(priority_info["criteria"], list)
@@ -320,14 +320,15 @@ class TestDataDictionary:
                 for field_name in example_info["expected_fields"]:
                     # Check if field exists in any category
                     field_found = False
-                    for category, fields in field_descriptions.items():
+                    for _category, fields in field_descriptions.items():
                         if field_name in fields:
                             field_found = True
                             break
                     # Some fields might be derived or computed, so we'll log but not fail
                     if not field_found:
                         print(
-                            f"Warning: Field '{field_name}' from query example '{example_name}' not found in field descriptions"
+                            f"Warning: Field '{field_name}' from query example "
+                            f"'{example_name}' not found in field descriptions"
                         )
 
         # Test that threat levels in data patterns are consistent

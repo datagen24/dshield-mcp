@@ -734,6 +734,6 @@ curl -X GET "http://localhost:8000/health/latex"
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: 2025-08-29  
+**Version**: 1.0
+**Last Updated**: 2025-08-29
 **Related Issue**: #58 - JSON-RPC Error Handling Implementation

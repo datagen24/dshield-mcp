@@ -1,9 +1,8 @@
 """Tests for models module."""
 
-import pytest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from src.models import SecurityEvent, EventSeverity, EventCategory
+from src.models import EventCategory, EventSeverity, SecurityEvent
 
 
 class TestSecurityEvent:
@@ -13,12 +12,12 @@ class TestSecurityEvent:
         """Test basic security event creation."""
         event = SecurityEvent(
             id="event-123",
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             event_type="attack",
             severity=EventSeverity.HIGH,
-            description="Suspicious activity detected"
+            description="Suspicious activity detected",
         )
-        
+
         assert event.id == "event-123"
         assert event.event_type == "attack"
         assert event.severity == EventSeverity.HIGH

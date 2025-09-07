@@ -35,7 +35,7 @@ This folder contains comprehensive documentation for the DShield MCP service.
    - **[STREAMING_IMPLEMENTATION.md](STREAMING_IMPLEMENTATION.md)**
    - **[CAMPAIGN_ANALYSIS_IMPLEMENTATION.md](CAMPAIGN_ANALYSIS_IMPLEMENTATION.md)**
    - **[performance_metrics.md](performance_metrics.md)**
-   
+
 ### **Releases**
 1. **[RELEASE_NOTES_v1.0.md](RELEASE_NOTES_v1.0.md)** - Current release information
 2. **[CHANGELOG.md](CHANGELOG.md)** - Complete version history
@@ -111,7 +111,7 @@ When adding new documentation:
 - Version history
 - Release notes
 - Migration guides
-- Breaking changes 
+- Breaking changes
 
 ## User Configuration Management
 
@@ -161,7 +161,7 @@ export ENABLE_SMART_OPTIMIZATION=false
 - See inline comments in the example file for documentation of each setting.
 
 ### Testing
-- Run `python dev_tools/test_user_configuration.py` to verify configuration management and integration. 
+- Run `python dev_tools/test_user_configuration.py` to verify configuration management and integration.
 
 ## Elasticsearch Configuration
 
@@ -197,4 +197,4 @@ The `elasticsearch` section in `mcp_config.yaml` supports a new option:
         compatibility_mode: true
         # ... other options ...
       ```
-    - If your server and client are the same major version, or you are using an 8.x client, you can leave this as `false`. 
+    - If your server and client are the same major version, or you are using an 8.x client, you can leave this as `false`.

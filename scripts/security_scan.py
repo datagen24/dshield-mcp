@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MCP-Shield Security Scanner Integration for DShield MCP
+MCP-Shield Security Scanner Integration for DShield MCP.
 
 This script provides integration with MCP-Shield for security scanning of MCP servers.
 It wraps the MCP-Shield Node.js tool and provides Python-based reporting and analysis.
@@ -28,12 +28,28 @@ SAFE_OUTPUT_DIR.mkdir(exist_ok=True)
 
 
 def safe_output_path(filename: str) -> Path:
+    """Create a safe output path for the given filename.
+
+    Args:
+        filename: The filename to create a safe path for
+
+    Returns:
+        A safe Path object in the output directory
+    """
     # Only allow basename, no directory traversal
     safe_name = os.path.basename(filename)
     return SAFE_OUTPUT_DIR / safe_name
 
 
 def is_safe_path(path: str) -> bool:
+    """Check if the given path is safe (no directory traversal).
+
+    Args:
+        path: The path to check
+
+    Returns:
+        True if the path is safe, False otherwise
+    """
     # Disallow any parent directory references or absolute paths
     return not (".." in path or path.startswith("/") or path.startswith("\\"))
 
@@ -195,7 +211,7 @@ class MCPShieldScanner:
         issues_section = output[section_start:section_end]
 
         # Extract individual issues
-        issue_pattern = r'–\s+([^\n]+)'
+        issue_pattern = r'-\s+([^\n]+)'
         for match in re.finditer(issue_pattern, issues_section):
             issues.append(match.group(1).strip())
 

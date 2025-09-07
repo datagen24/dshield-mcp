@@ -77,4 +77,4 @@ echo "  python examples/basic_usage.py"
 echo
 echo "To test the installation:"
 echo "  source venv/bin/activate"
-echo "  python test_installation.py" 
+echo "  python test_installation.py"

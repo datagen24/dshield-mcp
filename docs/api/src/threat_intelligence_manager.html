@@ -1826,17 +1826,17 @@ source coordination, rate limiting, caching, and result correlation.</p>
 <input id="logger-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
             <label class="view-value-button pdoc-button" for="logger-view-value"></label><span class="default_value">&lt;BoundLoggerLazyProxy(logger=None, wrapper_class=None, processors=None, context_class=None, initial_values={}, logger_factory_args=(&#39;<a href="">src.threat_intelligence_manager</a>&#39;,))&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#logger"></a>
-    
-    
+
+
 
                 </section>
                 <section id="ThreatIntelligenceManager">
                             <input id="ThreatIntelligenceManager-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">ThreatIntelligenceManager</span>:
 
@@ -3500,7 +3500,7 @@ It handles rate limiting, caching, error handling, and result correlation.</p>
                             <div id="ThreatIntelligenceManager.__init__" class="classattr">
                                         <input id="ThreatIntelligenceManager.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">ThreatIntelligenceManager</span><span class="signature pdoc-code condensed">()</span>
 
                 <label class="view-source-button" for="ThreatIntelligenceManager.__init__-view-source"><span>View Source</span></label>
@@ -3585,138 +3585,138 @@ correlation and caching parameters.</p>
                                 <div class="attr variable">
             <span class="name">clients</span><span class="annotation">: dict[<a href="models.html#ThreatIntelligenceSource">src.models.ThreatIntelligenceSource</a>, typing.Any]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.clients"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.correlation_config" class="classattr">
                                 <div class="attr variable">
             <span class="name">correlation_config</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.correlation_config"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.confidence_threshold" class="classattr">
                                 <div class="attr variable">
             <span class="name">confidence_threshold</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.confidence_threshold"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.max_sources" class="classattr">
                                 <div class="attr variable">
             <span class="name">max_sources</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.max_sources"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.cache" class="classattr">
                                 <div class="attr variable">
             <span class="name">cache</span><span class="annotation">: dict[str, <a href="models.html#ThreatIntelligenceResult">src.models.ThreatIntelligenceResult</a>]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.cache"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.cache_ttl" class="classattr">
                                 <div class="attr variable">
             <span class="name">cache_ttl</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.cache_ttl"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.sqlite_cache_enabled" class="classattr">
                                 <div class="attr variable">
             <span class="name">sqlite_cache_enabled</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.sqlite_cache_enabled"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.sqlite_cache_path" class="classattr">
                                 <div class="attr variable">
             <span class="name">sqlite_cache_path</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.sqlite_cache_path"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.sqlite_cache_ttl" class="classattr">
                                 <div class="attr variable">
             <span class="name">sqlite_cache_ttl</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.sqlite_cache_ttl"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.rate_limit_trackers" class="classattr">
                                 <div class="attr variable">
             <span class="name">rate_limit_trackers</span><span class="annotation">: dict[<a href="models.html#ThreatIntelligenceSource">src.models.ThreatIntelligenceSource</a>, list[float]]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.rate_limit_trackers"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.concurrency_semaphores" class="classattr">
                                 <div class="attr variable">
             <span class="name">concurrency_semaphores</span><span class="annotation">: dict[<a href="models.html#ThreatIntelligenceSource">src.models.ThreatIntelligenceSource</a>, asyncio.locks.Semaphore]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.concurrency_semaphores"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.elasticsearch_client" class="classattr">
                                 <div class="attr variable">
             <span class="name">elasticsearch_client</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ThreatIntelligenceManager.elasticsearch_client"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ThreatIntelligenceManager.enrich_ip_comprehensive" class="classattr">
                                         <input id="ThreatIntelligenceManager.enrich_ip_comprehensive-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">enrich_ip_comprehensive</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">ip_address</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="models.html#ThreatIntelligenceResult">src.models.ThreatIntelligenceResult</a></span>:</span></span>
 
@@ -3850,7 +3850,7 @@ threat assessment.</p>
                             <div id="ThreatIntelligenceManager.enrich_domain_comprehensive" class="classattr">
                                         <input id="ThreatIntelligenceManager.enrich_domain_comprehensive-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">enrich_domain_comprehensive</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">domain</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="models.html#DomainIntelligence">src.models.DomainIntelligence</a></span>:</span></span>
 
@@ -3943,7 +3943,7 @@ threat assessment.</p>
                             <div id="ThreatIntelligenceManager.correlate_threat_indicators" class="classattr">
                                         <input id="ThreatIntelligenceManager.correlate_threat_indicators-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">correlate_threat_indicators</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">indicators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4018,7 +4018,7 @@ finds correlations and relationships between them.</p>
                             <div id="ThreatIntelligenceManager.cleanup" class="classattr">
                                         <input id="ThreatIntelligenceManager.cleanup-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">cleanup</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -4052,7 +4052,7 @@ finds correlations and relationships between them.</p>
                             <div id="ThreatIntelligenceManager.get_available_sources" class="classattr">
                                         <input id="ThreatIntelligenceManager.get_available_sources-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_available_sources</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="models.html#ThreatIntelligenceSource">src.models.ThreatIntelligenceSource</a></span><span class="p">]</span>:</span></span>
 
@@ -4082,7 +4082,7 @@ finds correlations and relationships between them.</p>
                             <div id="ThreatIntelligenceManager.get_source_status" class="classattr">
                                         <input id="ThreatIntelligenceManager.get_source_status-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_source_status</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4129,7 +4129,7 @@ finds correlations and relationships between them.</p>
                             <div id="ThreatIntelligenceManager.get_cache_statistics" class="classattr">
                                         <input id="ThreatIntelligenceManager.get_cache_statistics-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_cache_statistics</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4205,7 +4205,7 @@ finds correlations and relationships between them.</p>
                             <div id="ThreatIntelligenceManager.diagnose_data_availability" class="classattr">
                                         <input id="ThreatIntelligenceManager.diagnose_data_availability-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">diagnose_data_availability</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">check_indices</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">check_mappings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">check_recent_data</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">sample_query</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4461,7 +4461,7 @@ data freshness, and query pattern testing.</p>
                             <div id="ThreatIntelligenceManager.has_cached_data" class="classattr">
                                         <input id="ThreatIntelligenceManager.has_cached_data-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">has_cached_data</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
 

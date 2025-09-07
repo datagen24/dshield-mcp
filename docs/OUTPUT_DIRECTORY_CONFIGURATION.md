@@ -189,7 +189,7 @@ result = await tools.generate_document(
    ```bash
    # Check directory permissions
    ls -la ~/dshield-mcp-output
-   
+
    # Fix permissions
    chmod 755 ~/dshield-mcp-output
    ```
@@ -198,7 +198,7 @@ result = await tools.generate_document(
    ```bash
    # Check if parent directory exists
    ls -la ~/
-   
+
    # Create manually if needed
    mkdir -p ~/dshield-mcp-output
    ```
@@ -255,4 +255,4 @@ If you were previously using the `output/` directory in the project root:
 
 - [User Configuration Management](README.md#user-configuration-management)
 - [LaTeX Template Tools](../src/latex_template_tools.py)
-- [API Documentation](API_DOCUMENTATION.md) 
+- [API Documentation](API_DOCUMENTATION.md)

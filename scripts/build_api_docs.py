@@ -357,20 +357,21 @@ def create_index_file(output_dir: Path) -> None:
         <h1>DShield MCP API Documentation</h1>
         <p>Comprehensive API reference for DShield MCP - Elastic SIEM Integration Package</p>
     </div>
-    
+
     <div class=\"nav\">
         <a href=\"src/index.html\">HTML Documentation</a>
         <a href=\"markdown/src/index.md\">Markdown Documentation</a>
     </div>
-    
+
     <div class=\"description\">
         <p>Choose your preferred format:</p>
         <ul style=\"list-style: none; padding: 0;\">
             <li><strong>HTML:</strong> Interactive, searchable documentation with navigation</li>
-            <li><strong>Markdown:</strong> Plain text format ideal for AI ingestion and version control</li>
+            <li><strong>Markdown:</strong> Plain text format ideal for AI ingestion and
+            version control</li>
         </ul>
     </div>
-    
+
     <div class=\"features\">
         <h3>Documentation Features</h3>
         <ul>
@@ -430,11 +431,14 @@ def create_markdown_index(output_dir: Path) -> None:
     """
     markdown_index_content = """# DShield MCP API Documentation
 
-This directory contains the complete API documentation for the DShield MCP package in Markdown format.
+This directory contains the complete API documentation for the DShield MCP package in
+Markdown format.
 
 ## Overview
 
-The DShield MCP package provides a Model Context Protocol (MCP) server that integrates with DShield's threat intelligence platform and Elasticsearch for security information and event management (SIEM) operations.
+The DShield MCP package provides a Model Context Protocol (MCP) server that integrates
+with DShield's threat intelligence platform and Elasticsearch for security information and
+event management (SIEM) operations.
 
 ## Documentation Structure
 

@@ -344,9 +344,10 @@ class TestSmartChunking:
         )
 
         assert len(events) == 1, "Should return 1 event"
-        assert session_context["session_fields"] == ["source.ip", "destination.ip"], (
-            "Should use custom session fields"
-        )
+        assert session_context["session_fields"] == [
+            "source.ip",
+            "destination.ip",
+        ], "Should use custom session fields"
         assert session_context["sessions_in_chunk"] == 1, "Should have 1 session"
 
     @pytest.mark.asyncio

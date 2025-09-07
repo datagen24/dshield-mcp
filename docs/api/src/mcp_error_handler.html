@@ -1792,17 +1792,17 @@ debugging and troubleshooting.</p>
 <input id="logger-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
             <label class="view-value-button pdoc-button" for="logger-view-value"></label><span class="default_value">&lt;BoundLoggerLazyProxy(logger=None, wrapper_class=None, processors=None, context_class=None, initial_values={}, logger_factory_args=(&#39;<a href="">src.mcp_error_handler</a>&#39;,))&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#logger"></a>
-    
-    
+
+
 
                 </section>
                 <section id="CircuitBreakerState">
                             <input id="CircuitBreakerState-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">CircuitBreakerState</span><wbr>(<span class="base">enum.Enum</span>):
 
@@ -1828,11 +1828,11 @@ debugging and troubleshooting.</p>
             <span class="name">CLOSED</span>        =
 <span class="default_value">&lt;<a href="#CircuitBreakerState.CLOSED">CircuitBreakerState.CLOSED</a>: &#39;closed&#39;&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreakerState.CLOSED"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreakerState.OPEN" class="classattr">
@@ -1840,11 +1840,11 @@ debugging and troubleshooting.</p>
             <span class="name">OPEN</span>        =
 <span class="default_value">&lt;<a href="#CircuitBreakerState.OPEN">CircuitBreakerState.OPEN</a>: &#39;open&#39;&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreakerState.OPEN"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreakerState.HALF_OPEN" class="classattr">
@@ -1852,11 +1852,11 @@ debugging and troubleshooting.</p>
             <span class="name">HALF_OPEN</span>        =
 <span class="default_value">&lt;<a href="#CircuitBreakerState.HALF_OPEN">CircuitBreakerState.HALF_OPEN</a>: &#39;half_open&#39;&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreakerState.HALF_OPEN"></a>
-    
-    
+
+
 
                             </div>
                 </section>
@@ -1903,14 +1903,14 @@ debugging and troubleshooting.</p>
 
                             <div id="CircuitBreakerConfig.__init__" class="classattr">
                                 <div class="attr function">
-            
+
         <span class="name">CircuitBreakerConfig</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">failure_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>,</span><span class="param">	<span class="n">recovery_timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span>,</span><span class="param">	expected_exception: tuple[type[Exception], ...] = (&lt;class &#x27;Exception&#x27;&gt;,),</span><span class="param">	<span class="n">success_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span></span>)</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreakerConfig.__init__"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreakerConfig.failure_threshold" class="classattr">
@@ -1918,11 +1918,11 @@ debugging and troubleshooting.</p>
             <span class="name">failure_threshold</span><span class="annotation">: int</span>        =
 <span class="default_value">5</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreakerConfig.failure_threshold"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreakerConfig.recovery_timeout" class="classattr">
@@ -1930,11 +1930,11 @@ debugging and troubleshooting.</p>
             <span class="name">recovery_timeout</span><span class="annotation">: float</span>        =
 <span class="default_value">60.0</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreakerConfig.recovery_timeout"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreakerConfig.expected_exception" class="classattr">
@@ -1942,11 +1942,11 @@ debugging and troubleshooting.</p>
             <span class="name">expected_exception</span><span class="annotation">: tuple[type[Exception], ...]</span>        =
 <span class="default_value">(&lt;class &#39;Exception&#39;&gt;,)</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreakerConfig.expected_exception"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreakerConfig.success_threshold" class="classattr">
@@ -1954,11 +1954,11 @@ debugging and troubleshooting.</p>
             <span class="name">success_threshold</span><span class="annotation">: int</span>        =
 <span class="default_value">2</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreakerConfig.success_threshold"></a>
-    
-    
+
+
 
                             </div>
                 </section>
@@ -2040,76 +2040,76 @@ debugging and troubleshooting.</p>
 
                             <div id="ErrorHandlingConfig.__init__" class="classattr">
                                 <div class="attr function">
-            
+
         <span class="name">ErrorHandlingConfig</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">timeouts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">factory</span><span class="o">&gt;</span>,</span><span class="param">	<span class="n">retry_settings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">factory</span><span class="o">&gt;</span>,</span><span class="param">	<span class="n">logging</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">factory</span><span class="o">&gt;</span>,</span><span class="param">	<span class="n">circuit_breaker</span><span class="p">:</span> <span class="n"><a href="#CircuitBreakerConfig">CircuitBreakerConfig</a></span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">factory</span><span class="o">&gt;</span>,</span><span class="param">	<span class="n">error_aggregation</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">factory</span><span class="o">&gt;</span></span>)</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorHandlingConfig.__init__"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorHandlingConfig.timeouts" class="classattr">
                                 <div class="attr variable">
             <span class="name">timeouts</span><span class="annotation">: dict[str, float]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorHandlingConfig.timeouts"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorHandlingConfig.retry_settings" class="classattr">
                                 <div class="attr variable">
             <span class="name">retry_settings</span><span class="annotation">: dict[str, typing.Any]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorHandlingConfig.retry_settings"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorHandlingConfig.logging" class="classattr">
                                 <div class="attr variable">
             <span class="name">logging</span><span class="annotation">: dict[str, typing.Any]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorHandlingConfig.logging"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorHandlingConfig.circuit_breaker" class="classattr">
                                 <div class="attr variable">
             <span class="name">circuit_breaker</span><span class="annotation">: <a href="#CircuitBreakerConfig">CircuitBreakerConfig</a></span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorHandlingConfig.circuit_breaker"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorHandlingConfig.error_aggregation" class="classattr">
                                 <div class="attr variable">
             <span class="name">error_aggregation</span><span class="annotation">: dict[str, typing.Any]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorHandlingConfig.error_aggregation"></a>
-    
-    
+
+
 
                             </div>
                 </section>
                 <section id="MCPErrorHandler">
                             <input id="MCPErrorHandler-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">MCPErrorHandler</span>:
 
@@ -3062,7 +3062,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.__init__" class="classattr">
                                         <input id="MCPErrorHandler.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">MCPErrorHandler</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">config</span><span class="p">:</span> <span class="n"><a href="#ErrorHandlingConfig">ErrorHandlingConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
                 <label class="view-source-button" for="MCPErrorHandler.__init__-view-source"><span>View Source</span></label>
@@ -3106,11 +3106,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">PARSE_ERROR</span>        =
 <span class="default_value">-32700</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.PARSE_ERROR"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.INVALID_REQUEST" class="classattr">
@@ -3118,11 +3118,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">INVALID_REQUEST</span>        =
 <span class="default_value">-32600</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.INVALID_REQUEST"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.METHOD_NOT_FOUND" class="classattr">
@@ -3130,11 +3130,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">METHOD_NOT_FOUND</span>        =
 <span class="default_value">-32601</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.METHOD_NOT_FOUND"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.INVALID_PARAMS" class="classattr">
@@ -3142,11 +3142,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">INVALID_PARAMS</span>        =
 <span class="default_value">-32602</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.INVALID_PARAMS"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.INTERNAL_ERROR" class="classattr">
@@ -3154,11 +3154,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">INTERNAL_ERROR</span>        =
 <span class="default_value">-32603</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.INTERNAL_ERROR"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.RESOURCE_NOT_FOUND" class="classattr">
@@ -3166,11 +3166,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">RESOURCE_NOT_FOUND</span>        =
 <span class="default_value">-32001</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.RESOURCE_NOT_FOUND"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.RESOURCE_ACCESS_DENIED" class="classattr">
@@ -3178,11 +3178,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">RESOURCE_ACCESS_DENIED</span>        =
 <span class="default_value">-32002</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.RESOURCE_ACCESS_DENIED"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.RESOURCE_UNAVAILABLE" class="classattr">
@@ -3190,11 +3190,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">RESOURCE_UNAVAILABLE</span>        =
 <span class="default_value">-32003</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.RESOURCE_UNAVAILABLE"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.TOOL_UNAVAILABLE" class="classattr">
@@ -3202,11 +3202,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">TOOL_UNAVAILABLE</span>        =
 <span class="default_value">-32004</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.TOOL_UNAVAILABLE"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.TIMEOUT_ERROR" class="classattr">
@@ -3214,11 +3214,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">TIMEOUT_ERROR</span>        =
 <span class="default_value">-32005</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.TIMEOUT_ERROR"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.VALIDATION_ERROR" class="classattr">
@@ -3226,11 +3226,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">VALIDATION_ERROR</span>        =
 <span class="default_value">-32006</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.VALIDATION_ERROR"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.EXTERNAL_SERVICE_ERROR" class="classattr">
@@ -3238,11 +3238,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">EXTERNAL_SERVICE_ERROR</span>        =
 <span class="default_value">-32007</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.EXTERNAL_SERVICE_ERROR"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.RATE_LIMIT_ERROR" class="classattr">
@@ -3250,11 +3250,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">RATE_LIMIT_ERROR</span>        =
 <span class="default_value">-32008</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.RATE_LIMIT_ERROR"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.SECURITY_ERROR" class="classattr">
@@ -3262,11 +3262,11 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">SECURITY_ERROR</span>        =
 <span class="default_value">-32009</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.SECURITY_ERROR"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.SCHEMA_VALIDATION_ERROR" class="classattr">
@@ -3274,94 +3274,94 @@ information for users while maintaining detailed logging for developers.</p>
             <span class="name">SCHEMA_VALIDATION_ERROR</span>        =
 <span class="default_value">-32010</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.SCHEMA_VALIDATION_ERROR"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.config" class="classattr">
                                 <div class="attr variable">
             <span class="name">config</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.config"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.logger" class="classattr">
                                 <div class="attr variable">
             <span class="name">logger</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.logger"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.error_aggregator" class="classattr">
                                 <div class="attr variable">
             <span class="name">error_aggregator</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.error_aggregator"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.schema_validator" class="classattr">
                                 <div class="attr variable">
             <span class="name">schema_validator</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.schema_validator"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.api_key_rate_limiter" class="classattr">
                                 <div class="attr variable">
             <span class="name">api_key_rate_limiter</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.api_key_rate_limiter"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.connection_rate_limiter" class="classattr">
                                 <div class="attr variable">
             <span class="name">connection_rate_limiter</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.connection_rate_limiter"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.global_rate_limiter" class="classattr">
                                 <div class="attr variable">
             <span class="name">global_rate_limiter</span>
 
-        
+
     </div>
     <a class="headerlink" href="#MCPErrorHandler.global_rate_limiter"></a>
-    
-    
+
+
 
                             </div>
                             <div id="MCPErrorHandler.create_error" class="classattr">
                                         <input id="MCPErrorHandler.create_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">code</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">request_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3459,7 +3459,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_parse_error" class="classattr">
                                         <input id="MCPErrorHandler.create_parse_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_parse_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;Parse error&#39;</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3499,7 +3499,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_invalid_request_error" class="classattr">
                                         <input id="MCPErrorHandler.create_invalid_request_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_invalid_request_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;Invalid request&#39;</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3539,7 +3539,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_method_not_found_error" class="classattr">
                                         <input id="MCPErrorHandler.create_method_not_found_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_method_not_found_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3582,7 +3582,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_invalid_params_error" class="classattr">
                                         <input id="MCPErrorHandler.create_invalid_params_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_invalid_params_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3622,7 +3622,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_internal_error" class="classattr">
                                         <input id="MCPErrorHandler.create_internal_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_internal_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3662,7 +3662,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_validation_error" class="classattr">
                                         <input id="MCPErrorHandler.create_validation_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_validation_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">validation_error</span><span class="p">:</span> <span class="n">pydantic_core</span><span class="o">.</span><span class="n">_pydantic_core</span><span class="o">.</span><span class="n">ValidationError</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3713,7 +3713,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_timeout_error" class="classattr">
                                         <input id="MCPErrorHandler.create_timeout_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_timeout_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">timeout_seconds</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3764,7 +3764,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_resource_error" class="classattr">
                                         <input id="MCPErrorHandler.create_resource_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_resource_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">resource_uri</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">error_type</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3824,7 +3824,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_external_service_error" class="classattr">
                                         <input id="MCPErrorHandler.create_external_service_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_external_service_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">error_message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3874,7 +3874,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_rate_limit_error" class="classattr">
                                         <input id="MCPErrorHandler.create_rate_limit_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_rate_limit_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">retry_after</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3931,7 +3931,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_security_error" class="classattr">
                                         <input id="MCPErrorHandler.create_security_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_security_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -3977,7 +3977,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_schema_validation_error" class="classattr">
                                         <input id="MCPErrorHandler.create_schema_validation_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_schema_validation_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4023,7 +4023,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.validate_message_security" class="classattr">
                                         <input id="MCPErrorHandler.validate_message_security-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">validate_message_security</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">connection_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">api_key_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>:</span></span>
 
@@ -4085,7 +4085,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.validate_tool_exists" class="classattr">
                                         <input id="MCPErrorHandler.validate_tool_exists-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_tool_exists</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">available_tools</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -4126,7 +4126,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.validate_arguments" class="classattr">
                                         <input id="MCPErrorHandler.validate_arguments-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_arguments</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">arguments</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">schema</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -4175,7 +4175,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.execute_with_timeout" class="classattr">
                                         <input id="MCPErrorHandler.execute_with_timeout-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">execute_with_timeout</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">operation</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">coro</span><span class="p">:</span> <span class="n">Any</span>,</span><span class="param">	<span class="n">timeout_seconds</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">Any</span>:</span></span>
 
@@ -4240,7 +4240,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.execute_with_retry" class="classattr">
                                         <input id="MCPErrorHandler.execute_with_retry-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">execute_with_retry</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">operation</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">coro_factory</span><span class="p">:</span> <span class="n">Any</span>,</span><span class="param">	<span class="n">max_retries</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">base_delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">max_delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">exponential_base</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">Any</span>:</span></span>
 
@@ -4364,7 +4364,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.get_error_summary" class="classattr">
                                         <input id="MCPErrorHandler.get_error_summary-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_error_summary</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4417,7 +4417,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_resource_not_found_error" class="classattr">
                                         <input id="MCPErrorHandler.create_resource_not_found_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_resource_not_found_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">resource_uri</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4465,7 +4465,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_resource_access_denied_error" class="classattr">
                                         <input id="MCPErrorHandler.create_resource_access_denied_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_resource_access_denied_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">resource_uri</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;Permission denied&#39;</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4521,7 +4521,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_resource_unavailable_error" class="classattr">
                                         <input id="MCPErrorHandler.create_resource_unavailable_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_resource_unavailable_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">resource_uri</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;Resource temporarily unavailable&#39;</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4575,7 +4575,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_circuit_breaker_open_error" class="classattr">
                                         <input id="MCPErrorHandler.create_circuit_breaker_open_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_circuit_breaker_open_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4623,7 +4623,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_validation_error_with_context" class="classattr">
                                         <input id="MCPErrorHandler.create_validation_error_with_context-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_validation_error_with_context</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">validation_error</span><span class="p">:</span> <span class="n">pydantic_core</span><span class="o">.</span><span class="n">_pydantic_core</span><span class="o">.</span><span class="n">ValidationError</span>,</span><span class="param">	<span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4681,7 +4681,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.create_timeout_error_with_context" class="classattr">
                                         <input id="MCPErrorHandler.create_timeout_error_with_context-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_timeout_error_with_context</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">timeout_seconds</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">operation_context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4741,7 +4741,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.get_enhanced_error_summary" class="classattr">
                                         <input id="MCPErrorHandler.get_enhanced_error_summary-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_enhanced_error_summary</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4795,7 +4795,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.get_error_analytics" class="classattr">
                                         <input id="MCPErrorHandler.get_error_analytics-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_error_analytics</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">window_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -4838,7 +4838,7 @@ information for users while maintaining detailed logging for developers.</p>
                             <div id="MCPErrorHandler.get_circuit_breaker_status" class="classattr">
                                         <input id="MCPErrorHandler.get_circuit_breaker_status-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_circuit_breaker_status</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>:</span></span>
 
@@ -4877,7 +4877,7 @@ information for users while maintaining detailed logging for developers.</p>
                 <section id="CircuitBreaker">
                             <input id="CircuitBreaker-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">CircuitBreaker</span>:
 
@@ -5071,7 +5071,7 @@ automatically opens the circuit when the failure threshold is reached.</p>
                             <div id="CircuitBreaker.__init__" class="classattr">
                                         <input id="CircuitBreaker.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">CircuitBreaker</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">config</span><span class="p">:</span> <span class="n"><a href="#CircuitBreakerConfig">CircuitBreakerConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
                 <label class="view-source-button" for="CircuitBreaker.__init__-view-source"><span>View Source</span></label>
@@ -5109,83 +5109,83 @@ automatically opens the circuit when the failure threshold is reached.</p>
                                 <div class="attr variable">
             <span class="name">service_name</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreaker.service_name"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreaker.config" class="classattr">
                                 <div class="attr variable">
             <span class="name">config</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreaker.config"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreaker.state" class="classattr">
                                 <div class="attr variable">
             <span class="name">state</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreaker.state"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreaker.failure_count" class="classattr">
                                 <div class="attr variable">
             <span class="name">failure_count</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreaker.failure_count"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreaker.success_count" class="classattr">
                                 <div class="attr variable">
             <span class="name">success_count</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreaker.success_count"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreaker.last_failure_time" class="classattr">
                                 <div class="attr variable">
             <span class="name">last_failure_time</span><span class="annotation">: datetime.datetime | None</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreaker.last_failure_time"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreaker.logger" class="classattr">
                                 <div class="attr variable">
             <span class="name">logger</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CircuitBreaker.logger"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CircuitBreaker.can_execute" class="classattr">
                                         <input id="CircuitBreaker.can_execute-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">can_execute</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
 
@@ -5225,7 +5225,7 @@ automatically opens the circuit when the failure threshold is reached.</p>
                             <div id="CircuitBreaker.on_success" class="classattr">
                                         <input id="CircuitBreaker.on_success-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">on_success</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -5254,7 +5254,7 @@ automatically opens the circuit when the failure threshold is reached.</p>
                             <div id="CircuitBreaker.on_failure" class="classattr">
                                         <input id="CircuitBreaker.on_failure-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">on_failure</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">exception</span><span class="p">:</span> <span class="ne">Exception</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -5294,7 +5294,7 @@ automatically opens the circuit when the failure threshold is reached.</p>
                             <div id="CircuitBreaker.get_status" class="classattr">
                                         <input id="CircuitBreaker.get_status-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_status</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -5337,7 +5337,7 @@ automatically opens the circuit when the failure threshold is reached.</p>
                             <div id="CircuitBreaker.execute" class="classattr">
                                         <input id="CircuitBreaker.execute-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">execute</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">coro_factory</span><span class="p">:</span> <span class="n">Any</span>,</span><span class="param">	<span class="n">error_handler</span><span class="p">:</span> <span class="n"><a href="#MCPErrorHandler">MCPErrorHandler</a></span></span><span class="return-annotation">) -> <span class="n">Any</span>:</span></span>
 
@@ -5397,7 +5397,7 @@ automatically opens the circuit when the failure threshold is reached.</p>
                 <section id="ErrorAggregator">
                             <input id="ErrorAggregator-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">ErrorAggregator</span>:
 
@@ -5624,7 +5624,7 @@ identify systemic issues and provide insights for debugging.</p>
                             <div id="ErrorAggregator.__init__" class="classattr">
                                         <input id="ErrorAggregator.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">ErrorAggregator</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
                 <label class="view-source-button" for="ErrorAggregator.__init__-view-source"><span>View Source</span></label>
@@ -5663,50 +5663,50 @@ identify systemic issues and provide insights for debugging.</p>
                                 <div class="attr variable">
             <span class="name">config</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorAggregator.config"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorAggregator.error_counts" class="classattr">
                                 <div class="attr variable">
             <span class="name">error_counts</span><span class="annotation">: collections.defaultdict[str, int]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorAggregator.error_counts"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorAggregator.error_history" class="classattr">
                                 <div class="attr variable">
             <span class="name">error_history</span><span class="annotation">: collections.deque[dict[str, typing.Any]]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorAggregator.error_history"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorAggregator.logger" class="classattr">
                                 <div class="attr variable">
             <span class="name">logger</span>
 
-        
+
     </div>
     <a class="headerlink" href="#ErrorAggregator.logger"></a>
-    
-    
+
+
 
                             </div>
                             <div id="ErrorAggregator.record_error" class="classattr">
                                         <input id="ErrorAggregator.record_error-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">record_error</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">error_code</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">error_type</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">context</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -5759,7 +5759,7 @@ identify systemic issues and provide insights for debugging.</p>
                             <div id="ErrorAggregator.get_error_summary" class="classattr">
                                         <input id="ErrorAggregator.get_error_summary-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_error_summary</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">window_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -5825,7 +5825,7 @@ identify systemic issues and provide insights for debugging.</p>
                             <div id="ErrorAggregator.get_error_trends" class="classattr">
                                         <input id="ErrorAggregator.get_error_trends-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_error_trends</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">24</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -5889,7 +5889,7 @@ identify systemic issues and provide insights for debugging.</p>
                             <div id="ErrorAggregator.reset" class="classattr">
                                         <input id="ErrorAggregator.reset-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">reset</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 

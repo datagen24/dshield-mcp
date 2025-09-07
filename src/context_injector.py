@@ -469,7 +469,8 @@ class ContextInjector:
         )
         if high_severity_count > 0:
             hints.append(
-                f"Found {high_severity_count} high/critical severity events requiring immediate attention"
+                f"Found {high_severity_count} high/critical severity events "
+                f"requiring immediate attention"
             )
 
         # Check for threat intelligence hits
@@ -580,10 +581,12 @@ class ContextInjector:
                 output.append("=== EVENT SUMMARY ===")
                 output.append(f"Total Events: {events['total_events']}")
                 output.append(
-                    f"Severity Distribution: {json.dumps(events.get('severity_distribution', {}), indent=2)}"
+                    f"Severity Distribution: "
+                    f"{json.dumps(events.get('severity_distribution', {}), indent=2)}"
                 )
                 output.append(
-                    f"Category Distribution: {json.dumps(events.get('category_distribution', {}), indent=2)}"
+                    f"Category Distribution: "
+                    f"{json.dumps(events.get('category_distribution', {}), indent=2)}"
                 )
                 output.append("")
 
@@ -591,7 +594,8 @@ class ContextInjector:
                     output.append("=== SAMPLE EVENTS ===")
                     for event in events["sample_events"]:
                         output.append(
-                            f"- {event.get('event_type', 'Unknown')}: {event.get('description', 'No description')}"
+                            f"- {event.get('event_type', 'Unknown')}: "
+                            f"{event.get('description', 'No description')}"
                         )
                     output.append("")
             else:
@@ -709,10 +713,12 @@ class ContextInjector:
             output.append("Event Summary:")
             output.append(f"- Total Events: {results['total_events']}")
             output.append(
-                f"- Severity Distribution: {json.dumps(results.get('severity_distribution', {}), indent=2)}"
+                f"- Severity Distribution: "
+                f"{json.dumps(results.get('severity_distribution', {}), indent=2)}"
             )
             output.append(
-                f"- Category Distribution: {json.dumps(results.get('category_distribution', {}), indent=2)}"
+                f"- Category Distribution: "
+                f"{json.dumps(results.get('category_distribution', {}), indent=2)}"
             )
         else:
             # Full results format

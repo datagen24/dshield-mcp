@@ -166,18 +166,18 @@ error_handling:
     tool_execution: 120.0      # Tool execution timeout in seconds
     external_service: 30.0     # External service timeout in seconds
     resource_access: 15.0      # Resource access timeout in seconds
-  
+
   retry:
     max_attempts: 3            # Maximum retry attempts
     backoff_factor: 2.0        # Exponential backoff factor
     max_delay: 60.0            # Maximum delay between retries
-  
+
   circuit_breaker:
     failure_threshold: 5       # Failures before opening circuit breaker
     recovery_timeout: 60       # Seconds to wait before testing recovery
     expected_exception: "ConnectionError"
     success_threshold: 2       # Successful calls needed to close
-  
+
   error_aggregation:
     enabled: true              # Enable error aggregation
     history_size: 1000        # Number of errors to track
@@ -403,6 +403,6 @@ If you encounter issues with the error handling system:
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: 2025-08-29  
+**Version**: 1.0
+**Last Updated**: 2025-08-29
 **Related Issue**: #58 - JSON-RPC Error Handling Implementation

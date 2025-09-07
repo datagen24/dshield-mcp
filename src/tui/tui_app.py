@@ -8,7 +8,7 @@ including layout management, event handling, and integration with the TCP server
 import asyncio
 import subprocess
 import threading
-from typing import Any
+from typing import Any, ClassVar
 
 import structlog
 from textual.app import App, ComposeResult  # type: ignore
@@ -89,58 +89,58 @@ class DShieldTUIApp(App):  # type: ignore
     Screen {
         layout: vertical;
     }
-    
+
     #main-container {
         layout: horizontal;
         height: 1fr;
     }
-    
+
     #left-panel {
         width: 1fr;
         layout: vertical;
     }
-    
+
     #right-panel {
         width: 1fr;
         layout: vertical;
     }
-    
+
     .panel {
         border: solid $primary;
         margin: 1;
         padding: 1;
     }
-    
+
     .connection-item {
         margin: 1;
         padding: 1;
         border: solid $secondary;
     }
-    
+
     .server-controls {
         layout: horizontal;
         height: auto;
     }
-    
+
     .log-entry {
         margin: 1;
         padding: 1;
     }
-    
+
     .log-entry.error {
         color: $error;
     }
-    
+
     .log-entry.warning {
         color: $warning;
     }
-    
+
     .log-entry.info {
         color: $accent;
     }
     """
 
-    BINDINGS = [
+    BINDINGS: ClassVar = [
         Binding("q", "quit", "Quit"),
         Binding("r", "restart_server", "Restart Server"),
         Binding("s", "stop_server", "Stop Server"),
@@ -516,7 +516,8 @@ class DShieldTUIApp(App):  # type: ignore
 
             # Check if auto_start is enabled
             print(
-                f"DEBUG: auto_start_server = {self.user_config.tui_settings.server_management.get('auto_start_server', False)}"
+                f"DEBUG: auto_start_server = "
+                f"{self.user_config.tui_settings.server_management.get('auto_start_server', False)}"
             )
 
             self.logger.info("Starting TCP server")
@@ -526,16 +527,22 @@ class DShieldTUIApp(App):  # type: ignore
                 "port": self.server_port,
                 "bind_address": self.server_address,
                 "max_connections": self.user_config.tcp_transport_settings.max_connections,
-                "connection_timeout_seconds": self.user_config.tcp_transport_settings.connection_timeout_seconds,
+                "connection_timeout_seconds": (
+                    self.user_config.tcp_transport_settings.connection_timeout_seconds
+                ),
                 "connection_management": {
-                    "api_key_management": self.user_config.tcp_transport_settings.api_key_management,
+                    "api_key_management": (
+                        self.user_config.tcp_transport_settings.api_key_management
+                    ),
                     "permissions": self.user_config.tcp_transport_settings.permissions,
                 },
                 "security": {
                     "global_rate_limit": 1000,
                     "global_burst_limit": 100,
-                    "client_rate_limit": self.user_config.tcp_transport_settings.api_key_management.get(
-                        "rate_limit_per_key", 60
+                    "client_rate_limit": (
+                        self.user_config.tcp_transport_settings.api_key_management.get(
+                            "rate_limit_per_key", 60
+                        )
                     ),
                     "client_burst_limit": 10,
                     "abuse_threshold": 10,

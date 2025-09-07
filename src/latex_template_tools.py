@@ -26,7 +26,8 @@ logger = structlog.get_logger(__name__)
 class LaTeXTemplateTools:
     """MCP tools for LaTeX template automation and document generation.
 
-    Output files are always written to the user-configured output directory (default: ~/dshield-mcp-output).
+    Output files are always written to the user-configured output directory
+    (default: ~/dshield-mcp-output).
     """
 
     def __init__(
@@ -113,7 +114,8 @@ class LaTeXTemplateTools:
             return src_path
 
         raise FileNotFoundError(
-            "Could not find project root directory. Please ensure setup.py or pyproject.toml exists in the project root."
+            "Could not find project root directory. Please ensure setup.py or "
+            "pyproject.toml exists in the project root."
         )
 
     def _check_circuit_breaker(self, operation: str) -> bool:
@@ -202,7 +204,8 @@ class LaTeXTemplateTools:
                 return self.error_handler.create_circuit_breaker_open_error("LaTeX Compilation")
             return {
                 "success": False,
-                "error": "LaTeX compilation service is temporarily unavailable due to repeated failures",
+                "error": "LaTeX compilation service is temporarily unavailable due to "
+                "repeated failures",
                 "document": None,
             }
 
@@ -741,7 +744,8 @@ class LaTeXTemplateTools:
                 }
             return {
                 "success": False,
-                "error": "LaTeX compilation service is temporarily unavailable due to repeated failures",
+                "error": "LaTeX compilation service is temporarily unavailable due to "
+                "repeated failures",
                 "log": None,
             }
 

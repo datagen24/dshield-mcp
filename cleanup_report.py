@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Code Quality Cleanup Report Generator
+Code Quality Cleanup Report Generator.
 
 This script generates a comprehensive report of code quality improvements
 including ruff violations, mypy issues, docstring coverage, and test coverage.
@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 
-def run_command(cmd: list[str], cwd: Path = None) -> tuple[str, str, int]:
+def run_command(cmd: list[str], cwd: Path | None = None) -> tuple[str, str, int]:
     """Run a command and return stdout, stderr, and return code."""
     try:
         result = subprocess.run(

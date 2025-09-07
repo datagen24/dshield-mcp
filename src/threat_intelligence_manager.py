@@ -177,16 +177,19 @@ class ThreatIntelligenceManager:
 
                 # Create indexes for efficient querying
                 conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_enrichment_expires_at ON enrichment_cache(expires_at)"
+                    "CREATE INDEX IF NOT EXISTS idx_enrichment_expires_at ON "
+                    "enrichment_cache(expires_at)"
                 )
                 conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_enrichment_indicator ON enrichment_cache(indicator)"
+                    "CREATE INDEX IF NOT EXISTS idx_enrichment_indicator ON "
+                    "enrichment_cache(indicator)"
                 )
                 conn.execute(
                     "CREATE INDEX IF NOT EXISTS idx_enrichment_source ON enrichment_cache(source)"
                 )
                 conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_enrichment_retrieved_at ON enrichment_cache(retrieved_at)"
+                    "CREATE INDEX IF NOT EXISTS idx_enrichment_retrieved_at ON "
+                    "enrichment_cache(retrieved_at)"
                 )
 
                 # Clean up expired entries
@@ -907,7 +910,8 @@ class ThreatIntelligenceManager:
 
                 conn.execute(
                     """
-                    INSERT OR REPLACE INTO enrichment_cache (indicator, source, result_json, retrieved_at, expires_at)
+                    INSERT OR REPLACE INTO enrichment_cache (indicator, source, result_json, "
+                    "retrieved_at, expires_at)
                     VALUES (?, ?, ?, ?, ?)
                 """,
                     (

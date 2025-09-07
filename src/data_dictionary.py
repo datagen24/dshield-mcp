@@ -378,7 +378,8 @@ class DataDictionary:
                 },
                 "weekend_spikes": {
                     "description": "Increased activity on weekends",
-                    "analysis": "Often indicates automated attacks when security teams are less active",
+                    "analysis": "Often indicates automated attacks when security "
+                    "teams are less active",
                 },
                 "holiday_patterns": {
                     "description": "Spikes during holidays",
@@ -477,7 +478,8 @@ class DataDictionary:
         prompt = f"""
 # DShield SIEM Data Dictionary
 
-You are working with DShield SIEM data from Elasticsearch. This data contains security events, attacks, and threat intelligence information.
+You are working with DShield SIEM data from Elasticsearch. This data contains "
+        "security events, attacks, and threat intelligence information.
 
 ## Available Fields
 
@@ -531,7 +533,8 @@ You are working with DShield SIEM data from Elasticsearch. This data contains se
 - get_dshield_statistics: Comprehensive statistics
 - enrich_ip_with_dshield: IP threat enrichment
 
-When analyzing DShield data, always consider the context, time patterns, and correlation with other security events to provide meaningful insights.
+When analyzing DShield data, always consider the context, time patterns, "
+        "and correlation with other security events to provide meaningful insights.
 """
         return prompt
 

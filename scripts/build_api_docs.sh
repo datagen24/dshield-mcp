@@ -27,4 +27,4 @@ python scripts/build_api_docs.py
 
 echo ""
 echo "Build completed successfully!"
-echo "You can now open docs/api/index.html in your browser to view the documentation." 
+echo "You can now open docs/api/index.html in your browser to view the documentation."

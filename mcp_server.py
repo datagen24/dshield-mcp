@@ -186,7 +186,8 @@ class DShieldMCPServer:
                             },
                             "relative_time": {
                                 "type": "string",
-                                "description": "Relative time range (e.g., 'last_6_hours', 'last_24_hours', 'last_7_days')",
+                                "description": "Relative time range (e.g., 'last_6_hours', "
+                                "'last_24_hours', 'last_7_days')",
                             },
                             "time_window": {
                                 "type": "object",
@@ -216,7 +217,8 @@ class DShieldMCPServer:
                             },
                             "page_size": {
                                 "type": "integer",
-                                "description": "Number of results per page (default: 100, max: 1000)",
+                                "description": "Number of results per page (default: 100, "
+                                "max: 1000)",
                             },
                             "sort_by": {
                                 "type": "string",
@@ -229,7 +231,8 @@ class DShieldMCPServer:
                             },
                             "cursor": {
                                 "type": "string",
-                                "description": "Cursor token for cursor-based pagination (better for large datasets)",
+                                "description": "Cursor token for cursor-based pagination "
+                                "(better for large datasets)",
                             },
                             "optimization": {
                                 "type": "string",
@@ -239,11 +242,13 @@ class DShieldMCPServer:
                             "fallback_strategy": {
                                 "type": "string",
                                 "enum": ["aggregate", "sample", "error"],
-                                "description": "Fallback strategy when optimization fails (default: 'aggregate')",
+                                "description": "Fallback strategy when optimization fails "
+                                "(default: 'aggregate')",
                             },
                             "max_result_size_mb": {
                                 "type": "number",
-                                "description": "Maximum result size in MB before optimization (default: 10.0)",
+                                "description": "Maximum result size in MB before optimization "
+                                "(default: 10.0)",
                             },
                             "query_timeout_seconds": {
                                 "type": "integer",
@@ -251,7 +256,8 @@ class DShieldMCPServer:
                             },
                             "include_summary": {
                                 "type": "boolean",
-                                "description": "Include summary statistics with results (default: true)",
+                                "description": "Include summary statistics with results "
+                                "(default: true)",
                             },
                         },
                     },
@@ -267,16 +273,19 @@ class DShieldMCPServer:
                             },
                             "chunk_size": {
                                 "type": "integer",
-                                "description": "Number of events per chunk (default: 500, max: 1000)",
+                                "description": "Number of events per chunk (default: 500, "
+                                "max: 1000)",
                             },
                             "session_fields": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Fields to use for session grouping (default: ['source.ip', 'destination.ip'])",
+                                "description": "Fields to use for session grouping "
+                                "(default: ['source.ip', 'destination.ip'])",
                             },
                             "max_session_gap_minutes": {
                                 "type": "integer",
-                                "description": "Maximum gap in minutes to consider events part of same session (default: 30)",
+                                "description": "Maximum gap in minutes to consider events part of "
+                                "same session (default: 30)",
                             },
                             "filters": {
                                 "type": "object",
@@ -296,7 +305,8 @@ class DShieldMCPServer:
                         "properties": {
                             "category": {
                                 "type": "string",
-                                "description": "Data category to retrieve (e.g., 'core_fields', 'network_fields')",
+                                "description": "Data category to retrieve (e.g., 'core_fields', "
+                                "'network_fields')",
                             },
                             "format": {
                                 "type": "string",
@@ -313,7 +323,8 @@ class DShieldMCPServer:
                         "properties": {
                             "detailed": {
                                 "type": "boolean",
-                                "description": "Include detailed health information (default: false)",
+                                "description": "Include detailed health information "
+                                "(default: false)",
                             }
                         },
                     },
@@ -337,7 +348,8 @@ class DShieldMCPServer:
                         "properties": {
                             "window_seconds": {
                                 "type": "integer",
-                                "description": "Time window in seconds for error analysis (default: 300)",
+                                "description": "Time window in seconds for error analysis "
+                                "(default: 300)",
                             }
                         },
                     },
@@ -349,7 +361,8 @@ class DShieldMCPServer:
                         "properties": {
                             "include_analytics": {
                                 "type": "boolean",
-                                "description": "Include error analytics in response (default: true)",
+                                "description": "Include error analytics in response "
+                                "(default: true)",
                             }
                         },
                     },
@@ -525,7 +538,8 @@ class DShieldMCPServer:
                 {
                     "uri": "dshield://data-dictionary",
                     "name": "DShield Data Dictionary",
-                    "description": "Comprehensive data dictionary for DShield SIEM fields and analysis guidelines",
+                    "description": "Comprehensive data dictionary for DShield SIEM fields and "
+                    "analysis guidelines",
                     "mimeType": "text/markdown",
                 },
             ]
@@ -562,7 +576,7 @@ class DShieldMCPServer:
             except Exception as e:
                 logger.error("Resource reading failed", uri=uri, error=str(e))
                 return self.error_handler.create_resource_error(
-                    uri, "unavailable", f"Failed to read resource '{uri}': {str(e)}"
+                    uri, "unavailable", f"Failed to read resource '{uri}': {e!s}"
                 )
 
     async def initialize(self) -> None:
@@ -922,12 +936,17 @@ class DShieldMCPServer:
                 return [
                     {
                         "type": "text",
-                        "text": f"No DShield events found for the specified criteria.\n\nQuery Parameters:\n- Time Range: {start_time.isoformat()} to {end_time.isoformat()}\n- Page: {page}\n- Page Size: {page_size}\n- Sort: {sort_by} {sort_order}\n- Fields: {fields or 'All'}\n- Filters: {filters}",
+                        "text": f"No DShield events found for the specified criteria.\n\n"
+                        f"Query Parameters:\n- Time Range: {start_time.isoformat()} to "
+                        f"{end_time.isoformat()}\n- Page: {page}\n- Page Size: {page_size}\n- "
+                        f"Sort: {sort_by} {sort_order}\n- Fields: {fields or 'All'}\n- "
+                        f"Filters: {filters}",
                     }
                 ]
 
             # Format response with enhanced pagination info
-            response_text = f"DShield Events (Page {pagination_info['page_number']} of {pagination_info['total_pages']}):\n\n"
+            response_text = f"DShield Events (Page {pagination_info['page_number']} of "
+            f"{pagination_info['total_pages']}):\n\n"
             response_text += f"Total Events: {pagination_info['total_available']:,}\n"
             response_text += f"Events on this page: {len(events)}\n"
             response_text += f"Page Size: {pagination_info['page_size']}\n"
@@ -962,7 +981,9 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "text",
-                    "text": f"Error querying DShield events: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running.",
+                    "text": f"Error querying DShield events: {e!s}\n\n"
+                    "Please check your Elasticsearch configuration and ensure the server "
+                    "is running.",
                 }
             ]
 
@@ -1092,7 +1113,9 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "text",
-                    "text": f"Error querying DShield aggregations: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running.",
+                    "text": f"Error querying DShield aggregations: {e!s}\n\n"
+                    "Please check your Elasticsearch configuration and ensure the server "
+                    "is running.",
                 }
             ]
 
@@ -1225,7 +1248,8 @@ class DShieldMCPServer:
                 response_text += (
                     f"- Events per chunk: {[chunk['events_count'] for chunk in all_chunks]}\n"
                 )
-                response_text += f"- Stream IDs: {[chunk['stream_id'] for chunk in all_chunks if chunk['stream_id']]}\n\n"
+                response_text += "- Stream IDs: "
+                f"{[chunk['stream_id'] for chunk in all_chunks if chunk['stream_id']]}\n\n"
 
             response_text += "Chunk Details:\n" + json.dumps(all_chunks, indent=2, default=str)
 
@@ -1236,7 +1260,9 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "text",
-                    "text": f"Error streaming DShield events: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running.",
+                    "text": f"Error streaming DShield events: {e!s}\n\n"
+                    "Please check your Elasticsearch configuration and ensure the server "
+                    "is running.",
                 }
             ]
 
@@ -1330,7 +1356,8 @@ class DShieldMCPServer:
             response_text = (
                 f"Found {total_count} DShield attacks in the last {time_range_hours} hours.\n"
             )
-            response_text += f"Showing page {page} of {pagination_info['total_pages']} (results {pagination_info['start_index']}-{pagination_info['end_index']}).\n\n"
+            response_text += f"Showing page {page} of {pagination_info['total_pages']} "
+            f"(results {pagination_info['start_index']}-{pagination_info['end_index']}).\n\n"
 
             if include_summary and attacks:
                 # Add summary information
@@ -1357,7 +1384,9 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "text",
-                    "text": f"Error querying DShield attacks: {str(e)}\n\nPlease check your Elasticsearch configuration and ensure the server is running.",
+                    "text": f"Error querying DShield attacks: {e!s}\n\n"
+                    "Please check your Elasticsearch configuration and ensure the server "
+                    "is running.",
                 }
             ]
 
@@ -1392,8 +1421,8 @@ class DShieldMCPServer:
         return [
             {
                 "type": "text",
-                "text": f"Found {len(attackers)} top DShield attackers in the last {hours} hours:\n\n"
-                + json.dumps(attackers, indent=2, default=str),
+                "text": f"Found {len(attackers)} top DShield attackers in the last "
+                f"{hours} hours:\n\n" + json.dumps(attackers, indent=2, default=str),
             }
         ]
 
@@ -1627,7 +1656,7 @@ class DShieldMCPServer:
             return [
                 {
                     "type": "text",
-                    "text": f"❌ Elasticsearch connection failed: {str(e)}\n\n"
+                    "text": f"❌ Elasticsearch connection failed: {e!s}\n\n"
                     + "Please check:\n"
                     + "1. Elasticsearch is running\n"
                     + "2. The URL in mcp_config.yaml is correct\n"
@@ -2010,7 +2039,7 @@ class DShieldMCPServer:
 
         except Exception as e:
             logger.error("Comprehensive IP enrichment failed", ip_address=ip_address, error=str(e))
-            return [{"type": "text", "text": f"Error enriching IP {ip_address}: {str(e)}"}]
+            return [{"type": "text", "text": f"Error enriching IP {ip_address}: {e!s}"}]
 
     async def _enrich_domain_comprehensive(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Comprehensive domain enrichment from multiple threat intelligence sources."""
@@ -2058,7 +2087,7 @@ class DShieldMCPServer:
 
         except Exception as e:
             logger.error("Comprehensive domain enrichment failed", domain=domain, error=str(e))
-            return [{"type": "text", "text": f"Error enriching domain {domain}: {str(e)}"}]
+            return [{"type": "text", "text": f"Error enriching domain {domain}: {e!s}"}]
 
     async def _correlate_threat_indicators(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Correlate multiple threat indicators across sources."""
@@ -2088,7 +2117,7 @@ class DShieldMCPServer:
                 indicators=indicators[:5],  # Log first 5 for privacy
                 error=str(e),
             )
-            return [{"type": "text", "text": f"Error correlating threat indicators: {str(e)}"}]
+            return [{"type": "text", "text": f"Error correlating threat indicators: {e!s}"}]
 
     async def _get_threat_intelligence_summary(
         self, arguments: dict[str, Any]
@@ -2136,9 +2165,7 @@ class DShieldMCPServer:
 
         except Exception as e:
             logger.error("Failed to get threat intelligence summary", error=str(e))
-            return [
-                {"type": "text", "text": f"Error getting threat intelligence summary: {str(e)}"}
-            ]
+            return [{"type": "text", "text": f"Error getting threat intelligence summary: {e!s}"}]
 
     async def _detect_statistical_anomalies(
         self, arguments: dict[str, Any]
@@ -2193,9 +2220,7 @@ class DShieldMCPServer:
 
         except Exception as e:
             logger.error("Statistical anomaly detection failed", error=str(e))
-            return [
-                {"type": "text", "text": f"Error during statistical anomaly detection: {str(e)}"}
-            ]
+            return [{"type": "text", "text": f"Error during statistical anomaly detection: {e!s}"}]
 
     def _register_resources(self) -> None:
         # Register main resources for cleanup
@@ -2424,7 +2449,6 @@ class DShieldMCPServer:
             'query_dshield_aggregations': 'elasticsearch_queries',
             'stream_dshield_events': 'elasticsearch_queries',
             'stream_dshield_events_with_session_context': 'elasticsearch_queries',
-            'query_dshield_events': 'elasticsearch_queries',
             'query_dshield_attacks': 'elasticsearch_queries',
             'query_dshield_reputation': 'dshield_enrichment',
             'query_dshield_top_attackers': 'elasticsearch_queries',
@@ -2461,10 +2485,12 @@ class DShieldMCPServer:
             'get_latex_circuit_breaker_status': 'error_handling',
         }
         feature = feature_map.get(tool_name, 'unknown')
-        msg = f"Tool '{tool_name}' is currently unavailable due to missing or unhealthy dependency: '{feature}'. Please try again later."
+        msg = f"Tool '{tool_name}' is currently unavailable due to missing or unhealthy "
+        f"dependency: '{feature}'. Please try again later."
         # Log actionable user instructions to stderr
         print(
-            f"[MCP SERVER] Tool '{tool_name}' unavailable. Dependency '{feature}' is not healthy. Check service status, configuration, and logs for troubleshooting.",
+            f"[MCP SERVER] Tool '{tool_name}' unavailable. Dependency '{feature}' is not "
+            f"healthy. Check service status, configuration, and logs for troubleshooting.",
             file=sys.stderr,
         )
         return [
@@ -2497,7 +2523,8 @@ async def main() -> None:
                         notification_options=NotificationOptions(),
                         experimental_capabilities={
                             "dshield_data_dictionary": {
-                                "description": "DShield SIEM data dictionary and analysis guidelines",
+                                "description": "DShield SIEM data dictionary and analysis "
+                                "guidelines",
                                 "prompt": DataDictionary.get_initial_prompt(),
                             }
                         },

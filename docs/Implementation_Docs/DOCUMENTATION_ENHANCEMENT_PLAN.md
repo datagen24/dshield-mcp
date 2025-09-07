@@ -45,21 +45,21 @@ This project aims to ensure all Python code in the DShield MCP project is fully 
 ```python
 def function_name(param1: str, param2: int) -> Dict[str, Any]:
     """Brief description of what the function does.
-    
+
     Longer description if needed, explaining the function's purpose,
     behavior, and any important details.
-    
+
     Args:
         param1: Description of param1
         param2: Description of param2
-        
+
     Returns:
         Description of return value
-        
+
     Raises:
         ValueError: When something goes wrong
         ConnectionError: When connection fails
-        
+
     Example:
         >>> result = function_name("test", 42)
         >>> print(result)
@@ -71,22 +71,22 @@ def function_name(param1: str, param2: int) -> Dict[str, Any]:
 ```python
 class ClassName:
     """Brief description of the class.
-    
+
     Longer description explaining the class's purpose, responsibilities,
     and how it fits into the overall system architecture.
-    
+
     Attributes:
         attr1: Description of attribute 1
         attr2: Description of attribute 2
-        
+
     Example:
         >>> instance = ClassName()
         >>> instance.method()
     """
-    
+
     def __init__(self, param: str) -> None:
         """Initialize the class instance.
-        
+
         Args:
             param: Description of initialization parameter
         """
@@ -181,7 +181,7 @@ from .other_module import OtherClass
 **Final Status:**
 - All documentation phases are complete.
 - API documentation (HTML and Markdown) generated and verified.
-- Project is ready for changelog update, commit, and pull request creation. 
+- Project is ready for changelog update, commit, and pull request creation.
 
 ## Documentation Tool Requirements
 
@@ -212,4 +212,4 @@ from .other_module import OtherClass
   2. Run linting and doc generation commands to validate compliance.
   3. Review generated documentation for completeness and privacy/security compliance.
   4. Update CI/CD pipelines to include documentation checks if not already present.
-- **Deprecations**: No breaking changes or deprecated features are introduced. All previous documentation remains valid and is enhanced by the new standards. 
+- **Deprecations**: No breaking changes or deprecated features are introduced. All previous documentation remains valid and is enhanced by the new standards.

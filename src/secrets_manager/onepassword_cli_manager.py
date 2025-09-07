@@ -175,7 +175,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
         """
         timeout_seconds = timeout or self.timeout_seconds
-        cmd = ["op"] + args + ["--format", "json"]
+        cmd = ["op", *args, "--format", "json"]
 
         # Add session token if available
         if self._session_token:
@@ -312,7 +312,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
         Raises:
             SecretsManagerError: If output validation fails
         """
-        if not isinstance(output, (dict, list)):
+        if not isinstance(output, dict | list):
             raise SecretsManagerError(
                 f"Invalid op CLI output format: expected dict or list, got {type(output)}"
             )
@@ -391,7 +391,8 @@ class OnePasswordCLIManager(BaseSecretsManager):
                     # Calculate exponential backoff delay
                     delay = self.retry_delay_seconds * (2 ** (attempt - 1))
                     self.logger.debug(
-                        f"Retrying op command in {delay}s (attempt {attempt + 1}/{self.max_retries + 1})"
+                        f"Retrying op command in {delay}s (attempt {attempt + 1}/"
+                        f"{self.max_retries + 1})"
                     )
                     time.sleep(delay)
 
@@ -432,7 +433,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
         Returns:
             True if the operation should be retried, False otherwise
         """
-        if isinstance(exception, (RateLimitedError, BackendUnavailableError)):
+        if isinstance(exception, RateLimitedError | BackendUnavailableError):
             return True
         return False
 

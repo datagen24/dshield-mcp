@@ -127,7 +127,7 @@ class HealthCheckManager:
         except Exception as e:
             logger.error("Elasticsearch health check failed", error=str(e))
             return False
-    
+
     async def check_dshield_api(self) -> bool:
         """Real DShield API health check"""
         try:
@@ -147,7 +147,7 @@ class FeatureManager:
     async def initialize_features(self) -> None:
         """Initialize features based on health status"""
         health_status = self.health_manager.health_status
-        
+
         for feature, dependencies in FEATURE_DEPENDENCIES.items():
             if not dependencies:
                 self.features[feature] = True  # No dependencies
@@ -165,10 +165,10 @@ class DynamicToolRegistry:
     def register_tools(self, all_tools: List[str]) -> List[str]:
         """Register only available tools"""
         available_tools = []
-        
+
         for tool_name in all_tools:
             feature = TOOL_FEATURE_MAPPING.get(tool_name, 'unknown')
-            
+
             if feature == 'unknown' or self.feature_manager.is_feature_available(feature):
                 available_tools.append(tool_name)
                 self.tool_details[tool_name] = {
@@ -182,7 +182,7 @@ class DynamicToolRegistry:
                     "feature": feature,
                     "reason": f"Feature '{feature}' unavailable"
                 }
-        
+
         return available_tools
 ```
 
@@ -303,7 +303,7 @@ The DShield MCP server now fully supports graceful degradation:
 
 ### Feature Availability: 12/12 (100%)
 - ✅ elasticsearch_queries
-- ✅ dshield_enrichment  
+- ✅ dshield_enrichment
 - ✅ latex_reports
 - ✅ campaign_analysis
 - ✅ data_dictionary

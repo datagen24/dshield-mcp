@@ -75,4 +75,4 @@ echo To test the installation:
 echo   venv\Scripts\activate.bat
 echo   python test_installation.py
 echo.
-pause 
+pause

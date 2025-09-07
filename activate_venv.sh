@@ -40,4 +40,4 @@ if [ ! -f ".env" ]; then
 fi
 
 echo "🚀 Ready to use DShield MCP!"
-echo "Type 'deactivate' to exit the virtual environment." 
+echo "Type 'deactivate' to exit the virtual environment."

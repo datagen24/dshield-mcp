@@ -721,7 +721,8 @@ class CampaignMCPTools:
 
         for indicator in indicators:
             try:
-                # Try each IP field individually with a simple filter (like the working debug script)
+                # Try each IP field individually with a simple filter
+                # (like the working debug script)
                 for field in ip_fields:
                     try:
                         # Use simple filter approach that we know works
@@ -731,7 +732,9 @@ class CampaignMCPTools:
                         import json
 
                         logger.debug(
-                            f"_get_seed_events: Querying with simple filter for indicator {indicator}, field {field}: {json.dumps(filters, indent=2)}"
+                            f"_get_seed_events: Querying with simple filter for "
+                            f"indicator {indicator}, field {field}: "
+                            f"{json.dumps(filters, indent=2)}"
                         )
 
                         events, _, _ = await self.es_client.query_dshield_events(
@@ -742,18 +745,22 @@ class CampaignMCPTools:
 
                         if events:
                             logger.debug(
-                                f"_get_seed_events: Found {len(events)} events for indicator {indicator} in field {field}"
+                                f"_get_seed_events: Found {len(events)} events for "
+                                f"indicator {indicator} in field {field}"
                             )
                             all_events.extend(events)
-                            # If we found events for this field, no need to try other fields for this indicator
+                            # If we found events for this field, no need to try other
+                            # fields for this indicator
                             break
                         logger.debug(
-                            f"_get_seed_events: No events found for indicator {indicator} in field {field}"
+                            f"_get_seed_events: No events found for indicator "
+                            f"{indicator} in field {field}"
                         )
 
                     except Exception as field_error:
                         logger.warning(
-                            f"Failed to query field {field} for indicator {indicator}: {field_error}"
+                            f"Failed to query field {field} for indicator "
+                            f"{indicator}: {field_error}"
                         )
                         continue
 

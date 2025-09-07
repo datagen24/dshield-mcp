@@ -3,7 +3,7 @@
 This directory contains supporting files for the LaTeX report templates:
 
 - `logos/` - Organization logos and branding
-- `images/` - Report diagrams and charts  
+- `images/` - Report diagrams and charts
 - `styles/` - Additional style files
 - `fonts/` - Custom fonts if needed
 

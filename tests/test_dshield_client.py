@@ -1,7 +1,8 @@
 """Tests for dshield_client module."""
 
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, AsyncMock
 
 from src.dshield_client import DShieldClient
 
@@ -15,10 +16,7 @@ class TestDShieldClient:
     def test_init(self, mock_user_config, mock_op_secrets, mock_get_config) -> None:
         """Test DShieldClient initialization."""
         mock_get_config.return_value = {
-            "secrets": {
-                "dshield_api_key": "test-key",
-                "dshield_api_url": "https://api.dshield.org"
-            }
+            "secrets": {"dshield_api_key": "test-key", "dshield_api_url": "https://api.dshield.org"}
         }
         mock_op_instance = Mock()
         mock_op_instance.resolve_environment_variable.return_value = "test-key"
@@ -36,10 +34,7 @@ class TestDShieldClient:
     async def test_connect(self, mock_user_config, mock_op_secrets, mock_get_config) -> None:
         """Test DShieldClient connection."""
         mock_get_config.return_value = {
-            "secrets": {
-                "dshield_api_key": "test-key",
-                "dshield_api_url": "https://api.dshield.org"
-            }
+            "secrets": {"dshield_api_key": "test-key", "dshield_api_url": "https://api.dshield.org"}
         }
         mock_op_instance = Mock()
         mock_op_instance.resolve_environment_variable.return_value = "test-key"
@@ -47,7 +42,7 @@ class TestDShieldClient:
         mock_user_config.return_value = Mock()
 
         client = DShieldClient()
-        with patch('aiohttp.ClientSession') as mock_session:
+        with patch('aiohttp.ClientSession'):
             await client.connect()
             assert client.session is not None
 
@@ -55,13 +50,12 @@ class TestDShieldClient:
     @patch('src.dshield_client.OnePasswordSecrets')
     @patch('src.dshield_client.get_user_config')
     @pytest.mark.asyncio
-    async def test_get_ip_reputation(self, mock_user_config, mock_op_secrets, mock_get_config) -> None:
+    async def test_get_ip_reputation(
+        self, mock_user_config, mock_op_secrets, mock_get_config
+    ) -> None:
         """Test IP reputation retrieval."""
         mock_get_config.return_value = {
-            "secrets": {
-                "dshield_api_key": "test-key",
-                "dshield_api_url": "https://api.dshield.org"
-            }
+            "secrets": {"dshield_api_key": "test-key", "dshield_api_url": "https://api.dshield.org"}
         }
         mock_op_instance = Mock()
         mock_op_instance.resolve_environment_variable.return_value = "test-key"

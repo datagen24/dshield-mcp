@@ -22,6 +22,7 @@ from typing import Any
 from unittest.mock import Mock
 
 import pytest
+from pydantic import ValidationError
 
 from src.mcp_error_handler import ErrorHandlingConfig, MCPErrorHandler
 
@@ -296,7 +297,7 @@ class TestMCPErrorHandler:
         """Test argument validation failure."""
         error_handler = MCPErrorHandler()
 
-        with pytest.raises(Exception):  # ValidationError or similar
+        with pytest.raises(ValidationError):
             error_handler.validate_arguments("test_tool", "not_a_dict", {})
 
     @pytest.mark.asyncio
@@ -455,7 +456,7 @@ class TestMCPErrorHandler:
         sys.stderr = stderr_capture
 
         try:
-            error = error_handler.create_error(MCPErrorHandler.INVALID_PARAMS, "Test error message")
+            error_handler.create_error(MCPErrorHandler.INVALID_PARAMS, "Test error message")
 
             # Check that error was logged to stderr
             stderr_output = stderr_capture.getvalue()

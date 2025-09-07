@@ -1,14 +1,22 @@
+"""
+MCP test client for DShield MCP server.
+
+This module provides a test client for the DShield MCP server.
+"""
+
 import json
 import subprocess
 import threading
 
 
-def read_stdout(proc):
+def read_stdout(proc) -> None:
+    """Read stdout from the process and print it."""
     for line in proc.stdout:
         print("SERVER:", line.rstrip())
 
 
-def main():
+def main() -> None:
+    """Main function to run the MCP test client."""
     # Start the MCP server as a subprocess in text mode
     proc = subprocess.Popen(
         ["python", "mcp_server.py"],

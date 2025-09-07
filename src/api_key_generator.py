@@ -394,7 +394,7 @@ class APIKeyGenerator:
         sanitized = {}
         for key, value in metadata.items():
             if key in allowed_keys:
-                if isinstance(value, (str, int, float, bool, list, dict)):
+                if isinstance(value, str | int | float | bool | list | dict):
                     sanitized[key] = value
                 else:
                     # Convert to string for safety

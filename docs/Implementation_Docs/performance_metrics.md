@@ -59,7 +59,7 @@ This document describes the implementation of query performance metrics in the D
 
 ## Implementation Notes
 - Metrics are tracked in `src/elasticsearch_client.py` and attached to the response in `_generate_enhanced_pagination_info` and `execute_aggregation_query`.
-- The structure is extensible for future metrics (e.g., cache hits, network time). 
+- The structure is extensible for future metrics (e.g., cache hits, network time).
 
 ## Dependencies
 
@@ -98,4 +98,4 @@ This document describes the implementation of query performance metrics in the D
   1. Update your MCP server and dependencies to the latest version.
   2. Review and test performance metrics with your existing workflows.
   3. Monitor performance and resource usage after deployment, and adjust query parameters as needed.
-- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved. 
+- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved.

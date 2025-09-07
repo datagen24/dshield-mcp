@@ -52,14 +52,14 @@ error_handling:
     external_service: 30.0     # External service timeout in seconds
     resource_access: 15.0      # Resource access timeout in seconds
     validation: 5.0            # Input validation timeout in seconds
-  
+
   # Retry configuration for failed operations
   retry:
     max_attempts: 3            # Maximum retry attempts
     backoff_factor: 2.0        # Exponential backoff factor
     max_delay: 60.0            # Maximum delay between retries
     jitter: 0.1                # Random jitter factor (0.0 to 1.0)
-  
+
   # Circuit breaker configuration
   circuit_breaker:
     failure_threshold: 5       # Failures before opening circuit breaker
@@ -67,7 +67,7 @@ error_handling:
     expected_exception: "ConnectionError"  # Exception type to monitor
     success_threshold: 2       # Successful calls needed to close
     half_open_max_calls: 3     # Max calls in half-open state
-  
+
   # Error aggregation and monitoring
   error_aggregation:
     enabled: true              # Enable error aggregation
@@ -76,14 +76,14 @@ error_handling:
     threshold_critical: 50     # Critical threshold for error frequency
     window_seconds: 300        # Time window for threshold analysis
     cleanup_interval: 3600     # Cleanup interval in seconds
-  
+
   # Logging configuration
   logging:
     level: "INFO"              # Log level (DEBUG, INFO, WARNING, ERROR)
     include_context: true      # Include error context in logs
     include_stack_trace: false # Include stack traces in logs
     format: "json"             # Log format (json, text)
-  
+
   # Performance monitoring
   performance:
     track_error_overhead: true # Track error handling performance impact
@@ -279,17 +279,17 @@ error_handling:
     tool_execution: 300.0     # Longer timeouts for complex operations
     external_service: 60.0    # Generous timeouts for external services
     resource_access: 30.0     # Adequate time for large resources
-  
+
   retry:
     max_attempts: 5           # More retry attempts
     backoff_factor: 2.5       # Aggressive backoff
     max_delay: 120.0          # Longer maximum delay
-  
+
   circuit_breaker:
     failure_threshold: 3      # Quick failure detection
     recovery_timeout: 120     # Longer recovery time
     success_threshold: 3      # Higher confidence for recovery
-  
+
   error_aggregation:
     enabled: true
     history_size: 5000        # Larger history for analysis
@@ -306,24 +306,24 @@ error_handling:
     tool_execution: 60.0      # Shorter timeouts for quick feedback
     external_service: 15.0    # Fast failure for development
     resource_access: 10.0     # Quick resource access
-  
+
   retry:
     max_attempts: 2           # Fewer retries for development
     backoff_factor: 1.5       # Gentle backoff
     max_delay: 30.0           # Shorter delays
-  
+
   circuit_breaker:
     failure_threshold: 2      # Quick circuit breaker activation
     recovery_timeout: 30      # Fast recovery testing
     success_threshold: 1      # Quick recovery confirmation
-  
+
   error_aggregation:
     enabled: true
     history_size: 1000        # Smaller history for development
     threshold_warnings: 20    # Higher thresholds for development
     threshold_critical: 100   # Higher critical threshold
     window_seconds: 300       # Standard analysis window
-  
+
   logging:
     level: "DEBUG"            # Detailed logging for development
     include_context: true     # Include error context
@@ -336,10 +336,10 @@ error_handling:
 error_handling:
   # Use all default values
   # Only override essential settings
-  
+
   timeouts:
     tool_execution: 120.0     # Standard tool timeout
-  
+
   circuit_breaker:
     failure_threshold: 5      # Standard failure threshold
     recovery_timeout: 60      # Standard recovery timeout
@@ -497,20 +497,20 @@ error_handling:
     external_service: float    # Required: External service timeout
     resource_access: float     # Required: Resource access timeout
     validation: float          # Optional: Validation timeout (default: 5.0)
-  
+
   retry:
     max_attempts: int          # Required: Maximum retry attempts
     backoff_factor: float      # Required: Exponential backoff factor
     max_delay: float           # Required: Maximum delay between retries
     jitter: float              # Optional: Random jitter (default: 0.1)
-  
+
   circuit_breaker:
     failure_threshold: int     # Required: Failures before opening
     recovery_timeout: float    # Required: Recovery timeout in seconds
     expected_exception: str    # Required: Exception type to monitor
     success_threshold: int     # Required: Successful calls to close
     half_open_max_calls: int  # Optional: Max calls in half-open (default: 3)
-  
+
   error_aggregation:
     enabled: bool              # Required: Enable error aggregation
     history_size: int          # Required: Number of errors to track
@@ -518,13 +518,13 @@ error_handling:
     threshold_critical: int    # Required: Critical threshold
     window_seconds: int        # Required: Analysis window in seconds
     cleanup_interval: int      # Optional: Cleanup interval (default: 3600)
-  
+
   logging:
     level: str                 # Required: Log level
     include_context: bool      # Required: Include error context
     include_stack_trace: bool  # Required: Include stack traces
     format: str                # Optional: Log format (default: "json")
-  
+
   performance:
     track_error_overhead: bool # Optional: Track performance impact (default: true)
     sample_rate: float         # Optional: Sampling rate (default: 0.1)
@@ -540,20 +540,20 @@ error_handling:
     external_service: 30.0
     resource_access: 15.0
     validation: 5.0
-  
+
   retry:
     max_attempts: 3
     backoff_factor: 2.0
     max_delay: 60.0
     jitter: 0.1
-  
+
   circuit_breaker:
     failure_threshold: 5
     recovery_timeout: 60
     expected_exception: "ConnectionError"
     success_threshold: 2
     half_open_max_calls: 3
-  
+
   error_aggregation:
     enabled: true
     history_size: 1000
@@ -561,13 +561,13 @@ error_handling:
     threshold_critical: 50
     window_seconds: 300
     cleanup_interval: 3600
-  
+
   logging:
     level: "INFO"
     include_context: true
     include_stack_trace: false
     format: "json"
-  
+
   performance:
     track_error_overhead: true
     sample_rate: 0.1
@@ -576,6 +576,6 @@ error_handling:
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: 2025-08-29  
+**Version**: 1.0
+**Last Updated**: 2025-08-29
 **Related Issue**: #58 - JSON-RPC Error Handling Implementation

@@ -120,4 +120,3 @@ def test_analyze_campaign_invalid_inputs(invalid_input, expected_error):
 2. Implement parametrized test cases for edge scenarios
 3. Focus on exception paths and boundary conditions
 4. Verify coverage improvements after each batch of tests
-

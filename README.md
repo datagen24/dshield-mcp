@@ -229,7 +229,7 @@ copy .env.example .env
    ELASTICSEARCH_URL=https://your-elasticsearch-cluster:9200
    ELASTICSEARCH_USERNAME=elastic
    ELASTICSEARCH_PASSWORD=your-password
-   
+
    # DShield API Configuration (optional)
    DSHIELD_API_KEY=your-dshield-api-key
    DSHIELD_API_URL=https://dshield.org/api
@@ -379,10 +379,10 @@ The DShield MCP supports 1Password CLI integration for secure secret management.
    ```bash
    # macOS (using Homebrew)
    brew install 1password-cli
-   
+
    # Linux
    # Download from: https://1password.com/downloads/command-line/
-   
+
    # Windows
    # Download from: https://1password.com/downloads/command-line/
    ```
@@ -691,4 +691,4 @@ For support and questions about DShield integration:
 
 ## DShield Integration Credits
 
-This utility is specifically designed to work with the [DShield-SIEM](https://github.com/bruneaug/DShield-SIEM) project and follows DShield data patterns and structures. 
+This utility is specifically designed to work with the [DShield-SIEM](https://github.com/bruneaug/DShield-SIEM) project and follows DShield data patterns and structures.

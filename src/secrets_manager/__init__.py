@@ -20,14 +20,14 @@ from .onepassword_cli_manager import OnePasswordCLIManager
 
 __all__ = [
     "APIKey",
-    "BaseSecretsManager",
-    "SecretMetadata",
-    "SecretReference",
-    "SecretsManagerError",
-    "SecretNotFoundError",
-    "PermissionDeniedError",
-    "RateLimitedError",
     "BackendUnavailableError",
+    "BaseSecretsManager",
     "InvalidReferenceError",
     "OnePasswordCLIManager",
+    "PermissionDeniedError",
+    "RateLimitedError",
+    "SecretMetadata",
+    "SecretNotFoundError",
+    "SecretReference",
+    "SecretsManagerError",
 ]

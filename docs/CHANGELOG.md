@@ -82,7 +82,7 @@ See the documentation for each feature or breaking change for additional migrati
 - **Configurable Output Directory**: Secure, user-writable output directory for generated files
   - **Issue**: [#46](https://github.com/datagen24/dsheild-mcp/issues/46) - Server fails to start due to template directory path resolution
   - **Scope**: Cross-platform output directory configuration with security best practices
-  - **Features**: 
+  - **Features**:
     - Default output directory: `~/dshield-mcp-output` (cross-platform)
     - YAML configuration support via `output_directory` setting
     - Environment variable override via `DMC_OUTPUT_DIRECTORY`
@@ -138,7 +138,7 @@ See the documentation for each feature or breaking change for additional migrati
 - **Data Availability Diagnostics and Statistics Fix**
   - **Issue**: [#99](https://github.com/datagen24/dsheild-mcp/issues/99) - Fix get_dshield_statistics empty results issue
   - **Scope**: Comprehensive fix for empty statistics results with diagnostic capabilities
-  - **Root Cause Analysis**: 
+  - **Root Cause Analysis**:
     - Index pattern mismatch: Hardcoded `["dshield-summary-*", "dshield-statistics-*"]` patterns didn't exist
     - Configuration gap: Missing `dshield` index patterns in configuration
     - Poor error handling: Empty results without diagnostic information
@@ -297,7 +297,7 @@ See the documentation for each feature or breaking change for additional migrati
 - **MCP Server Initialization Error**: Fixed JavaScript-style boolean values causing initialization failure
   - Resolves `"name 'true' is not defined"` error in tools/list method
   - Changes JavaScript-style `true` to Python-style `True` in required field definitions
-  - Affects 6 campaign analysis tool definitions: analyze_campaign, expand_campaign_indicators, 
+  - Affects 6 campaign analysis tool definitions: analyze_campaign, expand_campaign_indicators,
     get_campaign_timeline, compare_campaigns, search_campaigns, get_campaign_details
   - Ensures Claude can properly initialize and use the DShield MCP server
   - **Impact**: MCP server now initializes correctly and all tools are accessible
@@ -436,7 +436,7 @@ See the documentation for each feature or breaking change for additional migrati
 
 ### High Priority Enhancements (All Complete in v1.5.0)
 1. ✅ **Pagination Support** - Robust pagination for large datasets
-2. ✅ **Field Selection/Projection** - Enhanced query capabilities  
+2. ✅ **Field Selection/Projection** - Enhanced query capabilities
 3. ✅ **Enhanced Time Range Handling** - Flexible time range queries
 4. ✅ **Aggregation Queries** - Advanced data aggregation capabilities
 5. ✅ **Smart Query Optimization** - Automatic query optimization based on data volume
@@ -458,4 +458,4 @@ All completed features are production-ready and tested with:
 - Performance optimization and monitoring
 - Error handling and logging
 - Documentation and usage examples
-- MCP protocol compliance 
+- MCP protocol compliance

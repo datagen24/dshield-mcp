@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
-"""
-Setup script for DShield MCP - Elastic SIEM Integration
-"""
+"""Setup script for DShield MCP - Elastic SIEM Integration."""
 
 from setuptools import find_packages, setup
 
 
 # Read the README file
-def read_readme():
+def read_readme() -> str:
+    """Read the README file and return its contents.
+
+    Returns:
+        The contents of the README file
+    """
     with open("README.md", encoding="utf-8") as fh:
         return fh.read()
 
 
 # Read requirements
-def read_requirements():
+def read_requirements() -> list[str]:
+    """Read the requirements file and return a list of requirements.
+
+    Returns:
+        A list of requirements from requirements.txt
+    """
     with open("requirements.txt", encoding="utf-8") as fh:
         return [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 

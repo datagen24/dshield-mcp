@@ -364,7 +364,8 @@ class UserConfigManager:
         tcp_transport_settings: TCP transport settings
         api_key_management_settings: API key management settings
         tui_settings: TUI settings
-        output_directory: Directory for generated outputs (default: ~/dshield-mcp-output, configurable)
+        output_directory: Directory for generated outputs
+            (default: ~/dshield-mcp-output, configurable)
 
     Example:
         >>> manager = UserConfigManager()
@@ -1199,7 +1200,9 @@ class UserConfigManager:
                 "sqlite_cache_db_name": self.performance_settings.sqlite_cache_db_name,
             },
             "security": {
-                "rate_limit_requests_per_minute": self.security_settings.rate_limit_requests_per_minute,
+                "rate_limit_requests_per_minute": (
+                    self.security_settings.rate_limit_requests_per_minute
+                ),
                 "max_query_results": self.security_settings.max_query_results,
                 "enable_field_validation": self.security_settings.enable_field_validation,
                 "allowed_field_patterns": self.security_settings.allowed_field_patterns,
@@ -1218,9 +1221,15 @@ class UserConfigManager:
                 "correlation_window_minutes": self.campaign_settings.correlation_window_minutes,
                 "min_confidence_threshold": self.campaign_settings.min_confidence_threshold,
                 "max_campaign_events": self.campaign_settings.max_campaign_events,
-                "enable_geospatial_correlation": self.campaign_settings.enable_geospatial_correlation,
-                "enable_infrastructure_correlation": self.campaign_settings.enable_infrastructure_correlation,
-                "enable_behavioral_correlation": self.campaign_settings.enable_behavioral_correlation,
+                "enable_geospatial_correlation": (
+                    self.campaign_settings.enable_geospatial_correlation
+                ),
+                "enable_infrastructure_correlation": (
+                    self.campaign_settings.enable_infrastructure_correlation
+                ),
+                "enable_behavioral_correlation": (
+                    self.campaign_settings.enable_behavioral_correlation
+                ),
                 "enable_temporal_correlation": self.campaign_settings.enable_temporal_correlation,
                 "enable_ip_correlation": self.campaign_settings.enable_ip_correlation,
                 "max_expansion_depth": self.campaign_settings.max_expansion_depth,

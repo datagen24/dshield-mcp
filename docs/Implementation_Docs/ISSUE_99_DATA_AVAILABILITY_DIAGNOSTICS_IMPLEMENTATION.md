@@ -67,10 +67,10 @@ except Exception as e:
 
 # After: Return diagnostic information
 except Exception as e:
-    logger.error("Failed to get DShield statistics", 
-                error=str(e), 
+    logger.error("Failed to get DShield statistics",
+                error=str(e),
                 time_range_hours=time_range_hours)
-    
+
     return {
         'total_events': 0,
         'top_attackers': [],
@@ -213,7 +213,7 @@ index_patterns:
 
 ```
 tests/test_enhanced_threat_intelligence.py::TestDiagnoseDataAvailability::test_diagnose_data_availability_success PASSED
-tests/test_enhanced_threat_intelligence.py::TestDiagnoseDataAvailability::test_diagnose_data_availability_no_indices PASSED  
+tests/test_enhanced_threat_intelligence.py::TestDiagnoseDataAvailability::test_diagnose_data_availability_no_indices PASSED
 tests/test_enhanced_threat_intelligence.py::TestDiagnoseDataAvailability::test_diagnose_data_availability_connection_error PASSED
 ```
 
@@ -365,6 +365,6 @@ The solution provides a robust foundation for data availability management and s
 
 ---
 
-**Implementation Team**: AI Assistant  
-**Review Status**: Ready for PR  
+**Implementation Team**: AI Assistant
+**Review Status**: Ready for PR
 **Next Steps**: Create pull request and merge to main branch

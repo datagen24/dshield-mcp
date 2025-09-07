@@ -974,17 +974,17 @@ rate limiting, input validation, and abuse detection.</p>
 <input id="logger-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
             <label class="view-value-button pdoc-button" for="logger-view-value"></label><span class="default_value">&lt;BoundLoggerLazyProxy(logger=None, wrapper_class=None, processors=None, context_class=None, initial_values={}, logger_factory_args=(&#39;<a href="">src.tcp_security</a>&#39;,))&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#logger"></a>
-    
-    
+
+
 
                 </section>
                 <section id="SecurityViolation">
                             <input id="SecurityViolation-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">SecurityViolation</span><wbr>(<span class="base">builtins.Exception</span>):
 
@@ -1032,7 +1032,7 @@ rate limiting, input validation, and abuse detection.</p>
                             <div id="SecurityViolation.__init__" class="classattr">
                                         <input id="SecurityViolation.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">SecurityViolation</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">violation_type</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">details</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
                 <label class="view-source-button" for="SecurityViolation.__init__-view-source"><span>View Source</span></label>
@@ -1071,40 +1071,40 @@ rate limiting, input validation, and abuse detection.</p>
                                 <div class="attr variable">
             <span class="name">violation_type</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityViolation.violation_type"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityViolation.message" class="classattr">
                                 <div class="attr variable">
             <span class="name">message</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityViolation.message"></a>
-    
-    
+
+
 
                             </div>
                             <div id="SecurityViolation.details" class="classattr">
                                 <div class="attr variable">
             <span class="name">details</span>
 
-        
+
     </div>
     <a class="headerlink" href="#SecurityViolation.details"></a>
-    
-    
+
+
 
                             </div>
                 </section>
                 <section id="RateLimiter">
                             <input id="RateLimiter-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">RateLimiter</span>:
 
@@ -1260,7 +1260,7 @@ for different types of operations and clients.</p>
                             <div id="RateLimiter.__init__" class="classattr">
                                         <input id="RateLimiter.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">RateLimiter</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">requests_per_minute</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span>,</span><span class="param">	<span class="n">burst_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>,</span><span class="param">	<span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span>,</span><span class="param">	<span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span>)</span>
 
                 <label class="view-source-button" for="RateLimiter.__init__-view-source"><span>View Source</span></label>
@@ -1317,116 +1317,116 @@ for different types of operations and clients.</p>
                                 <div class="attr variable">
             <span class="name">requests_per_minute</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.requests_per_minute"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.burst_limit" class="classattr">
                                 <div class="attr variable">
             <span class="name">burst_limit</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.burst_limit"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.window_size" class="classattr">
                                 <div class="attr variable">
             <span class="name">window_size</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.window_size"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.adaptive" class="classattr">
                                 <div class="attr variable">
             <span class="name">adaptive</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.adaptive"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.tokens" class="classattr">
                                 <div class="attr variable">
             <span class="name">tokens</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.tokens"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.last_refill" class="classattr">
                                 <div class="attr variable">
             <span class="name">last_refill</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.last_refill"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.request_times" class="classattr">
                                 <div class="attr variable">
             <span class="name">request_times</span><span class="annotation">: collections.deque[datetime.datetime]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.request_times"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.current_limit" class="classattr">
                                 <div class="attr variable">
             <span class="name">current_limit</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.current_limit"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.violation_count" class="classattr">
                                 <div class="attr variable">
             <span class="name">violation_count</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.violation_count"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.last_violation" class="classattr">
                                 <div class="attr variable">
             <span class="name">last_violation</span><span class="annotation">: datetime.datetime | None</span>
 
-        
+
     </div>
     <a class="headerlink" href="#RateLimiter.last_violation"></a>
-    
-    
+
+
 
                             </div>
                             <div id="RateLimiter.is_allowed" class="classattr">
                                         <input id="RateLimiter.is_allowed-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">is_allowed</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">client_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
 
@@ -1476,7 +1476,7 @@ for different types of operations and clients.</p>
                             <div id="RateLimiter.record_violation" class="classattr">
                                         <input id="RateLimiter.record_violation-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">record_violation</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
@@ -1505,7 +1505,7 @@ for different types of operations and clients.</p>
                 <section id="InputValidator">
                             <input id="InputValidator-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">InputValidator</span>:
 
@@ -1823,7 +1823,7 @@ preventing injection attacks and malformed requests.</p>
                             <div id="InputValidator.__init__" class="classattr">
                                         <input id="InputValidator.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">InputValidator</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
                 <label class="view-source-button" for="InputValidator.__init__-view-source"><span>View Source</span></label>
@@ -1872,72 +1872,72 @@ preventing injection attacks and malformed requests.</p>
                                 <div class="attr variable">
             <span class="name">config</span>
 
-        
+
     </div>
     <a class="headerlink" href="#InputValidator.config"></a>
-    
-    
+
+
 
                             </div>
                             <div id="InputValidator.max_message_size" class="classattr">
                                 <div class="attr variable">
             <span class="name">max_message_size</span>
 
-        
+
     </div>
     <a class="headerlink" href="#InputValidator.max_message_size"></a>
-    
-    
+
+
 
                             </div>
                             <div id="InputValidator.max_field_length" class="classattr">
                                 <div class="attr variable">
             <span class="name">max_field_length</span>
 
-        
+
     </div>
     <a class="headerlink" href="#InputValidator.max_field_length"></a>
-    
-    
+
+
 
                             </div>
                             <div id="InputValidator.allowed_methods" class="classattr">
                                 <div class="attr variable">
             <span class="name">allowed_methods</span>
 
-        
+
     </div>
     <a class="headerlink" href="#InputValidator.allowed_methods"></a>
-    
-    
+
+
 
                             </div>
                             <div id="InputValidator.safe_string_pattern" class="classattr">
                                 <div class="attr variable">
             <span class="name">safe_string_pattern</span>
 
-        
+
     </div>
     <a class="headerlink" href="#InputValidator.safe_string_pattern"></a>
-    
-    
+
+
 
                             </div>
                             <div id="InputValidator.json_rpc_id_pattern" class="classattr">
                                 <div class="attr variable">
             <span class="name">json_rpc_id_pattern</span>
 
-        
+
     </div>
     <a class="headerlink" href="#InputValidator.json_rpc_id_pattern"></a>
-    
-    
+
+
 
                             </div>
                             <div id="InputValidator.validate_message" class="classattr">
                                         <input id="InputValidator.validate_message-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_message</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">message</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2014,7 +2014,7 @@ preventing injection attacks and malformed requests.</p>
                 <section id="TCPSecurityManager">
                             <input id="TCPSecurityManager-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">TCPSecurityManager</span>:
 
@@ -2306,7 +2306,7 @@ input validation, abuse detection, and connection monitoring.</p>
                             <div id="TCPSecurityManager.__init__" class="classattr">
                                         <input id="TCPSecurityManager.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">TCPSecurityManager</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
                 <label class="view-source-button" for="TCPSecurityManager.__init__-view-source"><span>View Source</span></label>
@@ -2359,149 +2359,149 @@ input validation, abuse detection, and connection monitoring.</p>
                                 <div class="attr variable">
             <span class="name">config</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.config"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.logger" class="classattr">
                                 <div class="attr variable">
             <span class="name">logger</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.logger"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.input_validator" class="classattr">
                                 <div class="attr variable">
             <span class="name">input_validator</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.input_validator"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.global_rate_limiter" class="classattr">
                                 <div class="attr variable">
             <span class="name">global_rate_limiter</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.global_rate_limiter"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.client_rate_limiters" class="classattr">
                                 <div class="attr variable">
             <span class="name">client_rate_limiters</span><span class="annotation">: dict[str, <a href="#RateLimiter">RateLimiter</a>]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.client_rate_limiters"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.violation_counts" class="classattr">
                                 <div class="attr variable">
             <span class="name">violation_counts</span><span class="annotation">: dict[str, int]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.violation_counts"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.blocked_clients" class="classattr">
                                 <div class="attr variable">
             <span class="name">blocked_clients</span><span class="annotation">: set[str]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.blocked_clients"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.abuse_threshold" class="classattr">
                                 <div class="attr variable">
             <span class="name">abuse_threshold</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.abuse_threshold"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.block_duration" class="classattr">
                                 <div class="attr variable">
             <span class="name">block_duration</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.block_duration"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.client_block_times" class="classattr">
                                 <div class="attr variable">
             <span class="name">client_block_times</span><span class="annotation">: dict[str, datetime.datetime]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.client_block_times"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.connection_attempts" class="classattr">
                                 <div class="attr variable">
             <span class="name">connection_attempts</span><span class="annotation">: dict[str, list[datetime.datetime]]</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.connection_attempts"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.max_connection_attempts" class="classattr">
                                 <div class="attr variable">
             <span class="name">max_connection_attempts</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.max_connection_attempts"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.connection_window" class="classattr">
                                 <div class="attr variable">
             <span class="name">connection_window</span>
 
-        
+
     </div>
     <a class="headerlink" href="#TCPSecurityManager.connection_window"></a>
-    
-    
+
+
 
                             </div>
                             <div id="TCPSecurityManager.validate_message" class="classattr">
                                         <input id="TCPSecurityManager.validate_message-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_message</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">client_id</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2565,7 +2565,7 @@ input validation, abuse detection, and connection monitoring.</p>
                             <div id="TCPSecurityManager.record_connection_attempt" class="classattr">
                                         <input id="TCPSecurityManager.record_connection_attempt-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">record_connection_attempt</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">client_id</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
 
@@ -2616,7 +2616,7 @@ input validation, abuse detection, and connection monitoring.</p>
                             <div id="TCPSecurityManager.get_security_statistics" class="classattr">
                                         <input id="TCPSecurityManager.get_security_statistics-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_security_statistics</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2668,7 +2668,7 @@ input validation, abuse detection, and connection monitoring.</p>
                             <div id="TCPSecurityManager.cleanup_expired_data" class="classattr">
                                         <input id="TCPSecurityManager.cleanup_expired_data-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">cleanup_expired_data</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
 

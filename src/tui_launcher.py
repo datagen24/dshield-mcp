@@ -47,7 +47,9 @@ class TUIProcessManager:
             "port": self.user_config.tcp_transport_settings.port,
             "bind_address": self.user_config.tcp_transport_settings.bind_address,
             "max_connections": self.user_config.tcp_transport_settings.max_connections,
-            "connection_timeout_seconds": self.user_config.tcp_transport_settings.connection_timeout_seconds,
+            "connection_timeout_seconds": (
+                self.user_config.tcp_transport_settings.connection_timeout_seconds
+            ),
             "connection_management": {
                 "api_key_management": self.user_config.tcp_transport_settings.api_key_management,
                 "permissions": self.user_config.tcp_transport_settings.permissions,

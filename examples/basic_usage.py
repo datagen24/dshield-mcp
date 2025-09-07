@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Basic usage example for DShield MCP - Elastic SIEM Integration
+Basic usage example for DShield MCP - Elastic SIEM Integration.
+
+This module provides basic usage examples for the DShield MCP project.
 Demonstrates how to use the MCP utility for DShield-specific security analysis.
 """
 
@@ -70,7 +72,7 @@ async def dshield_security_analysis():
 
         # Get DShield statistics
         print("Getting DShield statistics...")
-        stats = await es_client.get_dshield_statistics(time_range_hours=24)
+        await es_client.get_dshield_statistics(time_range_hours=24)
         print("Retrieved comprehensive DShield statistics")
 
         # Process events
@@ -101,7 +103,7 @@ async def dshield_security_analysis():
                 threat_intelligence[ip] = ti_data
                 print(f"  {ip}: {ti_data.get('threat_level', 'unknown')} threat level")
             except Exception as e:
-                print(f"  {ip}: Error - {str(e)}")
+                print(f"  {ip}: Error - {e!s}")
 
         # Generate attack report with DShield data
         print("\nGenerating DShield attack report...")
@@ -184,7 +186,8 @@ async def dshield_security_analysis():
         for ip in high_threat_ips[:5]:
             ti_data = threat_intelligence[ip]
             print(
-                f"    {ip}: {ti_data.get('country', 'Unknown')} - Score: {ti_data.get('reputation_score', 'N/A')}"
+                f"    {ip}: {ti_data.get('country', 'Unknown')} - "
+                f"Score: {ti_data.get('reputation_score', 'N/A')}"
             )
 
         print("\nAttack Report Summary:")
@@ -227,7 +230,7 @@ async def dshield_security_analysis():
         return summary, attack_report, threat_intelligence, dshield_stats
 
     except Exception as e:
-        print(f"Error during DShield analysis: {str(e)}")
+        print(f"Error during DShield analysis: {e!s}")
         raise
 
 
@@ -238,7 +241,7 @@ async def dshield_specific_analysis():
     try:
         es_client = ElasticsearchClient()
         dshield_client = DShieldClient()
-        data_processor = DataProcessor()
+        DataProcessor()
 
         await es_client.connect()
 
@@ -258,14 +261,14 @@ async def dshield_specific_analysis():
                 print(f"  ASN: {reputation.get('asn', 'N/A')}")
                 print(f"  Organization: {reputation.get('organization', 'N/A')}")
             except Exception as e:
-                print(f"  Error getting reputation: {str(e)}")
+                print(f"  Error getting reputation: {e!s}")
 
             # Query events for this IP
             try:
                 events = await es_client.query_events_by_ip([ip], time_range_hours=24)
                 print(f"  Events found: {len(events)}")
             except Exception as e:
-                print(f"  Error querying events: {str(e)}")
+                print(f"  Error querying events: {e!s}")
 
         # Get DShield attack summary
         print("\nGetting DShield attack summary...")
@@ -276,7 +279,7 @@ async def dshield_specific_analysis():
             print(f"  Top Countries: {len(attack_summary.get('top_countries', []))}")
             print(f"  Top Ports: {len(attack_summary.get('top_ports', []))}")
         except Exception as e:
-            print(f"  Error getting attack summary: {str(e)}")
+            print(f"  Error getting attack summary: {e!s}")
 
         # Get top attackers from DShield
         print("\nGetting DShield top attackers...")
@@ -285,15 +288,16 @@ async def dshield_specific_analysis():
             print(f"  Top Attackers: {len(top_attackers)}")
             for i, attacker in enumerate(top_attackers[:5], 1):
                 print(
-                    f"    {i}. {attacker.get('ip_address', 'N/A')}: {attacker.get('attack_count', 0)} attacks"
+                    f"    {i}. {attacker.get('ip_address', 'N/A')}: "
+                    f"{attacker.get('attack_count', 0)} attacks"
                 )
         except Exception as e:
-            print(f"  Error getting top attackers: {str(e)}")
+            print(f"  Error getting top attackers: {e!s}")
 
         await es_client.close()
 
     except Exception as e:
-        print(f"Error during specific analysis: {str(e)}")
+        print(f"Error during specific analysis: {e!s}")
         raise
 
 

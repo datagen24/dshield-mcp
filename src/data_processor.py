@@ -998,7 +998,9 @@ class DataProcessor:
                         if isinstance(event.get("source_ip"), list | dict)
                         else event.get("source_ip"),
                         "score": event.get("reputation_score"),
-                        "description": f"IP {str(event.get('source_ip')) if isinstance(event.get('source_ip'), list | dict) else event.get('source_ip')} has high reputation score",
+                        "description": self._format_ip_description(
+                            event.get('source_ip'), "has high reputation score"
+                        ),
                     }
                 )
 
@@ -1010,7 +1012,9 @@ class DataProcessor:
                         if isinstance(event.get("source_ip"), list | dict)
                         else event.get("source_ip"),
                         "count": event.get("attack_count"),
-                        "description": f"IP {str(event.get('source_ip')) if isinstance(event.get('source_ip'), list | dict) else event.get('source_ip')} has high attack count",
+                        "description": self._format_ip_description(
+                            event.get('source_ip'), "has high attack count"
+                        ),
                     }
                 )
 
@@ -1022,14 +1026,18 @@ class DataProcessor:
 
         for event in events:
             if event.get("destination_port"):
-                vectors.add(
-                    f"Port {str(event['destination_port']) if isinstance(event['destination_port'], list | dict) else event['destination_port']}"
-                )
+                port_value = event['destination_port']
+                port_str = str(port_value) if isinstance(port_value, list | dict) else port_value
+                vectors.add(f"Port {port_str}")
 
             if event.get("protocol"):
-                vectors.add(
-                    f"Protocol {str(event['protocol']) if isinstance(event['protocol'], list | dict) else event['protocol']}"
+                protocol_value = event['protocol']
+                protocol_str = (
+                    str(protocol_value)
+                    if isinstance(protocol_value, list | dict)
+                    else protocol_value
                 )
+                vectors.add(f"Protocol {protocol_str}")
 
             if event.get("attack_types"):
                 # Handle attack_types that might contain unhashable types
@@ -1164,11 +1172,17 @@ class DataProcessor:
 
         high_severity = len([e for e in events if e.get("severity") in ["high", "critical"]])
 
-        summary = f"Security incident involving {total_events} events from {len(unique_ips)} unique IP addresses. "
+        summary = (
+            f"Security incident involving {total_events} events from "
+            f"{len(unique_ips)} unique IP addresses. "
+        )
         summary += f"{high_severity} high-severity events detected. "
 
         if threat_indicators:
-            summary += f"{len(threat_indicators)} threat indicators identified requiring immediate attention."
+            summary += (
+                f"{len(threat_indicators)} threat indicators identified "
+                f"requiring immediate attention."
+            )
 
         return summary
 
@@ -1303,3 +1317,19 @@ class DataProcessor:
             indices_queried=[],
             query_duration_ms=None,
         )
+
+    def _format_ip_description(self, ip_value: Any, suffix: str) -> str:
+        """Format IP description with proper handling of complex types.
+
+        Args:
+            ip_value: The IP value (could be string, list, dict, etc.)
+            suffix: The suffix to add to the description
+
+        Returns:
+            Formatted description string
+        """
+        if isinstance(ip_value, list | dict):
+            ip_str = str(ip_value)
+        else:
+            ip_str = ip_value or "unknown"
+        return f"IP {ip_str} {suffix}"

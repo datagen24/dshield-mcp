@@ -1076,17 +1076,17 @@
 <input id="logger-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
             <label class="view-value-button pdoc-button" for="logger-view-value"></label><span class="default_value">&lt;BoundLoggerLazyProxy(logger=None, wrapper_class=None, processors=None, context_class=None, initial_values={}, logger_factory_args=(&#39;<a href="">src.campaign_mcp_tools</a>&#39;,))&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#logger"></a>
-    
-    
+
+
 
                 </section>
                 <section id="CampaignMCPTools">
                             <input id="CampaignMCPTools-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">CampaignMCPTools</span>:
 
@@ -2055,7 +2055,7 @@
                             <div id="CampaignMCPTools.__init__" class="classattr">
                                         <input id="CampaignMCPTools.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">CampaignMCPTools</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">es_client</span><span class="p">:</span> <span class="n"><a href="elasticsearch_client.html#ElasticsearchClient">src.elasticsearch_client.ElasticsearchClient</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
                 <label class="view-source-button" for="CampaignMCPTools.__init__-view-source"><span>View Source</span></label>
@@ -2087,39 +2087,39 @@
                                 <div class="attr variable">
             <span class="name">es_client</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CampaignMCPTools.es_client"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CampaignMCPTools.campaign_analyzer" class="classattr">
                                 <div class="attr variable">
             <span class="name">campaign_analyzer</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CampaignMCPTools.campaign_analyzer"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CampaignMCPTools.user_config" class="classattr">
                                 <div class="attr variable">
             <span class="name">user_config</span>
 
-        
+
     </div>
     <a class="headerlink" href="#CampaignMCPTools.user_config"></a>
-    
-    
+
+
 
                             </div>
                             <div id="CampaignMCPTools.analyze_campaign" class="classattr">
                                         <input id="CampaignMCPTools.analyze_campaign-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">analyze_campaign</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">seed_indicators</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">time_range_hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">168</span>,</span><span class="param">	<span class="n">correlation_methods</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">min_confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.7</span>,</span><span class="param">	<span class="n">include_timeline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">include_relationships</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2279,7 +2279,7 @@
                             <div id="CampaignMCPTools.expand_campaign_indicators" class="classattr">
                                         <input id="CampaignMCPTools.expand_campaign_indicators-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">expand_campaign_indicators</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">campaign_id</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">expansion_depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>,</span><span class="param">	<span class="n">expansion_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;comprehensive&#39;</span>,</span><span class="param">	<span class="n">include_passive_dns</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">include_threat_intel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2406,7 +2406,7 @@
                             <div id="CampaignMCPTools.get_campaign_timeline" class="classattr">
                                         <input id="CampaignMCPTools.get_campaign_timeline-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">get_campaign_timeline</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">campaign_id</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">timeline_granularity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;hourly&#39;</span>,</span><span class="param">	<span class="n">include_event_details</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">include_ttp_analysis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2517,7 +2517,7 @@
                             <div id="CampaignMCPTools.compare_campaigns" class="classattr">
                                         <input id="CampaignMCPTools.compare_campaigns-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">compare_campaigns</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">campaign_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">comparison_metrics</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">include_visualization_data</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2647,7 +2647,7 @@
                             <div id="CampaignMCPTools.detect_ongoing_campaigns" class="classattr">
                                         <input id="CampaignMCPTools.detect_ongoing_campaigns-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">detect_ongoing_campaigns</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">time_window_hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">24</span>,</span><span class="param">	<span class="n">min_event_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span>,</span><span class="param">	<span class="n">correlation_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span>,</span><span class="param">	<span class="n">include_alert_data</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2756,7 +2756,7 @@
                             <div id="CampaignMCPTools.search_campaigns" class="classattr">
                                         <input id="CampaignMCPTools.search_campaigns-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">search_campaigns</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">search_criteria</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">time_range_hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">168</span>,</span><span class="param">	<span class="n">max_results</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span>,</span><span class="param">	<span class="n">include_summaries</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -2843,7 +2843,7 @@
                             <div id="CampaignMCPTools.get_campaign_details" class="classattr">
                                         <input id="CampaignMCPTools.get_campaign_details-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">async def</span>
         <span class="name">get_campaign_details</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">campaign_id</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">include_full_timeline</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">include_relationships</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">include_threat_intel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 

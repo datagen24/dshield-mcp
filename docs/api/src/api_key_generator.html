@@ -554,17 +554,17 @@ cryptographically secure random number generators.</p>
 <input id="logger-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
             <label class="view-value-button pdoc-button" for="logger-view-value"></label><span class="default_value">&lt;BoundLoggerLazyProxy(logger=None, wrapper_class=None, processors=None, context_class=None, initial_values={}, logger_factory_args=(&#39;<a href="">src.api_key_generator</a>&#39;,))&gt;</span>
 
-        
+
     </div>
     <a class="headerlink" href="#logger"></a>
-    
-    
+
+
 
                 </section>
                 <section id="APIKeyGenerator">
                             <input id="APIKeyGenerator-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr class">
-            
+
     <span class="def">class</span>
     <span class="name">APIKeyGenerator</span>:
 
@@ -991,7 +991,7 @@ configurable parameters and metadata handling.</p>
                             <div id="APIKeyGenerator.__init__" class="classattr">
                                         <input id="APIKeyGenerator.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="name">APIKeyGenerator</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">default_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span>,</span><span class="param">	<span class="n">default_charset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789&#39;</span>,</span><span class="param">	<span class="n">salt_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span></span>)</span>
 
                 <label class="view-source-button" for="APIKeyGenerator.__init__-view-source"><span>View Source</span></label>
@@ -1033,50 +1033,50 @@ configurable parameters and metadata handling.</p>
                                 <div class="attr variable">
             <span class="name">default_length</span>
 
-        
+
     </div>
     <a class="headerlink" href="#APIKeyGenerator.default_length"></a>
-    
-    
+
+
 
                             </div>
                             <div id="APIKeyGenerator.default_charset" class="classattr">
                                 <div class="attr variable">
             <span class="name">default_charset</span>
 
-        
+
     </div>
     <a class="headerlink" href="#APIKeyGenerator.default_charset"></a>
-    
-    
+
+
 
                             </div>
                             <div id="APIKeyGenerator.salt_length" class="classattr">
                                 <div class="attr variable">
             <span class="name">salt_length</span>
 
-        
+
     </div>
     <a class="headerlink" href="#APIKeyGenerator.salt_length"></a>
-    
-    
+
+
 
                             </div>
                             <div id="APIKeyGenerator.logger" class="classattr">
                                 <div class="attr variable">
             <span class="name">logger</span>
 
-        
+
     </div>
     <a class="headerlink" href="#APIKeyGenerator.logger"></a>
-    
-    
+
+
 
                             </div>
                             <div id="APIKeyGenerator.generate_key" class="classattr">
                                         <input id="APIKeyGenerator.generate_key-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">generate_key</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">charset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;dshield_&#39;</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
 
@@ -1148,7 +1148,7 @@ configurable parameters and metadata handling.</p>
                             <div id="APIKeyGenerator.generate_key_with_metadata" class="classattr">
                                         <input id="APIKeyGenerator.generate_key_with_metadata-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">generate_key_with_metadata</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">permissions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">expiration_days</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">rate_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">charset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;dshield_&#39;</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -1260,7 +1260,7 @@ configurable parameters and metadata handling.</p>
                             <div id="APIKeyGenerator.generate_api_key" class="classattr">
                                         <input id="APIKeyGenerator.generate_api_key-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">generate_api_key</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">name</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">permissions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">expiration_days</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">rate_limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">charset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;dshield_&#39;</span>,</span><span class="param">	<span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;base32&#39;</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -1399,7 +1399,7 @@ immediately before being discarded.</p>
                             <div id="APIKeyGenerator.hash_key" class="classattr">
                                         <input id="APIKeyGenerator.hash_key-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">hash_key</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">key_value</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">salt</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>:</span></span>
 
@@ -1450,7 +1450,7 @@ immediately before being discarded.</p>
                             <div id="APIKeyGenerator.verify_key" class="classattr">
                                         <input id="APIKeyGenerator.verify_key-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">verify_key</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">key_value</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">stored_hash</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">salt_hex</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
 
@@ -1496,7 +1496,7 @@ immediately before being discarded.</p>
                             <div id="APIKeyGenerator.validate_permissions" class="classattr">
                                         <input id="APIKeyGenerator.validate_permissions-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">validate_permissions</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">permissions</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
 
@@ -1564,7 +1564,7 @@ immediately before being discarded.</p>
                             <div id="APIKeyGenerator.sanitize_metadata" class="classattr">
                                         <input id="APIKeyGenerator.sanitize_metadata-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">sanitize_metadata</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 
@@ -1623,7 +1623,7 @@ immediately before being discarded.</p>
                             <div id="APIKeyGenerator.create_key_id" class="classattr">
                                         <input id="APIKeyGenerator.create_key_id-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">create_key_id</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
 
@@ -1653,7 +1653,7 @@ immediately before being discarded.</p>
                             <div id="APIKeyGenerator.get_key_statistics" class="classattr">
                                         <input id="APIKeyGenerator.get_key_statistics-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
 <div class="attr function">
-            
+
         <span class="def">def</span>
         <span class="name">get_key_statistics</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>:</span></span>
 

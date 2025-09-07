@@ -193,17 +193,17 @@ async def demonstrate_error_handling() -> None:
                 if isinstance(test_input, str):
                     if "." in test_input and any(c.isdigit() for c in test_input):
                         # Looks like an IP
-                        result = await manager.enrich_ip_comprehensive(test_input)
+                        await manager.enrich_ip_comprehensive(test_input)
                         print("  ✅ IP enrichment completed")
                     elif "." in test_input:
                         # Looks like a domain
-                        result = await manager.enrich_domain_comprehensive(test_input)
+                        await manager.enrich_domain_comprehensive(test_input)
                         print("  ✅ Domain enrichment completed")
                     else:
                         print("  ❌ Invalid input format")
                 else:
                     # Empty list for indicators
-                    result = await manager.correlate_threat_indicators(test_input)
+                    await manager.correlate_threat_indicators(test_input)
                     print("  ✅ Correlation completed")
 
             except ValueError as e:

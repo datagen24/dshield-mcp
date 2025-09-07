@@ -405,7 +405,8 @@ class MCPErrorHandler:
             data = {
                 "tool": tool_name,
                 "timeout_seconds": timeout_seconds,
-                "suggestion": "Try reducing the scope of your request or contact support if the issue persists",
+                "suggestion": "Try reducing the scope of your request or contact support if "
+                "the issue persists",
             }
 
         return self.create_error(self.TIMEOUT_ERROR, message, data)
@@ -903,7 +904,8 @@ class MCPErrorHandler:
         if not data:
             data = {
                 "service": service_name,
-                "suggestion": "Service is temporarily unavailable due to repeated failures. Please try again later.",
+                "suggestion": "Service is temporarily unavailable due to repeated failures. "
+                "Please try again later.",
             }
 
         return self.create_error(
@@ -934,7 +936,8 @@ class MCPErrorHandler:
                 "tool_name": tool_name,
                 "validation_errors": [str(e) for e in validation_error.errors()],
                 "context": context,
-                "suggestion": "Check the input parameters and ensure they match the expected schema",
+                "suggestion": "Check the input parameters and ensure they match the "
+                "expected schema",
             }
 
         return self.create_error(
@@ -965,7 +968,8 @@ class MCPErrorHandler:
                 "tool_name": tool_name,
                 "timeout_seconds": timeout_seconds,
                 "operation_context": operation_context,
-                "suggestion": "The operation may be taking longer than expected. Try reducing the scope or increasing the timeout.",
+                "suggestion": "The operation may be taking longer than expected. Try reducing "
+                "the scope or increasing the timeout.",
             }
 
         return self.create_error(

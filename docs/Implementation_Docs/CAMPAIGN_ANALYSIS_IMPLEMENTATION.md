@@ -4,8 +4,8 @@
 
 The Campaign Analysis feature provides advanced threat hunting and investigation capabilities for the DShield MCP project. This implementation enables correlation and analysis of coordinated attack campaigns across time and multiple indicators, essential for understanding sophisticated threat actor operations and APTs.
 
-**Status:** ✅ Complete as of 2025-07-06  
-**Implementation:** Multi-stage correlation engine with 7 MCP tools  
+**Status:** ✅ Complete as of 2025-07-06
+**Implementation:** Multi-stage correlation engine with 7 MCP tools
 **Test Coverage:** 11/11 tests passing (100% success rate)
 
 ## 🏗️ Architecture
@@ -262,7 +262,7 @@ async def get_campaign_details(
 def _group_ips_by_subnet(self, ips: List[str], subnet_mask: int = 24) -> Dict[str, List[str]]:
     """Group IP addresses by subnet."""
     subnet_groups = defaultdict(list)
-    
+
     for ip in ips:
         try:
             ip_obj = ipaddress.IPv4Address(ip)
@@ -272,7 +272,7 @@ def _group_ips_by_subnet(self, ips: List[str], subnet_mask: int = 24) -> Dict[st
         except Exception as e:
             logger.debug(f"Failed to parse IP {ip}: {e}")
             continue
-    
+
     return dict(subnet_groups)
 ```
 
@@ -281,24 +281,24 @@ def _group_ips_by_subnet(self, ips: List[str], subnet_mask: int = 24) -> Dict[st
 def _analyze_attack_sequences(self, events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Analyze attack sequences and TTP patterns."""
     sequences = []
-    
+
     # Sort events by timestamp
     sorted_events = sorted(events, key=lambda x: x.get("@timestamp", ""))
-    
+
     # Look for common attack sequences
     sequence_patterns = [
         ["T1071", "T1041"],  # C2 -> Exfiltration
         ["T1021", "T1083"],  # Remote Services -> Discovery
         ["T1059", "T1071"],  # Command Execution -> C2
     ]
-    
+
     for pattern in sequence_patterns:
         sequence_count = 0
         for i in range(len(sorted_events) - len(pattern) + 1):
             event_sequence = [e.get("event.technique") for e in sorted_events[i:i+len(pattern)]]
             if event_sequence == pattern:
                 sequence_count += 1
-        
+
         if sequence_count > 0:
             sequence = {
                 "type": "attack_sequence",
@@ -307,7 +307,7 @@ def _analyze_attack_sequences(self, events: List[Dict[str, Any]]) -> List[Dict[s
                 "sophistication_score": min(sequence_count / 5, 1.0)
             }
             sequences.append(sequence)
-    
+
     return sequences
 ```
 
@@ -316,7 +316,7 @@ def _analyze_attack_sequences(self, events: List[Dict[str, Any]]) -> List[Dict[s
 def _extract_payload_signatures(self, payload: str) -> List[str]:
     """Extract signatures from payload."""
     signatures = []
-    
+
     # Common attack signatures
     attack_signatures = [
         "cmd.exe", "powershell", "wget", "curl", "base64",
@@ -324,12 +324,12 @@ def _extract_payload_signatures(self, payload: str) -> List[str]:
         "union select", "drop table", "insert into",
         "javascript:", "vbscript:", "onload=", "onerror="
     ]
-    
+
     payload_lower = payload.lower()
     for sig in attack_signatures:
         if sig in payload_lower:
             signatures.append(sig)
-    
+
     return signatures
 ```
 
@@ -555,4 +555,4 @@ When upgrading to or integrating the Campaign Analysis feature:
 
 ---
 
-*This implementation provides a robust, scalable foundation for campaign analysis in the DShield MCP project, enabling advanced threat hunting and investigation capabilities.* 
+*This implementation provides a robust, scalable foundation for campaign analysis in the DShield MCP project, enabling advanced threat hunting and investigation capabilities.*

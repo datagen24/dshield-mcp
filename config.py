@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Configuration script for DShield MCP - Elastic SIEM Integration
+Configuration script for DShield MCP - Elastic SIEM Integration.
+
+This module provides configuration management functionality.
 Helps users set up environment variables and test connections.
 """
 
@@ -21,7 +23,8 @@ from elasticsearch_client import ElasticsearchClient
 class ConfigManager:
     """Manage configuration for DShield MCP."""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the configuration manager."""
         self.env_file = Path(".env")
         self.env_example = Path("env.example")
 
@@ -189,12 +192,12 @@ NO_PROXY=localhost,127.0.0.1
                 events = await es_client.query_security_events(time_range_hours=1, size=1)
                 print(f"✓ Successfully queried {len(events)} security events")
             except Exception as e:
-                print(f"⚠ Query test failed: {str(e)}")
+                print(f"⚠ Query test failed: {e!s}")
 
             await es_client.close()
 
         except Exception as e:
-            print(f"✗ Elasticsearch connection failed: {str(e)}")
+            print(f"✗ Elasticsearch connection failed: {e!s}")
 
         # Test DShield
         print("\nTesting DShield API connection...")
@@ -215,7 +218,7 @@ NO_PROXY=localhost,127.0.0.1
             await dshield_client.close()
 
         except Exception as e:
-            print(f"✗ DShield connection failed: {str(e)}")
+            print(f"✗ DShield connection failed: {e!s}")
 
         print("\n=== Connection Test Complete ===")
 
