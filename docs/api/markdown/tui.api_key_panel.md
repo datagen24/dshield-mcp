@@ -20,6 +20,21 @@ Initialize API key delete message.
         Args:
             key_id: The unique identifier of the API key to delete
 
+## APIKeyRotate
+
+Message sent when an API key should be rotated.
+
+#### __init__
+
+```python
+def __init__(self, key_id)
+```
+
+Initialize API key rotate message.
+
+        Args:
+            key_id: The unique identifier of the API key to rotate
+
 ## APIKeyPanel
 
 Panel for managing API keys.
@@ -72,6 +87,14 @@ def _generate_new_key(self)
 
 Open the API key generation screen.
 
+#### _rotate_selected_key
+
+```python
+def _rotate_selected_key(self)
+```
+
+Rotate the selected API key.
+
 #### _delete_selected_key
 
 ```python
@@ -103,6 +126,14 @@ def _update_table(self)
 ```
 
 Update the data table with current API keys.
+
+#### on_api_key_rotate
+
+```python
+def on_api_key_rotate(self, event)
+```
+
+Handle API key rotation.
 
 #### on_api_key_delete
 

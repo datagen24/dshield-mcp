@@ -6,96 +6,15 @@ handling connection lifecycle, authentication, and monitoring.
 """
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
 
 from .op_secrets import OnePasswordAPIKeyManager, OnePasswordSecrets
+from .secrets_manager.base_secrets_manager import APIKey
 
 logger = structlog.get_logger(__name__)
-
-
-class APIKey:
-    """Represents an API key with associated permissions and metadata.
-
-    Attributes:
-        key_id: Unique identifier for the API key
-        key_value: The actual API key value
-        permissions: Dictionary of permissions for this key
-        created_at: Timestamp when the key was created
-        expires_at: Timestamp when the key expires
-        last_used: Timestamp of last usage
-        usage_count: Number of times the key has been used
-        is_active: Whether the key is currently active
-
-    """
-
-    def __init__(
-        self, key_id: str, key_value: str, permissions: dict[str, Any], expires_days: int = 90
-    ) -> None:
-        """Initialize an API key.
-
-        Args:
-            key_id: Unique identifier for the API key
-            key_value: The actual API key value
-            permissions: Dictionary of permissions for this key
-            expires_days: Number of days until the key expires
-
-        """
-        self.key_id = key_id
-        self.key_value = key_value
-        self.permissions = permissions
-        self.created_at = datetime.now(UTC)
-        self.expires_at = self.created_at + timedelta(days=expires_days)
-        self.last_used: datetime | None = None
-        self.usage_count = 0
-        self.is_active = True
-
-    def is_expired(self) -> bool:
-        """Check if the API key has expired.
-
-        Returns:
-            True if the key has expired, False otherwise
-
-        """
-        return datetime.now(UTC) > self.expires_at
-
-    def is_valid(self) -> bool:
-        """Check if the API key is valid (active and not expired).
-
-        Returns:
-            True if the key is valid, False otherwise
-
-        """
-        return self.is_active and not self.is_expired()
-
-    def update_usage(self) -> None:
-        """Update the usage statistics for this key."""
-        self.last_used = datetime.now(UTC)
-        self.usage_count += 1
-
-    def to_dict(self) -> dict[str, Any]:
-        """Convert the API key to a dictionary.
-
-        Returns:
-            Dictionary representation of the API key
-
-        """
-        return {
-            "key_id": self.key_id,
-            "key_value": self.key_value[:8] + "..."
-            if self.key_value
-            else None,  # Masked for security
-            "permissions": self.permissions,
-            "created_at": self.created_at.isoformat(),
-            "expires_at": self.expires_at.isoformat(),
-            "last_used": self.last_used.isoformat() if self.last_used else None,
-            "usage_count": self.usage_count,
-            "is_active": self.is_active,
-            "is_expired": self.is_expired(),
-            "is_valid": self.is_valid(),
-        }
 
 
 class ConnectionManager:
@@ -187,38 +106,38 @@ class ConnectionManager:
             from .api_key_generator import APIKeyGenerator
 
             generator = APIKeyGenerator()
-            key_data = generator.generate_api_key(
+            key_data = generator.generate_key_with_metadata(
                 name=name,
                 permissions=permissions or {},
                 expiration_days=expiration_days,
                 rate_limit=rate_limit,
             )
 
-            # Create APIKey object with hashed key for storage
+            # Create APIKey object with plaintext key for 1Password storage
             api_key = APIKey(
                 key_id=key_data["key_id"],
-                key_value=key_data["hashed_key"],  # Store only the hash
+                key_value=key_data["key_value"],  # Store plaintext in 1Password
                 name=key_data["name"],
                 created_at=key_data["created_at"],
                 expires_at=datetime.fromisoformat(key_data["expires_at"])
                 if key_data["expires_at"]
                 else None,
                 permissions=key_data["permissions"],
-                metadata={
-                    **key_data["metadata"],
-                    "salt": key_data["salt"],
-                    "algorithm": key_data["algorithm"],
-                },
+                metadata=key_data["metadata"],
+                algo_version=key_data["algo_version"],
+                needs_rotation=key_data["needs_rotation"],
+                rps_limit=key_data["rps_limit"],
+                verifier=key_data["verifier"],  # Store verifier server-side only
             )
 
             # Store in 1Password using the secrets manager
             success = await self.secrets_manager.store_api_key(api_key)
             if success:
-                # Store in memory cache (using hashed key as the key)
-                self.api_keys[key_data["hashed_key"]] = api_key
+                # Store in memory cache (using plaintext key as the key)
+                self.api_keys[key_data["key_value"]] = api_key
 
                 self.logger.info(
-                    "Generated new API key", key_id=key_data["key_id"], name=name, hashed=True
+                    "Generated new API key", key_id=key_data["key_id"], name=name, plaintext=True
                 )
                 return api_key
             else:
@@ -227,6 +146,67 @@ class ConnectionManager:
 
         except Exception as e:
             self.logger.error("Failed to generate API key", error=str(e))
+            return None
+
+    async def rotate_api_key(self, key_id: str) -> APIKey | None:
+        """Rotate an API key by generating a new value.
+
+        Args:
+            key_id: The unique identifier of the API key to rotate
+
+        Returns:
+            Updated API key instance if successful, None otherwise
+
+        """
+        try:
+            # Get the existing key
+            existing_key = await self.secrets_manager.retrieve_api_key(key_id)
+            if not existing_key:
+                self.logger.error("API key not found for rotation", key_id=key_id)
+                return None
+
+            # Generate new key value
+            from .api_key_generator import APIKeyGenerator
+
+            generator = APIKeyGenerator()
+            new_key_value = generator.generate_key()
+
+            # Generate new verifier
+            verifier_data = generator.hash_key(new_key_value)
+            new_verifier = verifier_data["hash"]
+
+            # Update the key in 1Password
+            success = await self.secrets_manager.rotate_api_key(key_id, new_key_value)
+            if success:
+                # Update the in-memory cache
+                updated_key = APIKey(
+                    key_id=existing_key.key_id,
+                    key_value=new_key_value,
+                    name=existing_key.name,
+                    created_at=existing_key.created_at,
+                    expires_at=existing_key.expires_at,
+                    permissions=existing_key.permissions,
+                    metadata=existing_key.metadata,
+                    algo_version=existing_key.algo_version,
+                    needs_rotation=False,  # Clear rotation flag
+                    rps_limit=existing_key.rps_limit,
+                    verifier=new_verifier,
+                )
+
+                # Update cache
+                self.api_keys[new_key_value] = updated_key
+                # Remove old key from cache if it exists
+                if existing_key.key_value in self.api_keys:
+                    del self.api_keys[existing_key.key_value]
+
+                self.logger.info("Successfully rotated API key", key_id=key_id)
+                return updated_key
+            else:
+                self.logger.error("Failed to rotate API key in 1Password", key_id=key_id)
+                return None
+
+        except Exception as e:
+            self.logger.error("Failed to rotate API key", key_id=key_id, error=str(e))
             return None
 
     async def _store_api_key_in_1password(self, api_key: APIKey) -> None:

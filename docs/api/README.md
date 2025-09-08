@@ -1,10 +1,13 @@
 # DShield MCP API Documentation
 
-This directory contains the complete API documentation for the DShield MCP package in Markdown format.
+This directory contains the complete API documentation for the DShield MCP package in
+Markdown format.
 
 ## Overview
 
-The DShield MCP package provides a Model Context Protocol (MCP) server that integrates with DShield's threat intelligence platform and Elasticsearch for security information and event management (SIEM) operations.
+The DShield MCP package provides a Model Context Protocol (MCP) server that integrates
+with DShield's threat intelligence platform and Elasticsearch for security information and
+event management (SIEM) operations.
 
 ## Documentation Structure
 

@@ -122,6 +122,10 @@ class APIKey:
         expires_at: When the key expires (None for no expiration)
         permissions: Dictionary of permissions granted to this key
         metadata: Additional metadata for the key
+        algo_version: Algorithm version for hash verification
+        needs_rotation: Whether the key needs rotation (missing plaintext)
+        rps_limit: Rate limit in requests per second
+        verifier: Server-side verifier hash (not stored in 1Password)
 
     """
 
@@ -132,6 +136,49 @@ class APIKey:
     expires_at: datetime | None
     permissions: dict[str, Any]
     metadata: dict[str, Any]
+    algo_version: str = "sha256-v1"
+    needs_rotation: bool = False
+    rps_limit: int = 60
+    verifier: str | None = None
+
+    def is_expired(self) -> bool:
+        """Check if the API key has expired.
+
+        Returns:
+            True if the key has expired, False otherwise
+
+        """
+        if self.expires_at is None:
+            return False
+        return datetime.now(UTC) > self.expires_at
+
+    def is_valid(self) -> bool:
+        """Check if the API key is valid (not expired and not needing rotation).
+
+        Returns:
+            True if the key is valid, False otherwise
+
+        """
+        return not self.is_expired() and not self.needs_rotation
+
+    @property
+    def is_active(self) -> bool:
+        """Check if the API key is active (not needing rotation).
+
+        Returns:
+            True if the key is active, False otherwise
+
+        """
+        return not self.needs_rotation
+
+    def update_usage(self) -> None:
+        """Update the usage statistics for this key.
+
+        This is a placeholder method for compatibility with the connection manager.
+        The canonical APIKey class doesn't track usage statistics, but this method
+        is called by the connection manager for consistency.
+        """
+        pass
 
 
 @dataclass

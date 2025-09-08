@@ -10,7 +10,8 @@ using modular LaTeX templates.
 
 MCP tools for LaTeX template automation and document generation.
 
-    Output files are always written to the user-configured output directory (default: ~/dshield-mcp-output).
+    Output files are always written to the user-configured output directory
+    (default: ~/dshield-mcp-output).
 
 #### __init__
 

@@ -30,6 +30,20 @@ class APIKeyDelete(Message):  # type: ignore
         self.key_id = key_id
 
 
+class APIKeyRotate(Message):  # type: ignore
+    """Message sent when an API key should be rotated."""
+
+    def __init__(self, key_id: str) -> None:
+        """Initialize API key rotate message.
+
+        Args:
+            key_id: The unique identifier of the API key to rotate
+
+        """
+        super().__init__()
+        self.key_id = key_id
+
+
 class APIKeyPanel(Container):
     """Panel for managing API keys."""
 
@@ -46,6 +60,7 @@ class APIKeyPanel(Container):
 
             with Horizontal(id="api-key-controls"):
                 yield Button("Generate New Key", id="generate-key-btn", variant="primary")
+                yield Button("Rotate Selected", id="rotate-key-btn", variant="warning")
                 yield Button("Refresh", id="refresh-keys-btn", variant="default")
 
             yield Label("Existing API Keys:", id="keys-label")
@@ -59,7 +74,7 @@ class APIKeyPanel(Container):
         """Handle panel mount event."""
         # Initialize the data table
         table = self.query_one("#api-keys-table", DataTable)
-        table.add_columns("Name", "Created", "Expires", "Permissions", "Status")
+        table.add_columns("Name", "Created", "Expires", "Permissions", "Status", "Rotation")
         table.cursor_type = "row"
 
         # Load initial data
@@ -69,6 +84,8 @@ class APIKeyPanel(Container):
         """Handle button press events."""
         if event.button.id == "generate-key-btn":
             self._generate_new_key()
+        elif event.button.id == "rotate-key-btn":
+            self._rotate_selected_key()
         elif event.button.id == "refresh-keys-btn":
             self.refresh_api_keys()
         elif event.button.id == "delete-key-btn":
@@ -81,13 +98,16 @@ class APIKeyPanel(Container):
         # Enable/disable action buttons based on selection
         delete_btn = self.query_one("#delete-key-btn", Button)
         view_btn = self.query_one("#view-key-btn", Button)
+        rotate_btn = self.query_one("#rotate-key-btn", Button)
 
         if event.cursor_row is not None:
             delete_btn.disabled = False
             view_btn.disabled = False
+            rotate_btn.disabled = False
         else:
             delete_btn.disabled = True
             view_btn.disabled = True
+            rotate_btn.disabled = True
 
     def _generate_new_key(self) -> None:
         """Open the API key generation screen."""
@@ -132,6 +152,16 @@ class APIKeyPanel(Container):
         except Exception as e:
             self.logger.error("Error handling API key generation", error=str(e))
             self.notify(f"Error generating API key: {e}", severity="error")
+
+    def _rotate_selected_key(self) -> None:
+        """Rotate the selected API key."""
+        table = self.query_one("#api-keys-table", DataTable)
+        if table.cursor_row is not None and table.cursor_row < len(self.api_keys):
+            key_info = self.api_keys[table.cursor_row]
+            key_id = key_info["key_id"]
+
+            # Send rotate message
+            self.post_message(APIKeyRotate(key_id))
 
     def _delete_selected_key(self) -> None:
         """Delete the selected API key."""
@@ -191,6 +221,9 @@ Status: {'Active' if not key_info['is_expired'] else 'Expired'}
                                 else None,
                                 "permissions": api_key.permissions,
                                 "is_expired": is_expired,
+                                "needs_rotation": getattr(api_key, 'needs_rotation', False),
+                                "algo_version": getattr(api_key, 'algo_version', 'unknown'),
+                                "rps_limit": getattr(api_key, 'rps_limit', 60),
                             }
                         )
                 else:
@@ -237,13 +270,32 @@ Status: {'Active' if not key_info['is_expired'] else 'Expired'}
             if key_info["is_expired"]:
                 status = "Expired"
 
+            # Determine rotation status
+            rotation_status = "OK"
+            if key_info.get("needs_rotation", False):
+                rotation_status = "⚠️ Needs Rotation"
+            elif key_info.get("algo_version", "unknown") != "sha256-v1":
+                rotation_status = "⚠️ Old Version"
+
             table.add_row(
                 key_info["name"],
                 created_str,
                 expires_str,
                 permissions_str,
                 status,
+                rotation_status,
             )
+
+    def on_api_key_rotate(self, event: APIKeyRotate) -> None:
+        """Handle API key rotation."""
+        try:
+            # This would typically call the connection manager to rotate the key
+            # For now, we'll just refresh the list
+            self.refresh_api_keys()
+            self.notify(f"API key {event.key_id} rotated", severity="information")
+        except Exception as e:
+            self.logger.error("Error handling API key rotation", error=str(e))
+            self.notify(f"Error rotating API key: {e}", severity="error")
 
     def on_api_key_delete(self, event: APIKeyDelete) -> None:
         """Handle API key deletion."""

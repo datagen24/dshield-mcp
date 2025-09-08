@@ -385,3 +385,18 @@ def _create_empty_dshield_statistics(self)
 ```
 
 Create empty DShield statistics.
+
+#### _format_ip_description
+
+```python
+def _format_ip_description(self, ip_value, suffix)
+```
+
+Format IP description with proper handling of complex types.
+
+        Args:
+            ip_value: The IP value (could be string, list, dict, etc.)
+            suffix: The suffix to add to the description
+
+        Returns:
+            Formatted description string

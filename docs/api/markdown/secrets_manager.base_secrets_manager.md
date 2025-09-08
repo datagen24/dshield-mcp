@@ -84,6 +84,55 @@ Represents an API key with metadata and permissions.
         expires_at: When the key expires (None for no expiration)
         permissions: Dictionary of permissions granted to this key
         metadata: Additional metadata for the key
+        algo_version: Algorithm version for hash verification
+        needs_rotation: Whether the key needs rotation (missing plaintext)
+        rps_limit: Rate limit in requests per second
+        verifier: Server-side verifier hash (not stored in 1Password)
+
+#### is_expired
+
+```python
+def is_expired(self)
+```
+
+Check if the API key has expired.
+
+        Returns:
+            True if the key has expired, False otherwise
+
+#### is_valid
+
+```python
+def is_valid(self)
+```
+
+Check if the API key is valid (not expired and not needing rotation).
+
+        Returns:
+            True if the key is valid, False otherwise
+
+#### is_active
+
+```python
+def is_active(self)
+```
+
+Check if the API key is active (not needing rotation).
+
+        Returns:
+            True if the key is active, False otherwise
+
+#### update_usage
+
+```python
+def update_usage(self)
+```
+
+Update the usage statistics for this key.
+
+        This is a placeholder method for compatibility with the connection manager.
+        The canonical APIKey class doesn't track usage statistics, but this method
+        is called by the connection manager for consistency.
 
 ## SecretReference
 

@@ -170,7 +170,8 @@ Manages user-configurable settings with validation and environment variable supp
         tcp_transport_settings: TCP transport settings
         api_key_management_settings: API key management settings
         tui_settings: TUI settings
-        output_directory: Directory for generated outputs (default: ~/dshield-mcp-output, configurable)
+        output_directory: Directory for generated outputs
+            (default: ~/dshield-mcp-output, configurable)
 
     Example:
         >>> manager = UserConfigManager()

@@ -453,48 +453,41 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
         """
         try:
-            # Create item with custom fields
+            # Create metadata for notes field
+            metadata_notes = {
+                "algo_version": api_key.algo_version,
+                "created_at": api_key.created_at.isoformat(),
+                "key_id": api_key.key_id,
+                "permissions": json.dumps(api_key.permissions),
+                "rps_limit": str(api_key.rps_limit),
+                "expiry": api_key.expires_at.isoformat() if api_key.expires_at else "",
+                "needs_rotation": str(api_key.needs_rotation).lower(),
+            }
+
+            # Create item with custom fields using API Credential template
             item_data = {
                 "title": f"dshield-mcp-key-{api_key.key_id}",
                 "category": "API_CREDENTIAL",
                 "vault": {"name": self.vault},
-                "tags": ["dshield-mcp-api-key"],
+                "tags": ["dshield-mcp"],
                 "fields": [
                     {
-                        "id": "key_value",
+                        "id": "secret",
                         "type": "CONCEALED",
                         "value": api_key.key_value,
-                        "label": "API Key Value",
+                        "label": "API Key",
                     },
                     {
-                        "id": "key_name",
+                        "id": "name",
                         "type": "STRING",
                         "value": api_key.name,
-                        "label": "Key Name",
+                        "label": "Name",
                     },
                     {
-                        "id": "permissions",
+                        "id": "notes",
                         "type": "STRING",
-                        "value": json.dumps(api_key.permissions),
-                        "label": "Permissions",
-                    },
-                    {
-                        "id": "created_at",
-                        "type": "STRING",
-                        "value": api_key.created_at.isoformat(),
-                        "label": "Created At",
-                    },
-                    {
-                        "id": "expires_at",
-                        "type": "STRING",
-                        "value": api_key.expires_at.isoformat() if api_key.expires_at else "",
-                        "label": "Expires At",
-                    },
-                    {
-                        "id": "metadata",
-                        "type": "STRING",
-                        "value": json.dumps(api_key.metadata),
-                        "label": "Metadata",
+                        "value": json.dumps(metadata_notes),
+                        "label": "Notes",
                     },
                 ],
             }
@@ -558,24 +551,70 @@ class OnePasswordCLIManager(BaseSecretsManager):
             # Parse the item fields
             fields = {field["id"]: field["value"] for field in result.get("fields", [])}
 
-            # Extract API key data
-            key_value = fields.get("key_value", "")
-            name = fields.get("key_name", "")
-            permissions = json.loads(fields.get("permissions", "{}"))
-            created_at = datetime.fromisoformat(fields.get("created_at", ""))
-            expires_at_str = fields.get("expires_at", "")
-            expires_at = datetime.fromisoformat(expires_at_str) if expires_at_str else None
-            metadata = json.loads(fields.get("metadata", "{}"))
+            # Check if this is the new format (with secret field) or old format
+            if "secret" in fields:
+                # New format: secret field contains plaintext, metadata in notes
+                key_value = fields.get("secret", "")
+                name = fields.get("name", "")
+                notes_data = json.loads(fields.get("notes", "{}"))
 
-            return APIKey(
-                key_id=key_id,
-                key_value=key_value,
-                name=name,
-                created_at=created_at,
-                expires_at=expires_at,
-                permissions=permissions,
-                metadata=metadata,
-            )
+                # Extract metadata from notes
+                algo_version = notes_data.get("algo_version", "sha256-v1")
+                created_at = datetime.fromisoformat(notes_data.get("created_at", ""))
+                permissions = json.loads(notes_data.get("permissions", "{}"))
+                rps_limit = int(notes_data.get("rps_limit", "60"))
+                expiry_str = notes_data.get("expiry", "")
+                expires_at = datetime.fromisoformat(expiry_str) if expiry_str else None
+                needs_rotation = notes_data.get("needs_rotation", "false").lower() == "true"
+
+                # Check if version is outdated and needs rotation
+                if algo_version != "sha256-v1":
+                    needs_rotation = True
+
+                # Create metadata dict
+                metadata = {
+                    "algo_version": algo_version,
+                    "rps_limit": rps_limit,
+                    "needs_rotation": needs_rotation,
+                }
+
+                return APIKey(
+                    key_id=key_id,
+                    key_value=key_value,
+                    name=name,
+                    created_at=created_at,
+                    expires_at=expires_at,
+                    permissions=permissions,
+                    metadata=metadata,
+                    algo_version=algo_version,
+                    needs_rotation=needs_rotation,
+                    rps_limit=rps_limit,
+                )
+            else:
+                # Old format: migrate to new format
+                key_value = fields.get("key_value", "")
+                name = fields.get("key_name", "")
+                permissions = json.loads(fields.get("permissions", "{}"))
+                created_at = datetime.fromisoformat(fields.get("created_at", ""))
+                expires_at_str = fields.get("expires_at", "")
+                expires_at = datetime.fromisoformat(expires_at_str) if expires_at_str else None
+                metadata = json.loads(fields.get("metadata", "{}"))
+
+                # Mark as needing rotation since it's missing plaintext
+                needs_rotation = True
+
+                return APIKey(
+                    key_id=key_id,
+                    key_value=key_value,
+                    name=name,
+                    created_at=created_at,
+                    expires_at=expires_at,
+                    permissions=permissions,
+                    metadata=metadata,
+                    algo_version="sha256-v1",
+                    needs_rotation=needs_rotation,
+                    rps_limit=60,
+                )
 
         except (
             SecretNotFoundError,
@@ -604,14 +643,14 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
         """
         try:
-            # List all items with the dshield-mcp-api-key tag
+            # List all items with the dshield-mcp tag (new format)
             args = [
                 "item",
                 "list",
                 "--vault",
                 self.vault,
                 "--tags",
-                "dshield-mcp-api-key",
+                "dshield-mcp",
             ]
 
             items = self._run_op_command_with_retry(args)
@@ -647,6 +686,114 @@ class OnePasswordCLIManager(BaseSecretsManager):
         except Exception as e:
             self.logger.error(f"Unexpected error listing API keys: {e}")
             raise SecretsManagerError(f"Unexpected error listing API keys: {e}") from e
+
+    async def rotate_api_key(self, key_id: str, new_key_value: str) -> bool:
+        """Rotate an API key by updating it with a new value.
+
+        Args:
+            key_id: The unique identifier of the API key to rotate
+            new_key_value: The new API key value
+
+        Returns:
+            True if the key was rotated successfully, False otherwise
+
+        Raises:
+            SecretNotFoundError: If the key is not found
+            PermissionDeniedError: If insufficient permissions to update the key
+            BackendUnavailableError: If the secrets manager backend is unavailable
+            SecretsManagerError: For other rotation-related errors
+
+        """
+        try:
+            # Get the existing key to preserve metadata
+            existing_key = await self.retrieve_api_key(key_id)
+            if not existing_key:
+                raise SecretNotFoundError(f"API key not found: {key_id}")
+
+            # Create updated key with new value
+            APIKey(
+                key_id=existing_key.key_id,
+                key_value=new_key_value,
+                name=existing_key.name,
+                created_at=existing_key.created_at,
+                expires_at=existing_key.expires_at,
+                permissions=existing_key.permissions,
+                metadata=existing_key.metadata,
+                algo_version=existing_key.algo_version,
+                needs_rotation=False,  # Clear rotation flag
+                rps_limit=existing_key.rps_limit,
+            )
+
+            # Update the item in 1Password
+            item_data = {
+                "title": f"dshield-mcp-key-{key_id}",
+                "category": "API_CREDENTIAL",
+                "vault": {"name": self.vault},
+                "tags": ["dshield-mcp"],
+                "fields": [
+                    {
+                        "id": "secret",
+                        "type": "CONCEALED",
+                        "value": new_key_value,
+                        "label": "API Key",
+                    },
+                    {
+                        "id": "name",
+                        "type": "STRING",
+                        "value": existing_key.name,
+                        "label": "Name",
+                    },
+                    {
+                        "id": "notes",
+                        "type": "STRING",
+                        "value": json.dumps(
+                            {
+                                "algo_version": existing_key.algo_version,
+                                "created_at": existing_key.created_at.isoformat(),
+                                "key_id": existing_key.key_id,
+                                "permissions": json.dumps(existing_key.permissions),
+                                "rps_limit": str(existing_key.rps_limit),
+                                "expiry": existing_key.expires_at.isoformat()
+                                if existing_key.expires_at
+                                else "",
+                                "needs_rotation": "false",
+                            }
+                        ),
+                        "label": "Notes",
+                    },
+                ],
+            }
+
+            # Update the item using op CLI
+            args = [
+                "item",
+                "edit",
+                f"dshield-mcp-key-{key_id}",
+                "--vault",
+                self.vault,
+                json.dumps(item_data),
+            ]
+
+            result = self._run_op_command_with_retry(args)
+
+            if result:
+                self.logger.info(f"Successfully rotated API key: {key_id}")
+                return True
+            else:
+                self.logger.error(f"Failed to rotate API key: {key_id}")
+                return False
+
+        except (
+            SecretNotFoundError,
+            PermissionDeniedError,
+            BackendUnavailableError,
+            SecretsManagerError,
+        ):
+            # Re-raise specific exceptions
+            raise
+        except Exception as e:
+            self.logger.error(f"Unexpected error rotating API key {key_id}: {e}")
+            raise SecretsManagerError(f"Unexpected error rotating API key: {e}") from e
 
     async def delete_api_key(self, key_id: str) -> bool:
         """Delete an API key from 1Password.

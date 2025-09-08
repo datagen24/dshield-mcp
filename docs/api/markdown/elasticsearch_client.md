@@ -24,7 +24,8 @@ Initialize the Elasticsearch client.
 
         New config option:
             - 'compatibility_mode' (bool, default: false):
-                If true, sets compatibility_mode=True on the Elasticsearch Python client (for ES 8.x servers).
+                If true, sets compatibility_mode=True on the Elasticsearch Python client
+                (for ES 8.x servers).
 
 #### _check_circuit_breaker
 
@@ -165,7 +166,8 @@ def _extract_field_mapped(self, source, field_type, default)
 
 Extract field value using DShield field mappings.
 
-        Supports dot notation for both top-level and nested fields. Attempts to map the requested field type
+        Supports dot notation for both top-level and nested fields. Attempts to map the
+        requested field type
         to the correct field in the source document using the DShield field mapping configuration.
 
         Args:
@@ -220,7 +222,8 @@ Generate pagination information for response.
             total_count: Total number of results available
 
         Returns:
-            Dictionary containing pagination metadata, including current page, total pages, and navigation info
+            Dictionary containing pagination metadata, including current page, total pages,
+            and navigation info
 
 #### _generate_enhanced_pagination_info
 

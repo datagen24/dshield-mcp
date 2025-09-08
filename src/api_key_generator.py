@@ -147,12 +147,19 @@ class APIKeyGenerator:
         if rate_limit is None:
             rate_limit = permissions.get("rate_limit", 60)
 
+        # Generate verifier for server-side storage
+        verifier_data = self.hash_key(key_value)
+        verifier = verifier_data["hash"]
+
         # Create metadata
         metadata = {
             "generated_by": "dshield-mcp",
             "version": "1.0",
             "generated_at": datetime.now(UTC).isoformat(),
             "key_type": "api_key",
+            "algo_version": "sha256-v1",
+            "rps_limit": rate_limit,
+            "needs_rotation": False,
         }
 
         # Create the result
@@ -164,6 +171,10 @@ class APIKeyGenerator:
             "rate_limit": rate_limit,
             "metadata": metadata,
             "created_at": datetime.now(UTC),
+            "verifier": verifier,
+            "algo_version": "sha256-v1",
+            "needs_rotation": False,
+            "rps_limit": rate_limit,
         }
 
         self.logger.info(
