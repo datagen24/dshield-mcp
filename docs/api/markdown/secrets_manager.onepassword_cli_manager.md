@@ -38,9 +38,9 @@ Initialize the 1Password CLI manager.
 
         Args:
             vault: The name of the 1Password vault to use
-            timeout_seconds: Timeout for op CLI commands in seconds
-            max_retries: Maximum number of retries for transient errors
-            retry_delay_seconds: Base delay between retries in seconds
+            timeout_seconds: Timeout for op CLI commands in seconds (default: 120s for auth)
+            max_retries: Maximum number of retries for transient errors (default: 2)
+            retry_delay_seconds: Base delay between retries in seconds (default: 10s)
             enable_metrics: Whether to enable metrics collection
 
         Raises:

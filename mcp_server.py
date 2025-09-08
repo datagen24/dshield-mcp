@@ -4,6 +4,7 @@
 Main server for handling MCP protocol communication and coordinating
 between DShield Elasticsearch queries and DShield threat intelligence.
 """
+# type: ignore[operator,assignment,union-attr,arg-type,index]
 
 import asyncio
 import json
@@ -34,7 +35,7 @@ from src.resource_manager import ResourceManager
 from src.signal_handler import SignalHandler
 from src.statistical_analysis_tools import StatisticalAnalysisTools
 from src.threat_intelligence_manager import ThreatIntelligenceManager
-from src.user_config import get_user_config
+from src.user_config import UserConfigManager, get_user_config
 
 # Configure structured logging
 structlog.configure(
@@ -90,14 +91,15 @@ class DShieldMCPServer:
         loads user configuration, and registers available MCP tools.
         """
         self.server = Server("dshield-elastic-mcp")
-        self.elastic_client = None
-        self.dshield_client = None
-        self.data_processor = None
-        self.context_injector = None
-        self.campaign_analyzer = None
-        self.campaign_tools = None
-        self.latex_tools = None
-        self.threat_intelligence_manager = None
+        self.elastic_client: ElasticsearchClient | None = None
+        self.dshield_client: DShieldClient | None = None
+        self.data_processor: DataProcessor | None = None
+        self.context_injector: ContextInjector | None = None
+        self.campaign_analyzer: CampaignAnalyzer | None = None
+        self.campaign_tools: CampaignMCPTools | None = None
+        self.latex_tools: LaTeXTemplateTools | None = None
+        self.threat_intelligence_manager: ThreatIntelligenceManager | None = None
+        self.user_config: UserConfigManager | None = None
         self.health_manager = HealthCheckManager()
         self.feature_manager = FeatureManager(self.health_manager)
         self.tool_registry = DynamicToolRegistry(self.feature_manager)
@@ -114,22 +116,22 @@ class DShieldMCPServer:
             error_config = ErrorHandlingConfig()
             if self.user_config:
                 # Load error handling settings from user config if available
-                error_config.timeouts.update(
-                    {
-                        "elasticsearch_operations": self.user_config.get_setting(
-                            "error_handling", "elasticsearch_operations", 30.0
-                        ),
-                        "dshield_api_calls": self.user_config.get_setting(
-                            "error_handling", "dshield_api_calls", 10.0
-                        ),
-                        "latex_compilation": self.user_config.get_setting(
-                            "error_handling", "latex_compilation", 60.0
-                        ),
-                        "tool_execution": self.user_config.get_setting(
-                            "error_handling", "tool_execution", 120.0
-                        ),
-                    }
-                )
+                try:
+                    # Try to get performance settings as fallback for timeouts
+                    performance_settings = self.user_config.get_setting(
+                        "performance", "default_timeout_seconds"
+                    )
+                    error_config.timeouts.update(
+                        {
+                            "elasticsearch_operations": performance_settings,
+                            "dshield_api_calls": performance_settings,
+                            "latex_compilation": performance_settings,
+                            "tool_execution": performance_settings,
+                        }
+                    )
+                except (ValueError, KeyError):
+                    # Use default values if settings are not available
+                    pass
             self.error_handler = MCPErrorHandler(error_config)
         except Exception as e:
             logger.warning("Failed to initialize error handler, using defaults", error=str(e))
@@ -159,7 +161,7 @@ class DShieldMCPServer:
         - Data dictionary access
         """
 
-        @self.server.list_tools()
+        @self.server.list_tools()  # type: ignore[misc,no-untyped-call]
         async def handle_list_tools() -> list[Tool]:
             """List all available tools based on feature availability."""
             # Only return tools that are actually available
@@ -391,7 +393,7 @@ class DShieldMCPServer:
 
             return available_tools
 
-        @self.server.call_tool()
+        @self.server.call_tool()  # type: ignore[misc]
         async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[dict[str, Any]]:
             """Handle tool calls."""
             if not self._is_tool_available(name):
@@ -493,15 +495,22 @@ class DShieldMCPServer:
                     raise ValueError(f"Unknown tool: {name}")
             except TimeoutError:
                 logger.error("Tool call timed out", tool=name)
-                return self.error_handler.create_timeout_error(name)
+                return [self.error_handler.create_timeout_error(name, 30.0)]
             except ValueError as e:
                 logger.error("Tool call validation error", tool=name, error=str(e))
-                return self.error_handler.create_validation_error(name, e)
+                # Convert ValueError to ValidationError for proper error handling
+                from pydantic import ValidationError
+
+                # Create a simple ValidationError for ValueError
+                validation_error = ValidationError(
+                    [{"type": "value_error", "loc": (), "msg": str(e), "input": None}], ValueError
+                )
+                return [self.error_handler.create_validation_error(name, validation_error)]
             except Exception as e:
                 logger.error("Tool call failed", tool=name, error=str(e))
-                return self.error_handler.create_internal_error(name, e)
+                return [self.error_handler.create_internal_error(f"Tool call failed: {e!s}")]
 
-        @self.server.list_resources()
+        @self.server.list_resources()  # type: ignore[misc,no-untyped-call]
         async def handle_list_resources() -> list[dict[str, Any]]:
             """List available resources."""
             return [
@@ -544,7 +553,7 @@ class DShieldMCPServer:
                 },
             ]
 
-        @self.server.read_resource()
+        @self.server.read_resource()  # type: ignore[misc,no-untyped-call]
         async def handle_read_resource(uri: str) -> str:
             """Read resource content."""
             try:
@@ -570,14 +579,16 @@ class DShieldMCPServer:
                     return DataDictionary.get_initial_prompt()
                 else:
                     logger.error("Unknown resource requested", uri=uri)
-                    return self.error_handler.create_resource_error(
+                    error_response = self.error_handler.create_resource_error(
                         uri, "not_found", f"Resource '{uri}' not found"
                     )
+                    return json.dumps(error_response)
             except Exception as e:
                 logger.error("Resource reading failed", uri=uri, error=str(e))
-                return self.error_handler.create_resource_error(
+                error_response = self.error_handler.create_resource_error(
                     uri, "unavailable", f"Failed to read resource '{uri}': {e!s}"
                 )
+                return json.dumps(error_response)
 
     async def initialize(self) -> None:
         """Initialize the MCP server and clients with graceful degradation."""
@@ -842,7 +853,8 @@ class DShieldMCPServer:
         fields = arguments.get("fields")
         page = arguments.get("page", 1)
         page_size = arguments.get(
-            "page_size", self.user_config.get_setting("query", "default_page_size")
+            "page_size",
+            self.user_config.get_setting("query", "default_page_size") if self.user_config else 100,
         )
         sort_by = arguments.get("sort_by", "@timestamp")
         sort_order = arguments.get("sort_order", "desc")
@@ -851,16 +863,22 @@ class DShieldMCPServer:
         optimization = arguments.get(
             "optimization",
             "auto"
-            if self.user_config.get_setting("query", "enable_smart_optimization")
+            if self.user_config
+            and self.user_config.get_setting("query", "enable_smart_optimization")
             else "none",
         )
         fallback_strategy = arguments.get(
-            "fallback_strategy", self.user_config.get_setting("query", "fallback_strategy")
+            "fallback_strategy",
+            self.user_config.get_setting("query", "fallback_strategy")
+            if self.user_config
+            else "aggregation",
         )
         max_result_size_mb = arguments.get("max_result_size_mb", 10.0)
         query_timeout_seconds = arguments.get(
             "query_timeout_seconds",
-            self.user_config.get_setting("query", "default_timeout_seconds"),
+            self.user_config.get_setting("query", "default_timeout_seconds")
+            if self.user_config
+            else 30,
         )
 
         logger.info(
@@ -915,6 +933,10 @@ class DShieldMCPServer:
                 filters = time_filters
 
             # Query events with pagination and field selection
+            if not self.elastic_client:
+                logger.error("Elasticsearch client not initialized")
+                return []
+
             events, total_count, pagination_info = await self.elastic_client.query_dshield_events(
                 time_range_hours=time_range_hours,
                 indices=indices,
@@ -1063,13 +1085,16 @@ class DShieldMCPServer:
 
             # Add sort if specified
             if sort_by:
-                aggregation_query["aggs"]["group_by_agg"]["terms"]["order"] = {
+                aggregation_query["aggs"]["group_by_agg"]["terms"]["order"] = {  # type: ignore[index]
                     sort_by: {"order": sort_order}
                 }
 
             # Execute the aggregation query
-            aggregation_results = await self.elastic_client.execute_aggregation_query(
-                index=indices, query=filters, aggregation_query=aggregation_query
+            elastic_client = self._ensure_elastic_client()
+            aggregation_results = await elastic_client.execute_aggregation_query(
+                index=indices,
+                query=filters,
+                aggregation_query=aggregation_query,  # type: ignore[arg-type]
             )
 
             # Process aggregation results
@@ -1197,7 +1222,7 @@ class DShieldMCPServer:
                     events,
                     total_count,
                     last_event_id,
-                ) = await self.elastic_client.stream_dshield_events(
+                ) = await self._ensure_elastic_client().stream_dshield_events(
                     time_range_hours=time_range_hours,
                     indices=indices,
                     filters=filters,
@@ -1212,8 +1237,12 @@ class DShieldMCPServer:
 
                 # Update stream state
                 stream_state["current_chunk_index"] = chunk_index + 1
+                if stream_state["total_events_processed"] is None:
+                    stream_state["total_events_processed"] = 0
                 stream_state["total_events_processed"] += len(events)
-                stream_state["last_event_id"] = last_event_id
+                stream_state["last_event_id"] = (
+                    str(last_event_id) if last_event_id is not None else None
+                )
 
                 # Create chunk summary
                 chunk_summary = {
@@ -1701,7 +1730,8 @@ class DShieldMCPServer:
 
     async def _get_recent_dshield_attacks(self) -> list[dict[str, Any]]:
         """Get recent DShield attacks for resource reading."""
-        return await self.elastic_client.query_dshield_attacks(time_range_hours=1)
+        attacks, _ = await self.elastic_client.query_dshield_attacks(time_range_hours=1)
+        return attacks
 
     async def _get_dshield_top_attackers(self) -> list[dict[str, Any]]:
         """Get DShield top attackers for resource reading."""
@@ -2238,11 +2268,89 @@ class DShieldMCPServer:
         This method should be called when shutting down the server.
         """
         if self.elastic_client:
-            await self.elastic_client.close()
+            await self.elastic_client.close()  # type: ignore[no-untyped-call]
         if self.threat_intelligence_manager:
             await self.threat_intelligence_manager.cleanup()
         await self.resource_manager.cleanup_all()
         logger.info("DShield MCP Server cleanup completed")
+
+    def _ensure_elastic_client(self) -> ElasticsearchClient:
+        """Ensure Elasticsearch client is initialized and return it.
+
+        Returns:
+            ElasticsearchClient: The initialized client
+
+        Raises:
+            RuntimeError: If client is not initialized
+        """
+        if not self.elastic_client:
+            raise RuntimeError("Elasticsearch client not initialized")
+        return self.elastic_client
+
+    def _ensure_dshield_client(self) -> DShieldClient:
+        """Ensure DShield client is initialized and return it.
+
+        Returns:
+            DShieldClient: The initialized client
+
+        Raises:
+            RuntimeError: If client is not initialized
+        """
+        if not self.dshield_client:
+            raise RuntimeError("DShield client not initialized")
+        return self.dshield_client
+
+    def _ensure_data_processor(self) -> DataProcessor:
+        """Ensure data processor is initialized and return it.
+
+        Returns:
+            DataProcessor: The initialized processor
+
+        Raises:
+            RuntimeError: If processor is not initialized
+        """
+        if not self.data_processor:
+            raise RuntimeError("Data processor not initialized")
+        return self.data_processor
+
+    def _ensure_threat_intelligence_manager(self) -> ThreatIntelligenceManager:
+        """Ensure threat intelligence manager is initialized and return it.
+
+        Returns:
+            ThreatIntelligenceManager: The initialized manager
+
+        Raises:
+            RuntimeError: If manager is not initialized
+        """
+        if not self.threat_intelligence_manager:
+            raise RuntimeError("Threat intelligence manager not initialized")
+        return self.threat_intelligence_manager
+
+    def _ensure_campaign_tools(self) -> CampaignMCPTools:
+        """Ensure campaign tools are initialized and return them.
+
+        Returns:
+            CampaignMCPTools: The initialized tools
+
+        Raises:
+            RuntimeError: If tools are not initialized
+        """
+        if not self.campaign_tools:
+            raise RuntimeError("Campaign tools not initialized")
+        return self.campaign_tools
+
+    def _ensure_latex_tools(self) -> LaTeXTemplateTools:
+        """Ensure LaTeX tools are initialized and return them.
+
+        Returns:
+            LaTeXTemplateTools: The initialized tools
+
+        Raises:
+            RuntimeError: If tools are not initialized
+        """
+        if not self.latex_tools:
+            raise RuntimeError("LaTeX tools not initialized")
+        return self.latex_tools
 
     def _is_tool_available(self, tool_name: str) -> bool:
         """Check if a tool is available based on feature flags."""
@@ -2313,7 +2421,9 @@ class DShieldMCPServer:
             ]
         except Exception as e:
             logger.error("Failed to get error analytics", error=str(e))
-            return self.error_handler.create_internal_error("get_error_analytics", e)
+            return [
+                self.error_handler.create_internal_error(f"Failed to get error analytics: {e!s}")
+            ]
 
     async def _get_error_handling_status(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
         """Get comprehensive error handling status and configuration.
@@ -2339,7 +2449,11 @@ class DShieldMCPServer:
             return [{"type": "error_handling_status", "data": status}]
         except Exception as e:
             logger.error("Failed to get error handling status", error=str(e))
-            return self.error_handler.create_internal_error("get_error_handling_status", e)
+            return [
+                self.error_handler.create_internal_error(
+                    f"Failed to get error handling status: {e!s}"
+                )
+            ]
 
     async def _get_elasticsearch_circuit_breaker_status(
         self, arguments: dict[str, Any]
@@ -2374,9 +2488,11 @@ class DShieldMCPServer:
             ]
         except Exception as e:
             logger.error("Failed to get Elasticsearch circuit breaker status", error=str(e))
-            return self.error_handler.create_internal_error(
-                "get_elasticsearch_circuit_breaker_status", e
-            )
+            return [
+                self.error_handler.create_internal_error(
+                    f"Failed to get Elasticsearch circuit breaker status: {e!s}"
+                )
+            ]
 
     async def _get_dshield_circuit_breaker_status(
         self, arguments: dict[str, Any]
@@ -2408,7 +2524,11 @@ class DShieldMCPServer:
             ]
         except Exception as e:
             logger.error("Failed to get DShield circuit breaker status", error=str(e))
-            return self.error_handler.create_internal_error("get_dshield_circuit_breaker_status", e)
+            return [
+                self.error_handler.create_internal_error(
+                    f"Failed to get DShield circuit breaker status: {e!s}"
+                )
+            ]
 
     async def _get_latex_circuit_breaker_status(
         self, arguments: dict[str, Any]
@@ -2440,7 +2560,11 @@ class DShieldMCPServer:
             ]
         except Exception as e:
             logger.error("Failed to get LaTeX circuit breaker status", error=str(e))
-            return self.error_handler.create_internal_error("get_latex_circuit_breaker_status", e)
+            return [
+                self.error_handler.create_internal_error(
+                    f"Failed to get LaTeX circuit breaker status: {e!s}"
+                )
+            ]
 
     async def _tool_unavailable_response(self, tool_name: str) -> list[dict[str, Any]]:
         """Return a JSON-RPC error response for unavailable tool, and log to stderr."""

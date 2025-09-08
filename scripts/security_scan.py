@@ -67,7 +67,7 @@ class MCPShieldScanner:
         """
         self.config_path = config_path or self._find_mcp_config()
         self.safe_list = safe_list or ["dshield-elastic-mcp"]
-        self.scan_results = {}
+        self.scan_results: dict[str, Any] = {}
 
     def _find_mcp_config(self) -> str | None:
         """Find MCP configuration files in standard locations."""
@@ -196,7 +196,7 @@ class MCPShieldScanner:
 
     def _extract_issues(self, output: str, start_pos: int) -> list[str]:
         """Extract issues from vulnerability section."""
-        issues = []
+        issues: list[str] = []
 
         # Look for issues section after the vulnerability header
         section_start = output.find("Issues:", start_pos)

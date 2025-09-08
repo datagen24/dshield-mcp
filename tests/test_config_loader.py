@@ -10,16 +10,20 @@ class TestConfigFunctions:
 
     @patch('src.config_loader.yaml.safe_load')
     @patch('builtins.open')
-    def test_get_config(self, mock_open, mock_yaml) -> None:
+    @patch('os.path.exists')
+    def test_get_config(self, mock_exists, mock_open, mock_yaml) -> None:
         """Test get_config function."""
+        mock_exists.return_value = True
         mock_yaml.return_value = {"test": "config"}
         config = get_config("test.yaml")
         assert config == {"test": "config"}
 
     @patch('src.config_loader.yaml.safe_load')
     @patch('builtins.open')
-    def test_get_error_handling_config(self, mock_open, mock_yaml) -> None:
+    @patch('os.path.exists')
+    def test_get_error_handling_config(self, mock_exists, mock_open, mock_yaml) -> None:
         """Test get_error_handling_config function."""
+        mock_exists.return_value = True
         mock_yaml.return_value = {"error_handling": {"timeouts": {"tool_execution": 30}}}
         config = get_error_handling_config("test.yaml")
         assert config is not None

@@ -611,7 +611,8 @@ class MCPErrorHandler:
         # In a full implementation, you would use a JSON schema validator
         # For now, we'll do basic validation
         if not isinstance(arguments, dict):
-            raise ValidationError(f"Arguments must be a dictionary, got {type(arguments)}")
+            # For now, raise a ValueError instead of ValidationError to avoid complex constructor
+            raise ValueError(f"Arguments must be a dictionary, got {type(arguments)}")
 
         # Log validation attempt
         self.logger.debug("Validating arguments", tool=tool_name, arguments=arguments)

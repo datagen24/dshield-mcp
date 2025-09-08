@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from src.secrets_manager.base_secrets_manager import SecretsManagerError
 from src.secrets_manager.onepassword_cli_manager import OnePasswordCLIManager
 
 
@@ -29,7 +30,7 @@ class TestOnePasswordCLIManagerBasic:
 
         with patch.object(OnePasswordCLIManager, '_verify_op_cli'):
             manager = OnePasswordCLIManager(vault="test_vault")
-            result = manager._run_op_command(['item', 'get', 'test'])
+            result = manager._run_op_command_sync(['item', 'get', 'test'])
 
         assert result == {"test": "data"}
         mock_run.assert_called_once()
@@ -46,8 +47,8 @@ class TestOnePasswordCLIManagerBasic:
         with patch.object(OnePasswordCLIManager, '_verify_op_cli'):
             manager = OnePasswordCLIManager(vault="test_vault")
 
-            with pytest.raises(RuntimeError, match="op command failed"):
-                manager._run_op_command(['item', 'get', 'test'])
+            with pytest.raises(SecretsManagerError, match="op command failed"):
+                manager._run_op_command_sync(['item', 'get', 'test'])
 
     @patch('subprocess.run')
     def test_run_op_command_invalid_json(self, mock_run: Mock) -> None:
@@ -61,5 +62,5 @@ class TestOnePasswordCLIManagerBasic:
         with patch.object(OnePasswordCLIManager, '_verify_op_cli'):
             manager = OnePasswordCLIManager(vault="test_vault")
 
-            with pytest.raises(RuntimeError, match="Failed to parse op CLI JSON output"):
-                manager._run_op_command(['item', 'get', 'test'])
+            with pytest.raises(SecretsManagerError, match="Failed to parse op CLI JSON output"):
+                manager._run_op_command_sync(['item', 'get', 'test'])

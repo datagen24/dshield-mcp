@@ -23,7 +23,7 @@ class TestOnePasswordSecrets:
 
             assert op_secrets.op_available is True
             mock_run.assert_called_once_with(
-                ["op", "--version"], check=False, capture_output=True, text=True, timeout=5
+                ["op", "--version"], check=False, capture_output=True, text=True, timeout=120
             )
 
     def test_init_with_op_cli_unavailable(self):
@@ -61,7 +61,7 @@ class TestOnePasswordSecrets:
                 ["op", "read", "op://vault/item/field"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=120,
                 check=True,
             )
 

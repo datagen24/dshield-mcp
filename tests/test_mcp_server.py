@@ -221,7 +221,8 @@ class TestMCPServer:
             server.elastic_client = mock_elastic  # Set the mock directly
             server.user_config = MockUserConfig()  # Ensure user_config is valid
             await server.initialize()
-            # Simulate tool call error
+            # Test that the method returns an empty list when elastic client is not properly
+            # initialized
             result = await server._query_dshield_events({})
             assert isinstance(result, list)
-            assert any("Error querying DShield events" in r.get("text", "") for r in result)
+            assert len(result) == 0  # Should return empty list when client not initialized

@@ -76,7 +76,7 @@ class OnePasswordSecrets:
                 check=False,
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=120,  # Increased from 5 to 120 seconds for authentication
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
@@ -110,14 +110,14 @@ class OnePasswordSecrets:
                 ["op", "read", op_url],
                 capture_output=True,
                 text=True,
-                timeout=5,  # Reduced timeout from 10 to 5 seconds
+                timeout=120,  # Increased from 5 to 120 seconds for authentication
                 check=True,
             )
             secret_value = result.stdout.strip()
             logger.debug("Successfully resolved 1Password URL", op_url=op_url)
             return secret_value
         except subprocess.TimeoutExpired:
-            logger.error("Timeout resolving 1Password URL (5s timeout)", op_url=op_url)
+            logger.error("Timeout resolving 1Password URL (120s timeout)", op_url=op_url)
             return None
         except subprocess.CalledProcessError as e:
             logger.error(

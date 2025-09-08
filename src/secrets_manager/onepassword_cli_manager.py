@@ -51,18 +51,18 @@ class OnePasswordCLIManager(BaseSecretsManager):
     def __init__(
         self,
         vault: str,
-        timeout_seconds: int = 30,
-        max_retries: int = 3,
-        retry_delay_seconds: float = 1.0,
+        timeout_seconds: int = 120,  # Increased from 30 to 120 seconds for authentication
+        max_retries: int = 2,  # Reduced from 3 to 2 to prevent spam
+        retry_delay_seconds: float = 10.0,  # Increased from 1.0 to 10.0 seconds
         enable_metrics: bool = True,
     ) -> None:
         """Initialize the 1Password CLI manager.
 
         Args:
             vault: The name of the 1Password vault to use
-            timeout_seconds: Timeout for op CLI commands in seconds
-            max_retries: Maximum number of retries for transient errors
-            retry_delay_seconds: Base delay between retries in seconds
+            timeout_seconds: Timeout for op CLI commands in seconds (default: 120s for auth)
+            max_retries: Maximum number of retries for transient errors (default: 2)
+            retry_delay_seconds: Base delay between retries in seconds (default: 10s)
             enable_metrics: Whether to enable metrics collection
 
         Raises:
@@ -175,7 +175,11 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
         """
         timeout_seconds = timeout or self.timeout_seconds
-        cmd = ["op", *args, "--format", "json"]
+        cmd = ["op", *args]
+        
+        # Only add --format json for commands that support it
+        if args and args[0] not in ["--version", "completion"]:
+            cmd.extend(["--format", "json"])
 
         # Add session token if available
         if self._session_token:
@@ -214,6 +218,10 @@ class OnePasswordCLIManager(BaseSecretsManager):
 
             if not result.stdout.strip():
                 return {}
+
+            # For non-JSON commands, return the raw output
+            if args and args[0] in ["--version", "completion"]:
+                return result.stdout.strip()
 
             # Parse and validate JSON output
             try:
@@ -385,7 +393,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
             try:
                 if attempt > 0:
                     # Check if we should retry based on the last exception
-                    if not self._should_retry(last_exception):
+                    if not self._should_retry(last_exception):  # type: ignore[arg-type]
                         raise last_exception
 
                     # Calculate exponential backoff delay

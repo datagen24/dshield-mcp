@@ -22,6 +22,9 @@ def mock_es_client():
     client.get_available_indices = AsyncMock(return_value=[])
     client._map_query_fields = Mock(return_value={})
 
+    # Mock circuit breaker - set to None to disable circuit breaker checks
+    client.circuit_breaker = None
+
     # Mock the optimization methods
     client._estimate_query_size = AsyncMock()
     client._optimize_fields = Mock()

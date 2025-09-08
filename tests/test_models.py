@@ -40,5 +40,5 @@ class TestEventCategory:
     def test_category_values(self) -> None:
         """Test category enum values."""
         assert EventCategory.NETWORK == "network"
-        assert EventCategory.APPLICATION == "application"
-        assert EventCategory.SYSTEM == "system"
+        assert EventCategory.AUTHENTICATION == "authentication"
+        assert EventCategory.MALWARE == "malware"

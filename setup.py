@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Setup script for DShield MCP - Elastic SIEM Integration."""
 
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup  # type: ignore[import-untyped]
 
 
 # Read the README file

@@ -16,8 +16,8 @@ from dotenv import load_dotenv, set_key
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from dshield_client import DShieldClient
-from elasticsearch_client import ElasticsearchClient
+from dshield_client import DShieldClient  # type: ignore[import-untyped]
+from elasticsearch_client import ElasticsearchClient  # type: ignore[import-untyped]
 
 
 class ConfigManager:

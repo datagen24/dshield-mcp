@@ -161,7 +161,7 @@ def generate_markdown_documentation(project_root: Path, output_dir: Path) -> boo
         return False
 
 
-def generate_module_markdown(file_path: Path, tree: ast.AST, source_code: str) -> str:
+def generate_module_markdown(file_path: Path, tree: ast.Module, source_code: str) -> str:
     """
     Generate markdown documentation for a single module.
 
