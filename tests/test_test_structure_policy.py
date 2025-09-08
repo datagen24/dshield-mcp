@@ -170,6 +170,9 @@ class TestTestStructurePolicy:
             "test_simple_critical_components.py",  # Integration test
             "test_onepassword_basic.py",  # Integration test
             "test_op_secrets.py",  # Integration test
+            "test_tui_api_key_policy.py",  # Integration test
+            "test_connection_manager_policy.py",  # Integration test
+            "test_api_key_policy_migration.py",  # Integration test
         }
 
         filtered_orphans = [
