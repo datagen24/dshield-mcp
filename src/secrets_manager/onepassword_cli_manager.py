@@ -176,7 +176,7 @@ class OnePasswordCLIManager(BaseSecretsManager):
         """
         timeout_seconds = timeout or self.timeout_seconds
         cmd = ["op", *args]
-        
+
         # Only add --format json for commands that support it
         if args and args[0] not in ["--version", "completion"]:
             cmd.extend(["--format", "json"])

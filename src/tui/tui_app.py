@@ -16,7 +16,7 @@ from textual.binding import Binding  # type: ignore
 from textual.containers import Container  # type: ignore
 from textual.message import Message  # type: ignore
 from textual.reactive import reactive  # type: ignore
-from textual.widgets import Footer, Header  # type: ignore
+from textual.widgets import Footer, Header, Input  # type: ignore
 
 from ..tcp_server import EnhancedTCPServer
 from ..user_config import UserConfigManager
@@ -147,6 +147,7 @@ class DShieldTUIApp(App):  # type: ignore
         Binding("g", "generate_api_key", "Generate API Key"),
         Binding("c", "clear_logs", "Clear Logs"),
         Binding("t", "test_log", "Test Log"),
+        Binding("f", "focus_filter", "Focus Filter"),
         Binding("h", "show_help", "Help"),
         Binding("tab", "switch_panel", "Switch Panel"),
     ]
@@ -196,7 +197,9 @@ class DShieldTUIApp(App):  # type: ignore
                 yield ServerPanel(id="server-panel", config_path=self.config_path)
 
             with Container(id="right-panel"):
-                yield LogPanel(id="log-panel")
+                yield LogPanel(
+                    id="log-panel", max_entries=self.user_config.tui_settings.log_history_size
+                )
 
         yield StatusBar(id="status-bar")
         yield Footer()
@@ -492,6 +495,18 @@ class DShieldTUIApp(App):  # type: ignore
         """Switch between panels."""
         self.current_panel = (self.current_panel + 1) % 3
         self.logger.debug("Switched to panel", panel=self.current_panel)
+
+    def action_focus_filter(self) -> None:
+        """Focus the log filter input field."""
+        self.logger.info("Focusing log filter")
+        try:
+            # Find the search input in the log panel
+            search_input = self.query_one("#search-input", Input)
+            search_input.focus()
+            self.notify("Filter focused - type to search logs", timeout=2)
+        except Exception as e:
+            self.logger.error("Failed to focus filter", error=str(e))
+            self.notify("Failed to focus filter", timeout=2)
 
     def on_server_start(self, event: ServerStart) -> None:
         """Handle server start message from server panel."""

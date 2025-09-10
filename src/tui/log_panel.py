@@ -2,7 +2,7 @@
 """Log display panel for DShield MCP TUI.
 
 This module provides a terminal UI panel for displaying real-time logs,
-including filtering, searching, and log level management.
+including filtering, searching, and log level management with bounded buffer.
 """
 
 from datetime import datetime
@@ -13,6 +13,8 @@ from textual.app import ComposeResult  # type: ignore
 from textual.containers import Container, Horizontal, Vertical  # type: ignore
 from textual.message import Message  # type: ignore
 from textual.widgets import Button, Checkbox, Input, Static, TextArea  # type: ignore
+
+from .log_buffer import LogBuffer
 
 logger = structlog.get_logger(__name__)
 
@@ -53,26 +55,32 @@ class LogPanel(Container):  # type: ignore
     """Panel for displaying and managing logs.
 
     This panel provides real-time log display with filtering, searching,
-    and export capabilities.
+    and export capabilities using a bounded log buffer.
     """
 
-    def __init__(self, id: str = "log-panel") -> None:
+    def __init__(self, id: str = "log-panel", max_entries: int = 1000) -> None:
         """Initialize the log panel.
 
         Args:
             id: Panel ID
+            max_entries: Maximum number of log entries to keep
 
         """
         super().__init__(id=id)
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
-        # State
-        self.log_entries: list[dict[str, Any]] = []
-        self.filtered_entries: list[dict[str, Any]] = []
-        self.max_entries = 1000  # Maximum number of log entries to keep
+        # Initialize bounded log buffer
+        self.log_buffer = LogBuffer(
+            max_size=max_entries,
+            coalesce_interval_ms=100,  # 100ms burst coalescing
+            render_callback=self._render_callback,
+        )
+
+        # Display configuration
         self.filter_config: dict[str, Any] = {
             "levels": {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"},
             "search_text": "",
+            "case_sensitive": False,
             "show_timestamps": True,
             "show_levels": True,
             "show_sources": True,
@@ -107,6 +115,7 @@ class LogPanel(Container):  # type: ignore
             with Horizontal(classes="search-controls"):
                 yield Static("Search:")
                 yield Input(placeholder="Search logs...", id="search-input")
+                yield Checkbox("Case Sensitive", id="case-sensitive-search", value=False)
                 yield Button("Clear Search", id="clear-search-btn")
 
             # Display options
@@ -136,72 +145,46 @@ class LogPanel(Container):  # type: ignore
         """
         self.logger.debug("add_log_entries called", entries_count=len(entries), entries=entries)
 
-        for entry in entries:
-            self.log_entries.append(entry)
-
-        # Limit the number of entries
-        if len(self.log_entries) > self.max_entries:
-            self.log_entries = self.log_entries[-self.max_entries :]
+        # Add entries to the bounded buffer (handles filtering and coalescing)
+        self.log_buffer.add_entries(entries)
 
         self.logger.debug(
-            "Applied filters and updating display", total_entries=len(self.log_entries)
-        )
-
-        # Apply filters and update display
-        self._apply_filters()
-        self._update_display()
-
-        self.logger.debug(
-            "Added log entries",
+            "Added log entries to buffer",
             count=len(entries),
-            total=len(self.log_entries),
-            filtered=len(self.filtered_entries),
+            buffer_stats=self.log_buffer.get_statistics(),
         )
 
     def clear_logs(self) -> None:
         """Clear all log entries."""
-        self.log_entries.clear()
-        self.filtered_entries.clear()
+        self.log_buffer.clear()
 
         log_display = self.query_one("#log-display", TextArea)
         log_display.text = "Logs cleared.\n"
 
         self.logger.info("Cleared all log entries")
 
+    def _render_callback(self) -> None:
+        """Callback function for log buffer to trigger display update."""
+        self._update_display()
+
     def _apply_filters(self) -> None:
         """Apply current filters to log entries."""
-        self.filtered_entries = []
-
-        for entry in self.log_entries:
-            # Check level filter
-            level = entry.get("level", "INFO")
-            if isinstance(level, str):
-                level = level.upper()
-            else:
-                level = "INFO"
-
-            filter_levels = self.filter_config["levels"]
-            if isinstance(filter_levels, set) and level not in filter_levels:
-                continue
-
-            # Check search filter
-            search_text = self.filter_config["search_text"]
-            if isinstance(search_text, str):
-                search_text = search_text.lower()
-                if search_text:
-                    entry_text = str(entry).lower()
-                    if search_text not in entry_text:
-                        continue
-
-            self.filtered_entries.append(entry)
+        # Update log buffer filters
+        self.log_buffer.set_level_filter(self.filter_config["levels"])
+        self.log_buffer.set_search_filter(
+            self.filter_config["search_text"], self.filter_config["case_sensitive"]
+        )
 
     def _update_display(self) -> None:
         """Update the log display with filtered entries."""
         log_display = self.query_one("#log-display", TextArea)
 
+        # Get filtered entries from buffer
+        filtered_entries = self.log_buffer.get_filtered_entries()
+
         # Build display text
         display_lines = []
-        for entry in self.filtered_entries[-100:]:  # Show last 100 filtered entries
+        for entry in filtered_entries[-100:]:  # Show last 100 filtered entries
             line = self._format_log_entry(entry)
             display_lines.append(line)
 
@@ -304,6 +287,10 @@ class LogPanel(Container):  # type: ignore
         elif checkbox_id == "show-sources":
             self.filter_config["show_sources"] = event.checkbox.value
             self._update_display()
+        elif checkbox_id == "case-sensitive-search":
+            self.filter_config["case_sensitive"] = event.checkbox.value
+            self._apply_filters()
+            self._update_display()
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """Handle input field changes.
@@ -370,21 +357,22 @@ class LogPanel(Container):  # type: ignore
             Dictionary of log statistics
 
         """
-        total_entries = len(self.log_entries)
-        filtered_entries = len(self.filtered_entries)
+        buffer_stats = self.log_buffer.get_statistics()
+        filtered_entries = self.log_buffer.get_filtered_entries()
 
         # Count by level
         level_counts: dict[str, int] = {}
-        for entry in self.log_entries:
+        for entry in self.log_buffer.get_all_entries():
             level = entry.get("level", "INFO")
             level_counts[level] = level_counts.get(level, 0) + 1
 
         return {
-            "total_entries": total_entries,
-            "filtered_entries": filtered_entries,
+            "total_entries": buffer_stats["buffer_size"],
+            "filtered_entries": len(filtered_entries),
             "level_counts": level_counts,
             "filter_config": self.filter_config,
-            "max_entries": self.max_entries,
+            "max_entries": buffer_stats["max_size"],
+            "buffer_statistics": buffer_stats,
         }
 
     def set_max_entries(self, max_entries: int) -> None:
@@ -394,12 +382,23 @@ class LogPanel(Container):  # type: ignore
             max_entries: Maximum number of entries
 
         """
-        self.max_entries = max_entries
+        # Create new buffer with new max size
+        old_buffer = self.log_buffer
+        self.log_buffer = LogBuffer(
+            max_size=max_entries,
+            coalesce_interval_ms=old_buffer.coalesce_interval_ms,
+            render_callback=self._render_callback,
+        )
 
-        # Trim entries if necessary
-        if len(self.log_entries) > max_entries:
-            self.log_entries = self.log_entries[-max_entries:]
-            self._apply_filters()
-            self._update_display()
+        # Copy existing entries
+        self.log_buffer.add_entries(old_buffer.get_all_entries())
+
+        # Clean up old buffer
+        old_buffer.cleanup()
 
         self.logger.debug("Set max log entries", max_entries=max_entries)
+
+    def on_unmount(self) -> None:
+        """Handle panel unmount event."""
+        self.log_buffer.cleanup()
+        self.logger.debug("Log panel unmounted and cleaned up")

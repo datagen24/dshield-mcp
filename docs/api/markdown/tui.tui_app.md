@@ -199,6 +199,14 @@ def action_switch_panel(self)
 
 Switch between panels.
 
+#### action_focus_filter
+
+```python
+def action_focus_filter(self)
+```
+
+Focus the log filter input field.
+
 #### on_server_start
 
 ```python

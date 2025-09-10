@@ -3,7 +3,7 @@
 Log display panel for DShield MCP TUI.
 
 This module provides a terminal UI panel for displaying real-time logs,
-including filtering, searching, and log level management.
+including filtering, searching, and log level management with bounded buffer.
 
 ## LogFilterUpdate
 
@@ -44,18 +44,19 @@ Initialize log export message.
 Panel for displaying and managing logs.
 
     This panel provides real-time log display with filtering, searching,
-    and export capabilities.
+    and export capabilities using a bounded log buffer.
 
 #### __init__
 
 ```python
-def __init__(self, id)
+def __init__(self, id, max_entries)
 ```
 
 Initialize the log panel.
 
         Args:
             id: Panel ID
+            max_entries: Maximum number of log entries to keep
 
 #### compose
 
@@ -94,6 +95,14 @@ def clear_logs(self)
 ```
 
 Clear all log entries.
+
+#### _render_callback
+
+```python
+def _render_callback(self)
+```
+
+Callback function for log buffer to trigger display update.
 
 #### _apply_filters
 
@@ -219,3 +228,11 @@ Set maximum number of log entries to keep.
 
         Args:
             max_entries: Maximum number of entries
+
+#### on_unmount
+
+```python
+def on_unmount(self)
+```
+
+Handle panel unmount event.
