@@ -4,3 +4,8 @@ globs: *
 alwaysApply: true
 ---
 - Robust error handling and logging, including context capture.
+ - Implement JSON-RPC 2.0 error handling: use standard codes (PARSE_ERROR -32700, INVALID_REQUEST -32600, METHOD_NOT_FOUND -32601, INVALID_PARAMS -32602, INTERNAL_ERROR -32603). Server-defined errors start at -32000 with descriptive messages.
+ - Validate all inputs with Pydantic; return INVALID_PARAMS (-32602) on validation failures. Do not include stack traces in responses.
+ - Wrap all MCP handlers with centralized try/except; log errors to stderr with request id, method, and relevant parameters. Never log to stdout.
+ - Timeouts and downstream failures should return appropriate server-defined errors; implement retries with backoff and jitter. Defaults: 3 attempts, exponential backoff starting at 0.5s with a max of 8s; all values configurable in `user_config.yaml`.
+ - Ensure capability negotiation and method gating obey declared capabilities; reject unsupported methods with METHOD_NOT_FOUND.

@@ -3,4 +3,83 @@ description: Enforces a clear project structure with separated directories for s
 globs: *
 alwaysApply: true
 ---
-- Approach emphasizes a clear project structure with separate directories for source code, tests, docs, and config.
+- Maintain a clear, discoverable project structure so agents can quickly find code, tests, docs, and configuration. Keep business logic in `src/`, tests in `tests/`, documentation in `docs/`, and configuration at the root (YAML + env) or under `config/` when multiple profiles are needed.
+
+- Required top-level organization:
+  - `src/`: All Python source code (packages and modules) with explicit `__init__.py` files. Avoid placing library code at the repository root.
+  - `tests/`: pytest tests mirroring `src/` structure (`tests/<module>/test_*.py`).
+  - `docs/`: User and developer docs, API docs (`docs/api`, `docs/api_markdown`), implementation notes, and change history.
+  - `templates/`: LaTeX report templates and related assets.
+  - `scripts/`: Operational scripts (doc builds, security scans, utilities).
+  - `examples/`: Minimal runnable usage examples.
+  - `artifacts/` and `output/`: Generated logs, reports, and temporary files (git-ignored as appropriate).
+  - Root-level config: `mcp_config.yaml`, `user_config.yaml`, `.env` (example files committed; real secrets via environment variables and 1Password CLI `op://`). Use a `config/` directory only if maintaining multiple per-environment YAMLs.
+
+- Placement rules and conventions:
+  - Keep the MCP entry point(s) at the root (e.g., `mcp_server.py`), with the implementation living in `src/` modules.
+  - Python files use snake_case; directories are lowercase with underscores. Public APIs have type hints and Google-style docstrings.
+  - Tests must mirror `src/` modules and use pytest naming: `test_*.py`. Do not place production logic in tests or scripts.
+  - Documentation lives under `docs/` and is generated to `docs/api` (HTML via pdoc) and `docs/api_markdown` (Markdown via pydoc-markdown). Keep docs in sync with code.
+  - Configuration is provided via environment variables and YAML. Secrets are never embedded in code or YAML; resolve `op://` at runtime.
+  - Log to stderr; never write protocol messages to stdout. Generated outputs and transient files are not committed.
+
+- Recommended project directory layout (reference):
+```
+/ (project root)
+  .cursor/
+    rules/
+      ac-structure.mdc
+      (other rules)
+  src/
+    __init__.py
+    campaign_analyzer.py
+    elasticsearch_client.py
+    dshield_client.py
+    config_loader.py
+    latex_template_tools.py
+    dynamic_tool_registry.py
+    models.py
+    security/
+      __init__.py
+      validator.py
+      monitor.py
+    transports/
+      __init__.py
+      tcp_server.py
+  tests/
+    __init__.py
+    test_campaign_analyzer.py
+    test_tcp_server.py
+    (more tests mirroring src)
+  docs/
+    README.md
+    api/
+      (generated HTML)
+    api_markdown/
+      (generated Markdown)
+    Implementation_Docs/
+      (design and implementation notes)
+    Enhancements.md
+    CHANGELOG.md
+  templates/
+    Attack_Report/
+      (LaTeX templates and assets)
+  scripts/
+    build_api_docs.sh
+    security_scan.py
+  examples/
+    basic_usage.py
+  artifacts/
+    (logs, run outputs)
+  output/
+    (generated reports, PDFs)
+  mcp_server.py
+  mcp_config.yaml
+  user_config.yaml
+  env.example
+  pyproject.toml
+  requirements.txt
+  README.md
+```
+
+- Rationale: A consistent structure reduces cognitive load, speeds onboarding, enables reliable automation (linting, tests, docs, scans), and prevents accidental leakage of secrets or build artifacts.

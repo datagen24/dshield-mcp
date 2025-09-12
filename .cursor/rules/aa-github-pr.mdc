@@ -10,3 +10,8 @@ alwaysApply: true
   - Run: `gh pr create --body-file .pr-body.md [other options]`
   - Always remove the temporary file after PR creation.
 - This approach ensures consistent, readable PR descriptions and prevents issues with special characters or formatting in shell commands.
+ - Discover available labels with `gh label list` and apply appropriate labels to the PR / issue.
+ - Validate the linked issue exists using `gh issue view <id>`; reference the issue in the PR title/body.
+ - PR body should include: Summary, Changes, Tests, Documentation updates, Security considerations, and Snyk results summary.
+ - Draft PRs are encouraged for WIP. Convert to Ready for Review when all required checks pass locally.
+ - If DCO is enabled for the repository, include `Signed-off-by: Name <email>` in commits. Otherwise, DCO is optional.

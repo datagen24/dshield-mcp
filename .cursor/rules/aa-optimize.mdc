@@ -3,3 +3,6 @@ alwaysApply: true
 description: Optimize code snippets and explanations for clarity and AI-assisted development.
 ---
 - Provide code snippets and explanations tailored to these principles, optimizing for clarity and AI-assisted development.
+ - Follow Python best practices for clarity and formatting; Ruff is enforced.
+ - Keep examples minimal and copy-pasteable: include necessary imports, avoid unrelated boilerplate, and use fenced code blocks.
+ - Prefer type hints and concise Google-style docstrings in examples. Tests must use pytest only.

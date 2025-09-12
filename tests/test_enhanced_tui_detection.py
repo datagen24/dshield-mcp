@@ -61,8 +61,21 @@ class TestEnhancedTUIDetection:
                 result = self.transport_manager._is_tui_parent()
                 assert result is True, f"Expected True for DSHIELD_TUI_MODE={value}"
 
-    def test_environment_variable_detection_false(self) -> None:
+    @patch('psutil.Process')
+    def test_environment_variable_detection_false(self, mock_process: Mock) -> None:
         """Test TUI detection via environment variable (false values)."""
+        # Mock a non-TUI parent process
+        mock_parent = Mock()
+        mock_parent.name.return_value = "python"
+        mock_parent.cmdline.return_value = ["python", "script.py"]
+        mock_parent.pid = 12345
+
+        mock_current = Mock()
+        mock_current.parent.return_value = mock_parent
+        mock_current.cmdline.return_value = ["python", "mcp_server.py"]
+
+        mock_process.return_value = mock_current
+
         # Test various false values
         false_values = ["false", "FALSE", "False", "0", "no", "NO", "No", "", "invalid"]
 

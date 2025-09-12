@@ -3,3 +3,8 @@ description: Uses environment variables for managing configurations.
 alwaysApply: true
 ---
 - Configuration management using environment variables.
+ - Configuration precedence: defaults < `mcp_config.yaml` < `user_config.yaml` < environment variables < secrets backend injection at runtime.
+ - Use a Pydantic Settings class as the single source of truth. Forbid unknown keys and validate types/ranges (timeouts, backoff ceilings, rate limits).
+ - All timeouts, retry/backoff, and rate-limiting parameters must be configurable (publish sensible defaults in docs).
+ - Implement a modular secrets handler (provider-agnostic). Do not couple application code to a specific provider. The configured secrets backend supplies values at runtime.
+ - For local development, use `env.example` and `user_config.yaml` overrides. Never commit real secrets.

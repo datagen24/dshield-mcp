@@ -14,3 +14,8 @@ globs: *
   8. Create a pull request referencing the related issue, using a Markdown-formatted file for the PR body with the GitHub CLI (`--body-file`).
   9. After review and merge, delete the feature/bugfix branch.
 - This process ensures clean branch history, traceability, and up-to-date documentation for every change.
+ - Prefer "Merge commit" as the merge strategy. Never commit directly to `main`; always work in a branch tied to an issue/task.
+ - Required status checks before merge: Ruff lint clean, MyPy type-check clean, tests passing (on PR and on merge), docs build passing, and Snyk checks per policy.
+ - Use Conventional Commits for commit messages and PR titles (e.g., `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `perf:`, `ci:`). Include the related issue reference (e.g., `#123`).
+ - Validate the referenced issue exists with the GitHub CLI before branch/PR creation (e.g., `gh issue view <id>`). Branch names should include the issue number.
+ - On merge to `main`, ensure `CHANGELOG.md` is updated and consider tagging releases when appropriate.
