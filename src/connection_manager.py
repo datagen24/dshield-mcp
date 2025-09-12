@@ -47,8 +47,17 @@ class ConnectionManager:
         self.connections: set[Any] = set()  # Will store TCPConnection objects
         self.logger = structlog.get_logger(f"{__name__}.{self.__class__.__name__}")
 
-        # Load existing API keys from 1Password
-        asyncio.create_task(self._load_api_keys())
+        # API keys will be loaded when needed via _ensure_api_keys_loaded()
+        self._api_keys_loaded = False
+
+    async def _ensure_api_keys_loaded(self) -> None:
+        """Ensure API keys are loaded from 1Password.
+        
+        This method loads API keys if they haven't been loaded yet.
+        """
+        if not self._api_keys_loaded:
+            await self._load_api_keys()
+            self._api_keys_loaded = True
 
     async def _load_api_keys(self) -> None:
         """Load existing API keys from 1Password.
@@ -102,6 +111,9 @@ class ConnectionManager:
 
         """
         try:
+            # Ensure API keys are loaded
+            await self._ensure_api_keys_loaded()
+            
             # Generate API key using the secure generator
             from .api_key_generator import APIKeyGenerator
 
@@ -242,6 +254,9 @@ class ConnectionManager:
             APIKey instance if valid, None if invalid
 
         """
+        # Ensure API keys are loaded
+        await self._ensure_api_keys_loaded()
+        
         # First check the in-memory cache
         api_key = self.api_keys.get(key_value)
 

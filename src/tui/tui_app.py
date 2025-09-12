@@ -8,6 +8,7 @@ including layout management, event handling, and integration with the TCP server
 import asyncio
 import subprocess
 import threading
+from datetime import datetime
 from typing import Any, ClassVar
 
 import structlog
@@ -21,7 +22,9 @@ from textual.widgets import Footer, Header, Input  # type: ignore
 from ..tcp_server import EnhancedTCPServer
 from ..user_config import UserConfigManager
 from .connection_panel import ConnectionPanel
+from .live_metrics_panel import LiveMetricsPanel
 from .log_panel import LogPanel
+from .metrics_subscriber import MetricsSubscriber
 from .server_panel import ServerPanel, ServerRestart, ServerStart, ServerStop
 from .status_bar import StatusBar
 
@@ -179,6 +182,9 @@ class DShieldTUIApp(App):  # type: ignore
         self.connections: list[dict[str, Any]] = []
         self.server_status: dict[str, Any] = {}
 
+        # Metrics system
+        self.metrics_subscriber: MetricsSubscriber | None = None
+
         # Update tasks
         self._update_task: asyncio.Task[Any] | threading.Thread | None = None
 
@@ -197,6 +203,7 @@ class DShieldTUIApp(App):  # type: ignore
                 yield ServerPanel(id="server-panel", config_path=self.config_path)
 
             with Container(id="right-panel"):
+                yield LiveMetricsPanel(id="live-metrics-panel")
                 yield LogPanel(
                     id="log-panel", max_entries=self.user_config.tui_settings.log_history_size
                 )
@@ -213,6 +220,9 @@ class DShieldTUIApp(App):  # type: ignore
         # Mark UI as mounted
         self._mounted = True
 
+        # Initialize metrics subscriber
+        self._initialize_metrics_subscriber()
+
         # Start update task in a separate thread
         self._update_task = threading.Thread(target=self._periodic_update, daemon=True)
         self._update_task.start()
@@ -228,6 +238,10 @@ class DShieldTUIApp(App):  # type: ignore
         """Handle application unmount event."""
         self.logger.info("TUI application unmounting")
 
+        # Stop metrics subscriber
+        if self.metrics_subscriber:
+            asyncio.create_task(self.metrics_subscriber.stop())
+
         # Stop update task
         if (
             self._update_task
@@ -240,6 +254,61 @@ class DShieldTUIApp(App):  # type: ignore
         # Stop server
         if self.server_running:
             self.action_stop_server()
+
+    def _initialize_metrics_subscriber(self) -> None:
+        """Initialize the metrics subscriber system."""
+        try:
+            # Create metrics subscriber
+            self.metrics_subscriber = MetricsSubscriber(
+                update_interval=1.0,  # Update every second
+                max_subscribers=10,
+            )
+
+            # Set metrics collector function
+            self.metrics_subscriber.set_metrics_collector(self._collect_server_metrics)
+
+            # Start the subscriber
+            asyncio.create_task(self.metrics_subscriber.start())
+
+            # Connect to live metrics panel
+            live_metrics_panel = self.query_one("#live-metrics-panel", LiveMetricsPanel)
+            live_metrics_panel.set_metrics_subscriber(self.metrics_subscriber)
+
+            self.logger.info("Metrics subscriber initialized successfully")
+
+        except Exception as e:
+            self.logger.error("Failed to initialize metrics subscriber", error=str(e))
+
+    def _collect_server_metrics(self) -> dict[str, Any]:
+        """Collect server metrics for the metrics subscriber.
+
+        Returns:
+            Dictionary of raw server metrics
+        """
+        try:
+            if not self.tcp_server:
+                return {}
+
+            # Get server statistics
+            server_stats = self.tcp_server.get_server_statistics()
+
+            # Enhance with additional metrics
+            enhanced_stats = {
+                **server_stats,
+                "timestamp": datetime.now().isoformat(),
+                "tui_state": {
+                    "mounted": self._mounted,
+                    "server_running": self.server_running,
+                    "connection_count": len(self.connections),
+                    "log_entries_count": len(self.log_entries),
+                },
+            }
+
+            return enhanced_stats
+
+        except Exception as e:
+            self.logger.error("Error collecting server metrics", error=str(e))
+            return {}
 
     def _periodic_update(self) -> None:
         """Periodic update task for refreshing UI data."""

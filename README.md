@@ -150,7 +150,8 @@ For detailed implementation information and development history:
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher (UV will install the correct version if needed)
+- UV package manager
 - Access to Elasticsearch cluster with DShield data
 - DShield API key (optional, for threat intelligence enrichment)
 - LaTeX distribution (optional, for PDF report generation)
@@ -158,7 +159,21 @@ For detailed implementation information and development history:
   - **Linux**: Install TeX Live via `sudo apt-get install texlive-full` (Ubuntu/Debian) or `sudo yum install texlive-scheme-full` (RHEL/CentOS)
   - **Windows**: Install MiKTeX from https://miktex.org/download
 
-### Virtual Environment Setup
+### UV Package Manager Installation
+
+**Install UV first:**
+```bash
+# Linux/macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or via pip
+pip install uv
+```
+
+### Environment Setup
 
 #### Option 1: Automated Setup (Recommended)
 
@@ -177,7 +192,21 @@ chmod +x setup_venv.sh
 setup_venv.bat
 ```
 
-#### Option 2: Manual Setup
+#### Option 2: Manual UV Setup
+
+**All platforms:**
+```bash
+# Install project dependencies
+uv sync
+
+# Install development dependencies
+uv sync --group dev
+
+# Copy environment template
+cp .env.example .env
+```
+
+#### Option 3: Traditional pip Setup (Legacy)
 
 **Linux/macOS:**
 ```bash
@@ -251,7 +280,27 @@ The output directory is created automatically if it doesn't exist.
 
 ### Running the Application
 
-#### Activate Virtual Environment
+#### Option 1: Using UV (Recommended)
+
+**All platforms:**
+```bash
+# Run the MCP server directly with UV
+uv run python mcp_server.py
+
+# Run the TUI interface
+uv run python -m src.tui_launcher
+
+# Run the TCP server
+uv run python -m src.server_launcher --transport tcp
+
+# Run examples
+uv run python examples/basic_usage.py
+
+# Run tests
+uv run pytest
+```
+
+#### Option 2: Traditional Virtual Environment
 
 **Linux/macOS:**
 ```bash
@@ -259,44 +308,51 @@ The output directory is created automatically if it doesn't exist.
 ./activate_venv.sh
 
 # Or manually activate
-source venv/bin/activate
-```
-
-**Windows:**
-```cmd
-venv\Scripts\activate.bat
-```
-
-#### Run the MCP Server
-```bash
-# Activate virtual environment first
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate.bat  # Windows
+source .venv/bin/activate
 
 # Run the MCP server
 python mcp_server.py
 ```
 
+**Windows:**
+```cmd
+.venv\Scripts\activate.bat
+python mcp_server.py
+```
+
+#### Run the MCP Server (STDIO default)
+```bash
+# Using UV (recommended)
+uv run python mcp_server.py
+
+# Or with traditional virtual environment
+source .venv/bin/activate  # Linux/macOS
+# or
+.venv\Scripts\activate.bat  # Windows
+python mcp_server.py
+
+STDIO is the default and recommended mode for analyst workstations. Advanced modes include TCP server and the optional Textual-based TUI.
+```
+
 #### Run Examples
 ```bash
-# Basic usage example
+# Using UV (recommended)
+uv run python examples/basic_usage.py
+uv run python examples/data_dictionary_usage.py
+uv run python examples/latex_template_usage.py
+uv run python examples/enhanced_threat_intelligence_usage.py
+uv run python examples/statistical_anomaly_detection_usage.py
+
+# Or with traditional virtual environment
+source .venv/bin/activate  # Linux/macOS
+# or
+.venv\Scripts\activate.bat  # Windows
+
 python examples/basic_usage.py
-
-# Data dictionary usage example
 python examples/data_dictionary_usage.py
-
-# LaTeX template usage example
 python examples/latex_template_usage.py
-
-# Test installation (in dev_tools folder)
-cd dev_tools && python test_installation.py
-
-# Test data dictionary functionality (in dev_tools folder)
-cd dev_tools && python test_data_dictionary.py
-
-# Configure settings
-python config.py
+python examples/enhanced_threat_intelligence_usage.py
+python examples/statistical_anomaly_detection_usage.py
 ```
 
 #### Deactivate Virtual Environment
@@ -368,6 +424,7 @@ python debug_elasticsearch.py
 - `ELASTICSEARCH_PASSWORD`: Elasticsearch password
 - `DSHIELD_API_KEY`: DShield API key for threat intelligence
 - `LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
+- `LOG_FILE_PATH`: Optional path to a log file (recommended). JSON-RPC protocol messages are sent on stdout; logs are written to stderr and to the configured file.
 
 ### 1Password Integration
 
@@ -439,6 +496,12 @@ If 1Password CLI is not available or fails to resolve a URL:
 - The system will log a warning
 - The original `op://` URL will be used as-is
 - This prevents application crashes if 1Password is unavailable
+
+### Transports and OS Targets
+
+- Default: STDIO (analyst workstations)
+- Advanced: TCP server and TUI
+- TCP targets: macOS hosts and Red Hat UBI-based container (planned; container support will be finalized in a future iteration)
 
 ### DShield Elasticsearch Indices
 

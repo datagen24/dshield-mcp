@@ -103,6 +103,25 @@ def on_unmount(self)
 
 Handle application unmount event.
 
+#### _initialize_metrics_subscriber
+
+```python
+def _initialize_metrics_subscriber(self)
+```
+
+Initialize the metrics subscriber system.
+
+#### _collect_server_metrics
+
+```python
+def _collect_server_metrics(self)
+```
+
+Collect server metrics for the metrics subscriber.
+
+        Returns:
+            Dictionary of raw server metrics
+
 #### _periodic_update
 
 ```python

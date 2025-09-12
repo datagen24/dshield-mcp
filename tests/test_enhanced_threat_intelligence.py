@@ -31,7 +31,7 @@ import pytest_asyncio
 from src.models import DomainIntelligence, ThreatIntelligenceResult, ThreatIntelligenceSource
 from src.threat_intelligence_manager import ThreatIntelligenceManager
 
-pytestmark = pytest.mark.asyncio
+# Individual async tests are marked with @pytest.mark.asyncio
 
 
 class TestThreatIntelligenceManager:
@@ -261,6 +261,7 @@ class TestThreatIntelligenceManager:
         assert threat_manager._classify_indicator("CVE-2021-1234") == "cve"
         assert threat_manager._classify_indicator("generic_indicator") == "generic"
 
+    @pytest.mark.slow
     def test_deduplicate_indicators(self, threat_manager):
         """Test indicator deduplication."""
         indicators = ["malware", "MALWARE", "port_scan", "malware"]
@@ -275,6 +276,7 @@ class TestThreatIntelligenceManager:
         )  # "malware", "MALWARE", "malware" = 3 occurrences
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_rate_limiting(self, threat_manager):
         """Test rate limiting functionality."""
         source = ThreatIntelligenceSource.DSHIELD
@@ -1176,6 +1178,7 @@ class TestThreatIntelligenceIntegrationLive:
         await manager.cleanup()
 
 
+@pytest.mark.slow
 class TestThreatIntelligenceIntegrationMocked:
     """Mocked end-to-end integration tests for CI/CD and isolated validation."""
 

@@ -56,6 +56,7 @@ class TestMCPProtocolCompliance:
         assert hasattr(capabilities.resources, 'listChanged')
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_tool_registry_initialization(self):
         """Test that tool registry is properly initialized."""
         server = DShieldMCPServer()

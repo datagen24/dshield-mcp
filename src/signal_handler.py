@@ -34,7 +34,8 @@ class SignalHandler:
             frame: Current stack frame.
         """
         print(f"[MCP SERVER] Received signal {signum}, initiating graceful shutdown...", flush=True)
-        asyncio.get_event_loop().create_task(self.graceful_shutdown())
+        # Create task but don't await it in signal handler (it will be awaited by the event loop)
+        asyncio.create_task(self.graceful_shutdown())
 
     async def wait_for_shutdown(self) -> None:
         """Wait for shutdown event to be set."""

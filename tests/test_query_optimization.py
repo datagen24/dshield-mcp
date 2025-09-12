@@ -34,10 +34,10 @@ def mock_es_client():
     return client
 
 
-@pytest.mark.asyncio
 class TestSmartQueryOptimization:
     """Unit tests for smart query optimization logic in ElasticsearchClient."""
 
+    @pytest.mark.asyncio
     async def test_normal_query_no_optimization(self, mock_es_client):
         """Test normal query without optimization."""
         # Mock response for normal query
@@ -68,6 +68,7 @@ class TestSmartQueryOptimization:
         assert pagination_info.get("optimization_applied") is None
         assert pagination_info.get("fallback_strategy") is None
 
+    @pytest.mark.asyncio
     async def test_auto_optimization_large_page_size(self, mock_es_client):
         """Test auto optimization with large page size."""
         # Mock size estimation to trigger optimization
@@ -106,6 +107,7 @@ class TestSmartQueryOptimization:
         # Field optimization should be called when fields are provided or when page size is large
         assert mock_es_client._optimize_fields.call_count >= 0
 
+    @pytest.mark.asyncio
     async def test_field_optimization(self, mock_es_client):
         """Test field optimization when size limit is exceeded."""
         many_fields = [
@@ -172,6 +174,7 @@ class TestSmartQueryOptimization:
         assert pagination_info["fallback_strategy"] == "sample"
         mock_es_client._optimize_fields.assert_called_with(many_fields)
 
+    @pytest.mark.asyncio
     async def test_aggregation_fallback(self, mock_es_client):
         """Test aggregation fallback strategy."""
         # Mock size estimation to trigger fallback
@@ -203,6 +206,7 @@ class TestSmartQueryOptimization:
         assert pagination_info["fallback_strategy"] == "aggregate"
         assert "aggregation fallback" in pagination_info["note"]
 
+    @pytest.mark.asyncio
     async def test_sampling_fallback(self, mock_es_client):
         """Test sampling fallback strategy."""
         # Mock size estimation to trigger fallback
@@ -233,6 +237,7 @@ class TestSmartQueryOptimization:
         assert pagination_info["fallback_strategy"] == "sample"
         assert "Sample of 10 events" in pagination_info["note"]
 
+    @pytest.mark.asyncio
     async def test_page_size_reduction(self, mock_es_client):
         """Test page size reduction when field optimization isn't enough."""
         # Mock size estimation to trigger page size reduction
@@ -265,6 +270,7 @@ class TestSmartQueryOptimization:
         assert pagination_info["optimization_applied"] == "field_reduction_page_reduction"
         assert pagination_info["fallback_strategy"] == "aggregate"
 
+    @pytest.mark.asyncio
     async def test_optimization_disabled(self, mock_es_client):
         """Test that optimization is disabled when set to 'none'."""
         # Mock response
@@ -337,6 +343,7 @@ class TestSmartQueryOptimization:
         # Should limit total fields
         assert len(optimized_fields) <= len(priority_fields) + 5
 
+    @pytest.mark.asyncio
     async def test_estimate_query_size_method(self, mock_es_client):
         """Test the _estimate_query_size method."""
         # Mock count response
@@ -364,6 +371,7 @@ class TestSmartQueryOptimization:
         # Verify count was called
         mock_es_client.client.count.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_fallback_strategy_aggregate(self, mock_es_client):
         """Test aggregation fallback strategy implementation."""
         # Mock aggregation response
@@ -397,6 +405,7 @@ class TestSmartQueryOptimization:
         assert pagination_info["fallback_strategy"] == "aggregate"
         assert "aggregation fallback" in pagination_info["note"]
 
+    @pytest.mark.asyncio
     async def test_fallback_strategy_sample(self, mock_es_client):
         """Test sampling fallback strategy implementation."""
         # Mock sample response
@@ -431,6 +440,7 @@ class TestSmartQueryOptimization:
         assert pagination_info["fallback_strategy"] == "sample"
         assert "Sample of 10 events" in pagination_info["note"]
 
+    @pytest.mark.asyncio
     async def test_unknown_fallback_strategy(self, mock_es_client):
         """Test handling of unknown fallback strategy."""
         # Use the real method instead of mock

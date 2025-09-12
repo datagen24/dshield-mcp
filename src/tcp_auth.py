@@ -5,7 +5,7 @@ This module provides authentication functionality for TCP connections,
 including API key validation, permission checking, and session management.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import structlog
@@ -198,8 +198,8 @@ class TCPAuthenticator:
             "api_key_id": api_key_obj.key_id,
             "permissions": api_key_obj.permissions,
             "client_address": connection.client_address,
-            "created_at": datetime.utcnow(),
-            "last_activity": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc),
+            "last_activity": datetime.now(timezone.utc),
             "connection": connection,
         }
 
@@ -222,7 +222,7 @@ class TCPAuthenticator:
         if isinstance(last_activity, str):
             last_activity = datetime.fromisoformat(last_activity)
 
-        return bool((datetime.utcnow() - last_activity).total_seconds() > self.session_timeout)
+        return bool((datetime.now(timezone.utc) - last_activity).total_seconds() > self.session_timeout)
 
     def validate_session(self, session_id: str) -> dict[str, Any] | None:
         """Validate an authentication session.
@@ -244,7 +244,7 @@ class TCPAuthenticator:
             return None
 
         # Update last activity
-        session["last_activity"] = datetime.utcnow()
+            session["last_activity"] = datetime.now(timezone.utc)
         return session
 
     def revoke_session(self, session_id: str) -> bool:

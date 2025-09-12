@@ -8,7 +8,7 @@ rate limiting, input validation, and abuse detection.
 import json
 import re
 from collections import defaultdict, deque
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import structlog
@@ -73,7 +73,7 @@ class RateLimiter:
 
         # Token bucket parameters
         self.tokens = burst_limit
-        self.last_refill = datetime.utcnow()
+        self.last_refill = datetime.now(timezone.utc)
 
         # Sliding window parameters
         self.request_times: deque[datetime] = deque()

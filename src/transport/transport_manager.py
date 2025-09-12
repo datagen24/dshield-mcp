@@ -105,9 +105,19 @@ class TransportManager:
 
         """
         # Strategy 1: Check environment variable first (most reliable)
-        if os.getenv("DSHIELD_TUI_MODE", "").lower() in ("true", "1", "yes"):
-            self.logger.debug("TUI detection: Environment variable DSHIELD_TUI_MODE is set")
+        tui_mode = os.getenv("DSHIELD_TUI_MODE", "").lower()
+        if tui_mode in ("true", "1", "yes"):
+            self.logger.debug("TUI detection: Environment variable DSHIELD_TUI_MODE is set to true")
             return True
+        elif tui_mode in ("false", "0", "no"):
+            # Explicit false values
+            self.logger.debug("TUI detection: Environment variable DSHIELD_TUI_MODE is set to false")
+            return False
+        elif tui_mode:
+            # Any other non-empty value (including invalid values) is treated as false
+            self.logger.debug("TUI detection: Environment variable DSHIELD_TUI_MODE is set to invalid value, treating as false")
+            return False
+        # If tui_mode is empty (""), continue to parent process detection
 
         # Strategy 2: Check parent process information
         try:

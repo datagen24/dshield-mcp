@@ -32,6 +32,7 @@ class MockUserConfig:
         return "/tmp/mock_cache_db.sqlite3"
 
 
+@pytest.mark.slow
 class TestMCPServer:
     """Unit tests for MCP server initialization, structure, and tool registration."""
 
@@ -57,6 +58,7 @@ class TestMCPServer:
             assert server.tool_registry is not None
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_server_initialization_async(self):
         """Test async MCP server initialization with mocked dependencies."""
         with (
@@ -108,6 +110,7 @@ class TestMCPServer:
             assert hasattr(server.server, 'call_tool')
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_query_dshield_events_tool(self):
         """Test query_dshield_events tool handler with mocked Elasticsearch client."""
         mock_elastic = AsyncMock()
@@ -121,6 +124,7 @@ class TestMCPServer:
             assert isinstance(result, list)
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_get_dshield_statistics_tool(self):
         """Test get_dshield_statistics tool handler with mocked Elasticsearch client."""
         mock_elastic = AsyncMock()
@@ -142,6 +146,7 @@ class TestMCPServer:
             assert isinstance(result, list)
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_enrich_ip_with_dshield_tool(self):
         """Test enrich_ip_with_dshield tool handler with mocked DShield client."""
         mock_dshield = AsyncMock()
@@ -170,6 +175,7 @@ class TestMCPServer:
             assert isinstance(result, list)
 
     @pytest.mark.asyncio
+    @pytest.mark.slow
     async def test_server_cleanup(self):
         """Test MCP server cleanup method with mocked Elasticsearch client."""
         mock_elastic = AsyncMock()

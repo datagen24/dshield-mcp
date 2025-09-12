@@ -8,7 +8,7 @@ substring search, and burst coalescing to optimize rendering performance.
 ## LogBuffer
 
 Bounded log buffer with filtering and burst coalescing.
-    
+
     This class implements a ring buffer for log entries with the following features:
     - Ring buffer capped at log_history_size
     - Level filtering (DEBUG/INFO/WARN/ERROR)
@@ -23,7 +23,7 @@ def __init__(self, max_size, coalesce_interval_ms, render_callback)
 ```
 
 Initialize the log buffer.
-        
+
         Args:
             max_size: Maximum number of log entries to keep
             coalesce_interval_ms: Minimum interval between renders in milliseconds
@@ -36,7 +36,7 @@ def add_entry(self, entry)
 ```
 
 Add a log entry to the buffer.
-        
+
         Args:
             entry: Log entry dictionary with at least 'level' and 'message' keys
 
@@ -47,7 +47,7 @@ def add_entries(self, entries)
 ```
 
 Add multiple log entries to the buffer.
-        
+
         Args:
             entries: List of log entry dictionaries
 
@@ -58,7 +58,7 @@ def get_filtered_entries(self)
 ```
 
 Get all entries that pass current filters.
-        
+
         Returns:
             List of filtered log entries
 
@@ -69,7 +69,7 @@ def get_all_entries(self)
 ```
 
 Get all entries in the buffer.
-        
+
         Returns:
             List of all log entries
 
@@ -88,7 +88,7 @@ def set_level_filter(self, levels)
 ```
 
 Set the level filter.
-        
+
         Args:
             levels: Set of log levels to include (e.g., {"DEBUG", "INFO", "ERROR"})
 
@@ -99,7 +99,7 @@ def set_search_filter(self, search_text, case_sensitive)
 ```
 
 Set the search filter.
-        
+
         Args:
             search_text: Text to search for in log entries
             case_sensitive: Whether search should be case-sensitive
@@ -111,7 +111,7 @@ def get_statistics(self)
 ```
 
 Get buffer statistics.
-        
+
         Returns:
             Dictionary containing buffer statistics
 
@@ -122,10 +122,10 @@ def _normalize_entry(self, entry)
 ```
 
 Normalize a log entry for consistent processing.
-        
+
         Args:
             entry: Raw log entry
-            
+
         Returns:
             Normalized log entry
 
@@ -136,10 +136,10 @@ def _passes_filters(self, entry)
 ```
 
 Check if an entry passes current filters.
-        
+
         Args:
             entry: Log entry to check
-            
+
         Returns:
             True if entry passes all filters
 
@@ -158,6 +158,14 @@ def _render_immediately(self)
 ```
 
 Render immediately without delay.
+
+#### _delayed_render_sync
+
+```python
+def _delayed_render_sync(self)
+```
+
+Render after a delay for burst coalescing (synchronous version).
 
 #### cleanup
 

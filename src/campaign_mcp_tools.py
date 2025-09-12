@@ -5,7 +5,7 @@ MCP tools for campaign analysis and correlation.
 """
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 import structlog
 
@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 class CampaignMCPTools:
     """MCP tools for campaign analysis and correlation."""
 
-    def __init__(self, es_client: ElasticsearchClient | None = None):
+    def __init__(self, es_client: Optional[ElasticsearchClient] = None):
         """Initialize CampaignMCPTools.
 
         Args:

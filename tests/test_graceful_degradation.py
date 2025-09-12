@@ -6,6 +6,7 @@ from src.health_check_manager import HealthCheckManager
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_health_check_manager():
     manager = HealthCheckManager()
     result = await manager.run_all_checks()
@@ -21,6 +22,7 @@ async def test_health_check_manager():
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_feature_manager():
     health_manager = HealthCheckManager()
     await health_manager.run_all_checks()
@@ -31,6 +33,7 @@ async def test_feature_manager():
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_dynamic_tool_registry():
     health_manager = HealthCheckManager()
     await health_manager.run_all_checks()

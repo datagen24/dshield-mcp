@@ -1,17 +1,28 @@
 #!/usr/bin/env python3
 """
-Build API documentation for DShield MCP using pdoc.
+Build API documentation for DShield MCP using pdoc with incremental updates.
 
 This script generates comprehensive API documentation from the source code,
 including all modules, classes, functions, and their docstrings.
-Generates both HTML and Markdown formats.
+
+Key improvements:
+- Generates into a temporary staging directory and synchronizes only changed files
+  into ``docs/api`` to avoid scorched-earth updates and oversized Git commits.
+- Deletes files in the target only when they no longer exist in the staged output.
+- Supports ``--dry-run`` to preview changes and ``--force`` to do a full rebuild.
+
+Outputs both HTML and Markdown formats.
 """
 
+import argparse
 import ast
+import hashlib
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 
 def run_command(cmd: list[str], cwd: Path | None = None) -> int:
@@ -60,18 +71,117 @@ def install_pdoc() -> bool:
     return run_command([sys.executable, "-m", "pip", "install", "pdoc>=14.0.0"]) == 0
 
 
-def clean_output_directory(output_dir: Path) -> None:
-    """
-    Clean the output directory before generating new documentation.
+def _sha256_file(path: Path) -> str:
+    """Compute the SHA-256 hash of a file.
 
     Args:
-        output_dir: Path to the output directory
+        path: Path to file
+
+    Returns:
+        Hex digest string
     """
-    if output_dir.exists():
-        print(f"Cleaning output directory: {output_dir}")
-        shutil.rmtree(output_dir)
+    hasher = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def _files_differ(src: Path, dst: Path) -> bool:
+    """Return True if files differ by size or content hash."""
+    if not dst.exists():
+        return True
+    if src.stat().st_size != dst.stat().st_size:
+        return True
+    return _sha256_file(src) != _sha256_file(dst)
+
+
+def _write_if_changed(path: Path, content: str) -> bool:
+    """Write content to path only if changed.
+
+    Args:
+        path: Target file path
+        content: Text content
+
+    Returns:
+        True if file was written/updated, False if unchanged
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        try:
+            existing = path.read_text(encoding="utf-8")
+            if existing == content:
+                return False
+        except Exception:
+            # If we cannot read, attempt to overwrite
+            pass
+    path.write_text(content, encoding="utf-8")
+    return True
+
+
+def sync_directories(
+    staged_dir: Path,
+    output_dir: Path,
+    *,
+    dry_run: bool = False,
+    delete_removed: bool = True,
+) -> dict:
+    """Synchronize staged docs to target, updating changed files and removing stale ones.
+
+    Args:
+        staged_dir: Temporary staging directory with freshly generated docs
+        output_dir: Final documentation directory (docs/api)
+        dry_run: If True, only print actions without performing them
+        delete_removed: If True, remove files absent in staged_dir
+
+    Returns:
+        Summary dictionary with counts of copied, deleted, unchanged files
+    """
+    copied = 0
+    deleted = 0
+    unchanged = 0
 
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Build file lists
+    staged_files = {
+        p.relative_to(staged_dir)
+        for p in staged_dir.rglob("*")
+        if p.is_file()
+    }
+
+    output_files = {
+        p.relative_to(output_dir)
+        for p in output_dir.rglob("*")
+        if p.is_file()
+    }
+
+    # Copy new/changed files
+    for rel in sorted(staged_files):
+        src = staged_dir / rel
+        dst = output_dir / rel
+        if _files_differ(src, dst):
+            print(f"UPDATE: {rel}")
+            if not dry_run:
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dst)
+            copied += 1
+        else:
+            unchanged += 1
+
+    # Delete removed files
+    if delete_removed:
+        for rel in sorted(output_files - staged_files):
+            target = output_dir / rel
+            print(f"REMOVE: {rel}")
+            if not dry_run:
+                try:
+                    target.unlink()
+                except FileNotFoundError:
+                    pass
+            deleted += 1
+
+    return {"copied": copied, "deleted": deleted, "unchanged": unchanged}
 
 
 def generate_html_documentation(project_root: Path, output_dir: Path) -> bool:
@@ -142,7 +252,8 @@ def generate_markdown_documentation(project_root: Path, output_dir: Path) -> boo
                 output_file.parent.mkdir(parents=True, exist_ok=True)
 
                 # Write markdown content
-                output_file.write_text(markdown_content, encoding="utf-8")
+                # Only write if changed to keep staging clean and deterministic
+                _write_if_changed(output_file, markdown_content)
                 created_files += 1
 
             except Exception as e:
@@ -387,8 +498,8 @@ def create_index_file(output_dir: Path) -> None:
 </html>"""
 
     index_file = output_dir / "index.html"
-    index_file.write_text(index_content)
-    print(f"Created index file: {index_file}")
+    if _write_if_changed(index_file, index_content):
+        print(f"Created/updated index file: {index_file}")
 
 
 def verify_documentation_exists(output_dir: Path) -> dict:
@@ -492,8 +603,8 @@ This will create both HTML and Markdown versions of the API documentation.
 """
 
     markdown_index_file = output_dir / "README.md"
-    markdown_index_file.write_text(markdown_index_content)
-    print(f"Created Markdown index: {markdown_index_file}")
+    if _write_if_changed(markdown_index_file, markdown_index_content):
+        print(f"Created/updated Markdown index: {markdown_index_file}")
 
 
 def main() -> int:
@@ -503,15 +614,32 @@ def main() -> int:
     Returns:
         Exit code (0 for success, 1 for failure)
     """
+    parser = argparse.ArgumentParser(description="Build API docs with incremental updates.")
+    parser.add_argument("--force", action="store_true", help="Force full rebuild (clean target before syncing)")
+    parser.add_argument("--dry-run", action="store_true", help="Preview changes without modifying files")
+    parser.add_argument(
+        "--no-delete",
+        action="store_true",
+        help="Do not delete files from target that are missing in staged output",
+    )
+    args = parser.parse_args()
+
+    # Env var overrides for CI or scripted usage
+    force = args.force or os.environ.get("DOCS_FORCE_REBUILD") == "1"
+    dry_run = args.dry_run or os.environ.get("DOCS_DRY_RUN") == "1"
+    delete_removed = not args.no_delete and os.environ.get("DOCS_NO_DELETE") != "1"
+
     # Get project root directory
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
 
-    # Define output directory
+    # Define output directory (final location)
     output_dir = project_root / "docs" / "api"
 
     print("DShield MCP API Documentation Builder")
     print("=" * 40)
+    print(f"Target directory: {output_dir}")
+    print(f"Options: force={force}, dry_run={dry_run}, delete_removed={delete_removed}")
 
     # Check if pdoc is installed
     if not check_pdoc_installed():
@@ -521,44 +649,64 @@ def main() -> int:
             print("  pip install pdoc>=14.0.0")
             return 1
 
-    # Clean output directory
-    clean_output_directory(output_dir)
+    # Full clean if forced
+    if force and not dry_run and output_dir.exists():
+        print(f"Force clean: removing {output_dir}")
+        shutil.rmtree(output_dir)
 
-    # Generate HTML documentation
-    if not generate_html_documentation(project_root, output_dir):
-        print("Failed to generate HTML API documentation", file=sys.stderr)
-        return 1
+    # Always build into a staging directory first
+    with TemporaryDirectory(prefix="dshield-docs-") as tmp:
+        staged_dir = Path(tmp)
 
-    # Generate Markdown documentation
-    if not generate_markdown_documentation(project_root, output_dir):
-        print("Failed to generate Markdown API documentation", file=sys.stderr)
-        return 1
+        # Generate HTML documentation into staging
+        if not generate_html_documentation(project_root, staged_dir):
+            print("Failed to generate HTML API documentation", file=sys.stderr)
+            return 1
 
-    # VERIFY files were actually created
+        # Generate Markdown documentation into staging
+        if not generate_markdown_documentation(project_root, staged_dir):
+            print("Failed to generate Markdown API documentation", file=sys.stderr)
+            return 1
+
+        # Create index files in staging
+        create_index_file(staged_dir)
+        create_markdown_index(staged_dir)
+
+        # VERIFY staged files were actually created
+        verification = verify_documentation_exists(staged_dir)
+
+        if verification["html_files"] == 0:
+            print("ERROR: No HTML files were generated!")
+            return 1
+
+        if verification["markdown_files"] == 0:
+            print("ERROR: No Markdown files were generated!")
+            return 1
+
+        print("Synchronizing staged documentation → target directory...")
+        summary = sync_directories(staged_dir, output_dir, dry_run=dry_run, delete_removed=delete_removed)
+
+    # Final verification on target
     verification = verify_documentation_exists(output_dir)
 
-    if verification["html_files"] == 0:
-        print("ERROR: No HTML files were generated!")
-        return 1
-
-    if verification["markdown_files"] == 0:
-        print("ERROR: No Markdown files were generated!")
-        return 1
-
-    # Create index files
-    create_index_file(output_dir)
-    create_markdown_index(output_dir)
-
     print("\n" + "=" * 40)
-    print("API documentation generated successfully!")
+    print("API documentation generated successfully!" if not dry_run else "Dry-run completed.")
     print(f"Documentation location: {output_dir}")
     print(f"HTML documentation: {output_dir / 'index.html'}")
     print(f"Markdown documentation: {output_dir / 'markdown'}")
 
     print("\nVerification Results:")
-    print(f"  HTML files created: {verification['html_files']}")
-    print(f"  Markdown files created: {verification['markdown_files']}")
+    print(f"  HTML files present: {verification['html_files']}")
+    print(f"  Markdown files present: {verification['markdown_files']}")
     print(f"  Total documentation size: {verification['total_size'] / 1024:.1f} KB")
+
+    print("\nSync Summary:")
+    print(f"  Files updated: {summary['copied']}")
+    print(f"  Files unchanged: {summary['unchanged']}")
+    if delete_removed:
+        print(f"  Files removed: {summary['deleted']}")
+    else:
+        print("  Files removed: (skipped)")
 
     print("\nFormats available:")
     print("- HTML: Interactive, searchable documentation")

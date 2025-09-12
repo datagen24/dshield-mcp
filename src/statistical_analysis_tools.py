@@ -6,7 +6,7 @@ in DShield SIEM data.
 """
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Optional
 
 import structlog
 
@@ -19,7 +19,7 @@ logger = structlog.get_logger(__name__)
 class StatisticalAnalysisTools:
     """MCP tools for statistical analysis and anomaly detection."""
 
-    def __init__(self, es_client: ElasticsearchClient | None = None):
+    def __init__(self, es_client: Optional[ElasticsearchClient] = None):
         """Initialize StatisticalAnalysisTools.
 
         Args:

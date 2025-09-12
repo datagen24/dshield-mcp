@@ -1,53 +1,50 @@
 #!/bin/bash
 
-# DShield MCP - Virtual Environment Setup Script
-# This script creates a virtual environment and installs all dependencies
+# DShield MCP - UV Environment Setup Script
+# This script sets up the project using UV package manager
 
 set -e  # Exit on any error
 
-echo "=== DShield MCP Virtual Environment Setup ==="
+echo "=== DShield MCP UV Environment Setup ==="
 echo
 
-# Check if Python 3.8+ is available
+# Check if UV is installed
+if ! command -v uv &> /dev/null; then
+    echo "❌ Error: UV package manager is not installed"
+    echo "Please install UV first:"
+    echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo "  # or on Windows: powershell -c \"irm https://astral.sh/uv/install.ps1 | iex\""
+    echo "  # or via pip: pip install uv"
+    exit 1
+fi
+
+echo "✅ UV package manager found: $(uv --version)"
+
+# Check if Python 3.10+ is available (UV will handle the specific version)
+if ! command -v python3 &> /dev/null; then
+    echo "❌ Error: Python 3.10 or higher is required but not found"
+    echo "Please install Python 3.10+ or let UV install it automatically"
+    exit 1
+fi
+
+# Check Python version
 python_version=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-required_version="3.8"
+required_version="3.10"
 
 if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then
-    echo "❌ Error: Python 3.8 or higher is required. Found: $python_version"
-    exit 1
+    echo "⚠️  Warning: Python 3.10+ recommended. Found: $python_version"
+    echo "UV will install the correct Python version if needed"
 fi
 
 echo "✅ Python version: $python_version"
 
-# Check if virtualenv is available
-if ! command -v python3 -m venv &> /dev/null; then
-    echo "❌ Error: python3 -m venv is not available"
-    echo "Please install python3-venv package:"
-    echo "  Ubuntu/Debian: sudo apt-get install python3-venv"
-    echo "  CentOS/RHEL: sudo yum install python3-venv"
-    echo "  macOS: brew install python3"
-    exit 1
-fi
+# Install project dependencies using UV
+echo "📦 Installing project dependencies with UV..."
+uv sync
 
-# Create virtual environment
-echo "📦 Creating virtual environment..."
-python3 -m venv venv
-
-# Activate virtual environment
-echo "🔧 Activating virtual environment..."
-source venv/bin/activate
-
-# Upgrade pip
-echo "⬆️  Upgrading pip..."
-pip install --upgrade pip
-
-# Install dependencies
-echo "📥 Installing dependencies..."
-pip install -r requirements.txt
-
-# Install elasticsearch Python client with version from env or default
-ELASTICSEARCH_PY_VERSION=${ELASTICSEARCH_PY_VERSION:-8.18.1}
-pip install "elasticsearch==${ELASTICSEARCH_PY_VERSION}"
+# Install development dependencies
+echo "📥 Installing development dependencies..."
+uv sync --group dev
 
 # Create .env file if it doesn't exist
 if [ ! -f .env ]; then
@@ -61,20 +58,25 @@ fi
 echo
 echo "=== Setup Complete! ==="
 echo
-echo "To activate the virtual environment:"
-echo "  source venv/bin/activate"
+echo "To activate the UV environment:"
+echo "  source .venv/bin/activate"
+echo "  # or use: uv run <command>"
 echo
 echo "To deactivate the virtual environment:"
 echo "  deactivate"
 echo
 echo "To run the MCP server:"
-echo "  source venv/bin/activate"
-echo "  python mcp_server.py"
+echo "  uv run python mcp_server.py"
+echo "  # or: source .venv/bin/activate && python mcp_server.py"
 echo
 echo "To run the example:"
-echo "  source venv/bin/activate"
-echo "  python examples/basic_usage.py"
+echo "  uv run python examples/basic_usage.py"
 echo
-echo "To test the installation:"
-echo "  source venv/bin/activate"
-echo "  python test_installation.py"
+echo "To run tests:"
+echo "  uv run pytest"
+echo
+echo "To run the TUI interface:"
+echo "  uv run python -m src.tui_launcher"
+echo
+echo "To run the TCP server:"
+echo "  uv run python -m src.server_launcher --transport tcp"

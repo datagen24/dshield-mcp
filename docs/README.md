@@ -60,7 +60,7 @@ docs/
 - **Python Packages:**
   - `elasticsearch` (for Elasticsearch queries and backend integration)
   - `structlog` (for structured logging and error reporting)
-  - `aiohttp` (for async HTTP requests)
+  - `aiohttp` / `httpx` (for async HTTP requests; current code uses aiohttp)
   - `pydantic` (for data validation and typing)
   - `pytest` (for running tests)
   - `ruff` (for linting and docstring compliance)
@@ -162,6 +162,12 @@ export ENABLE_SMART_OPTIMIZATION=false
 
 ### Testing
 - Run `python dev_tools/test_user_configuration.py` to verify configuration management and integration.
+
+## Transports and OS Targets
+
+- Default transport: STDIO (recommended for analyst workstations)
+- Advanced transports: TCP server and Textual TUI
+- TCP mode targets: macOS hosts and Red Hat UBI container (planned; container support to be finalized)
 
 ## Elasticsearch Configuration
 

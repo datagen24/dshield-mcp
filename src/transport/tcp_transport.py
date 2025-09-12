@@ -7,7 +7,7 @@ network-based MCP protocol communication with authentication and rate limiting.
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import structlog
@@ -51,8 +51,8 @@ class TCPConnection:
         self.writer = writer
         self.client_address = client_address
         self.api_key = api_key
-        self.connected_at = datetime.utcnow()
-        self.last_activity = datetime.utcnow()
+        self.connected_at = datetime.now(timezone.utc)
+        self.last_activity = datetime.now(timezone.utc)
         self.rate_limiter = RateLimiter()
         self.is_authenticated = api_key is not None
         self.is_initialized = False
@@ -73,7 +73,7 @@ class TCPConnection:
 
     def update_activity(self) -> None:
         """Update the last activity timestamp."""
-        self.last_activity = datetime.utcnow()
+        self.last_activity = datetime.now(timezone.utc)
 
     def is_expired(self, timeout_seconds: int) -> bool:
         """Check if the connection has expired.
@@ -105,7 +105,7 @@ class RateLimiter:
         self.requests_per_minute = requests_per_minute
         self.burst_limit = burst_limit
         self.tokens: float = float(burst_limit)
-        self.last_refill = datetime.utcnow()
+        self.last_refill = datetime.now(timezone.utc)
 
     def is_allowed(self) -> bool:
         """Check if a request is allowed.

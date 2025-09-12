@@ -116,17 +116,22 @@ class TestEnhancedTUIDetection:
             mock_current = Mock()
             mock_current.parent.return_value = mock_parent
             mock_current.cmdline.return_value = ["python", "mcp_server.py"]
+
+            # Mock psutil.Process() to return our mock current process
             mock_process.return_value = mock_current
 
-            result = self.transport_manager._is_tui_parent()
-            assert result is True, f"Expected True for TUI indicator '{indicator}' in process name"
+            # Clear any previous environment variable
+            with patch.dict(os.environ, {"DSHIELD_TUI_MODE": ""}, clear=True):
+                result = self.transport_manager._is_tui_parent()
+                assert result is True, f"Expected True for TUI indicator '{indicator}' in process name"
 
             # Test indicator in command line
             mock_parent.cmdline.return_value = ["python", f"{indicator}.py"]
             mock_parent.name.return_value = "python"
 
-            result = self.transport_manager._is_tui_parent()
-            assert result is True, f"Expected True for TUI indicator '{indicator}' in command line"
+            with patch.dict(os.environ, {"DSHIELD_TUI_MODE": ""}, clear=True):
+                result = self.transport_manager._is_tui_parent()
+                assert result is True, f"Expected True for TUI indicator '{indicator}' in command line"
 
     @patch('psutil.Process')
     def test_terminal_multiplexer_detection(self, mock_process: Mock) -> None:

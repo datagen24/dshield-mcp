@@ -1,0 +1,142 @@
+tests/api_key_generator/test_api_key_generator.py: 8
+tests/config_loader/test_config_loader.py: 3
+tests/context_injector/test_context_injector.py: 2
+tests/data_processor/test_data_processor.py: 6
+tests/dshield_client/test_dshield_client.py: 3
+tests/dynamic_tool_registry/test_dynamic_tool_registry.py: 7
+tests/feature_manager/test_feature_manager.py: 7
+tests/mcp_error_handler/test_mcp_error_handler.py: 10
+tests/models/test_models.py: 3
+tests/op_secrets/test_op_secrets.py: 4
+tests/operation_tracker/test_operation_tracker.py: 7
+tests/resource_manager/test_resource_manager.py: 7
+tests/secrets_manager/test_base_secrets_manager.py: 39
+tests/server_launcher/test_server_launcher.py: 5
+tests/signal_handler/test_signal_handler.py: 5
+tests/tcp_auth/test_tcp_auth.py: 4
+tests/test_api_key_generator.py: 31
+tests/test_api_key_policy_migration.py: 10
+tests/test_campaign_analysis.py: 13
+tests/test_config_loader.py: 3
+tests/test_connection_manager_policy.py: 9
+tests/test_connection_panel_integration.py: 14
+tests/test_data_dictionary.py: 12
+tests/test_data_parsing.py: 28
+tests/test_elasticsearch_client.py: 19
+tests/test_enhanced_threat_intelligence.py: 43
+tests/test_enhanced_tui_detection.py: 16
+tests/test_error_handling.py: 39
+tests/test_graceful_degradation.py: 3
+tests/test_latex_template_tools.py: 35
+tests/test_live_metrics_panel.py: 22
+tests/test_log_buffer.py: 22
+tests/test_mcp_compliance.py: 15
+tests/test_mcp_schema_validator.py: 48
+tests/test_mcp_server.py: 11
+tests/test_metrics_formatter.py: 23
+tests/test_metrics_subscriber.py: 19
+tests/test_models.py: 3
+tests/test_onepassword_basic.py: 4
+tests/test_op_secrets.py: 22
+tests/test_pagination.py: 8
+tests/test_performance_metrics.py: 11
+tests/test_phase3_error_handling.py: 22
+tests/test_phase4_dshield_circuit_breaker.py: 18
+tests/test_phase4_elasticsearch_circuit_breaker.py: 14
+tests/test_query_optimization.py: 12
+tests/test_remaining_integration.py: 10
+tests/test_security.py: 23
+tests/test_server_integration.py: 11
+tests/test_server_panel_lifecycle.py: 17
+tests/test_signal_handling.py: 2
+tests/test_simple_critical_components.py: 16
+tests/test_statistical_analysis_tools.py: 18
+tests/test_streaming.py: 17
+tests/test_tcp_tui_integration.py: 7
+tests/test_test_structure_policy.py: 4
+tests/test_tui_api_key_policy.py: 11
+tests/test_tui_api_key_reveal.py: 21
+tests/threat_intelligence_manager/test_threat_intelligence_manager.py: 8
+tests/transport/test_base_transport.py: 8
+tests/transport/test_stdio_transport.py: 9
+tests/transport/test_tcp_transport.py: 9
+tests/transport/test_transport_manager.py: 9
+tests/tui/screens/test_api_key_screen.py: 11
+tests/tui/test_api_key_panel.py: 10
+tests/tui/test_connection_panel.py: 40
+tests/tui/test_log_panel.py: 33
+tests/tui/test_server_panel.py: 31
+tests/tui/test_server_process_manager.py: 10
+tests/tui/test_status_bar.py: 25
+tests/tui/test_tui_app.py: 33
+tests/user_config/test_user_config.py: 7
+
+=============================== warnings summary ===============================
+tests/transport/test_base_transport.py:11
+  /Users/speterson/src/dshield/dshield-mcp/tests/transport/test_base_transport.py:11: PytestCollectionWarning: cannot collect test class 'TestTransportStub' because it has a __init__ constructor (from: tests/transport/test_base_transport.py)
+    class TestTransportStub(BaseTransport):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.12.11-final-0 _______________
+
+Name                                             Stmts   Miss Branch BrPart  Cover   Missing
+--------------------------------------------------------------------------------------------
+src/__init__.py                                      0      0      0      0   100%
+src/api_key_generator.py                           121    103     60      0    10%   52-55, 77-98, 129-188, 225-289, 302-311, 329-335, 347-379, 391-414, 423, 432
+src/campaign_analyzer.py                           553    444    214      0    14%   114-137, 161-226, 245-280, 297-360, 377-418, 435-453, 470-492, 509-561, 578-598, 615-635, 652-687, 705-730, 742-760, 772-779, 792-817, 829-838, 850-863, 875-886, 900-910, 922-952, 956-975, 979-1001, 1005-1032, 1040-1067, 1073-1096, 1100-1108, 1112-1127, 1133-1154, 1160-1179, 1185-1199, 1203-1207, 1226-1261, 1267-1280, 1284-1320, 1338-1362, 1367, 1372, 1378-1387, 1391-1404, 1408-1437
+src/campaign_mcp_tools.py                          286    248    104      0    10%   29-31, 56-158, 185-257, 282-341, 364-445, 470-527, 552-587, 612-698, 710-809, 813-826, 830-837, 843-849, 855-861, 867, 873, 877-886, 896, 901, 906, 911, 916, 923, 930, 937, 944, 955, 962, 966, 971, 976
+src/config_loader.py                               131    121     96      0     4%   57-72, 88-115, 135-232, 245-297
+src/connection_manager.py                          166    140     44      0    12%   41-51, 58-60, 68-92, 113-161, 173-222, 231-243, 258-298, 310-336, 348-359, 368-380, 391-392, 403-404, 415, 424-444, 453, 462, 471-481, 490-494
+src/context_injector.py                            281    252    144      0     7%   63-65, 90-124, 139-152, 174-189, 206-212, 228-240, 255-280, 295-330, 352-373, 388-417, 435-446, 464-501, 516-530, 545-549, 565-637, 653-689, 705-732, 747-765, 780-793, 808-869
+src/data_dictionary.py                              92     68     26      0    20%   60, 251, 317, 402, 473-539, 552-560, 573-581, 594-612, 625-646, 656-682, 692
+src/data_processor.py                              444    393    234      0     8%   47-59, 86-132, 164-207, 222-270, 287-331, 337-376, 380-462, 466-588, 596-668, 672-688, 693-736, 741-764, 768-788, 792-801, 808-817, 821-830, 837-844, 848-857, 861-866, 870-878, 882-890, 894-900, 904-912, 916-926, 930-943, 948-978, 990-1021, 1025-1054, 1058-1068, 1074-1083, 1089-1109, 1115-1130, 1136-1140, 1144-1155, 1161-1187, 1193-1206, 1210, 1238, 1265-1293, 1300, 1331-1335
+src/dshield_client.py                              325    285    116      0     9%   86-142, 154-165, 169-170, 179-180, 189-192, 201-202, 209, 217-223, 231-234, 250-331, 347-399, 404-442, 447-485, 489-511, 516-517, 521-580, 584-598, 602-618, 622-647, 651, 667, 674, 684-690, 694, 706-758, 762-780
+src/dynamic_tool_registry.py                        90     73     36      0    13%   113-116, 128-186, 195-198, 210-227, 239, 248, 257-280, 302-305, 313-328, 337
+src/elasticsearch_client.py                        904    845    450      0     4%   42-117, 272-280, 284-285, 289-290, 299-301, 305-459, 463-465, 469-495, 520-773, 803-876, 894-917, 955-1181, 1226-1268, 1306-1459, 1490-1570, 1594-1604, 1628-1634, 1658-1668, 1692-1702, 1729-1778, 1807-1877, 1918-1964, 1989-2022, 2045-2173, 2193-2233, 2245-2250, 2264-2269, 2293-2309, 2326-2330, 2372-2405, 2424-2432, 2448-2456, 2476-2565, 2581-2617, 2634-2646, 2667-2679, 2725-2962, 2971-3013, 3017, 3026, 3035, 3044, 3053, 3062-3063, 3072-3073
+src/feature_manager.py                              88     68     32      0    17%   80-83, 91-172, 189-193, 202-205, 214-217, 229, 241, 250, 259-294, 312-314, 323
+src/health_check_manager.py                        125    108      4      0    13%   18-20, 29-55, 64-90, 99-187, 196-240, 249-270, 279-329, 346, 365, 377
+src/latex_template_tools.py                        310    274    150      0     8%   48-79, 92-116, 131-142, 146-147, 156-157, 166-169, 194-328, 341-408, 424-468, 489-522, 538-540, 552-557, 574-596, 623-640, 654-666, 680-687, 703-720, 738-824, 832-838, 850-866, 878-893, 905-926, 931-932
+src/mcp_error_handler.py                           372    274    138      0    19%   162-175, 184-198, 226-255, 267-283, 298, 313, 328-331, 346, 361, 377-386, 402-412, 429-445, 461-469, 488-500, 515-521, 536-542, 559-578, 591-592, 613-618, 640-654, 682-746, 760-775, 784, 824-830, 851-858, 881-888, 905-912, 935-944, 967-976, 989-1013, 1025-1028, 1046, 1074-1080, 1089-1099, 1103-1110, 1119-1125, 1138-1142, 1146-1148, 1152-1153, 1157-1159, 1168, 1197-1212, 1236-1245, 1256-1275, 1284-1288, 1305-1306, 1318-1339, 1360-1382, 1400-1408, 1412-1414
+src/models.py                                      374     60     24      0    79%   135-140, 157-159, 176-178, 233-237, 243-245, 269-273, 309-311, 347-351, 357-359, 418-422, 428-430, 436-438, 479-481, 487-489, 606-620, 637-639
+src/op_secrets.py                                  119    100     28      0    13%   59-61, 73-83, 102-132, 148-178, 201-203, 224-258, 267-286, 298-307, 319-342, 357, 366-370
+src/operation_tracker.py                            19     11      4      0    35%   12-13, 25-26, 34-36, 44-46, 54
+src/resource_manager.py                             22     13      4      0    35%   13-14, 23-24, 32, 36-42, 46
+src/secrets_manager/__init__.py                      3      0      0      0   100%
+src/secrets_manager/base_secrets_manager.py        159     77     26      0    44%   151-153, 162, 172, 181, 209, 219-253, 277-279, 290, 301-305, 316-327, 336-340, 348-355, 369-372, 390, 410, 426, 445, 464, 478, 500-501, 520, 527
+src/secrets_manager/onepassword_cli_manager.py     334    304    110      0     7%   73-92, 99-118, 126-132, 141-161, 177-246, 257-272, 284-311, 323-334, 343-351, 359-366, 370, 390-433, 444-446, 463-525, 544-638, 653-696, 715-804, 822-850, 868-884, 897-908, 927-963
+src/security/mcp_schema_validator.py               172    144     68      0    12%   420-421, 425-439, 451-459, 471-498, 511-522, 534-590, 602-610, 622-630, 642-650, 663-681, 694-738, 761-793, 805
+src/security/rate_limiter.py                       152    118     36      0    18%   28-32, 41-54, 63-69, 83-86, 95-106, 115-126, 134-137, 150-154, 172-188, 200-205, 215-217, 226-228, 237-240, 252-259, 274-277, 290-306, 316-318, 327-329, 338-341, 353-360, 373-374, 383-388, 397
+src/security_validator.py                          162    123     70      0    17%   42-43, 47-50, 63-146, 161-233, 246-304, 319-377, 389-435, 439-471, 475, 479-491, 508-510, 516-530, 536-548, 552-554, 565, 569, 573
+src/server_launcher.py                              84     66     12      1    20%   36-43, 53-64, 71-81, 105-167, 174-212, 219-233, 243-279, 283
+src/signal_handler.py                               20     11      0      0    45%   20-22, 26-27, 36-38, 42, 46-48
+src/statistical_analysis_tools.py                  201    183     90      0     6%   29-30, 55-106, 132-175, 196-254, 273-326, 350-402, 426-494, 518-556, 568-605, 617-630, 655-699
+src/tcp_auth.py                                    121     98     38      0    14%   40-43, 74-82, 100-155, 172-178, 191-206, 218-225, 237-248, 260-269, 281-297, 310-315, 328-345, 357-362, 378-387, 396-408, 417-423
+src/tcp_security.py                                225    188    102      0    11%   40-43, 69-84, 96-110, 122-133, 146-156, 166-170, 174-176, 197-216, 231-261, 278-310, 326-341, 357-371, 383-400, 412-420, 433-448, 464-476, 497-520, 537-556, 568-580, 593-604, 614-625, 635-638, 653-657, 669-684, 693, 724-753
+src/tcp_server.py                                  241    207     52      0    12%   38-47, 62-85, 105-142, 162-198, 220-222, 247-248, 265-267, 289-318, 340-342, 364-387, 409-411, 433-458, 484-496, 515-533, 542-580, 587-612, 624-655, 664-714, 728-739, 754-763, 770-798, 807
+src/threat_intelligence_manager.py                 649    599    292      0     5%   78-118, 131-152, 160-210, 214-226, 242, 249, 270-351, 372-412, 430-457, 478-509, 522-599, 611-630, 642-665, 674-683, 692-703, 712-726, 738-786, 798-803, 813-823, 836, 858-892, 902-928, 932-963, 967-979, 983-999, 1008, 1017-1034, 1043-1089, 1093-1108, 1123-1201, 1210-1250, 1259-1299, 1308-1352, 1361-1397, 1422-1622, 1631-1665
+src/transport/__init__.py                            5      0      0      0   100%
+src/transport/base_transport.py                     36     14      0      0    61%   37-40, 91, 101, 110-111, 122, 143-146, 155
+src/transport/stdio_transport.py                    51     36      4      0    27%   41-43, 53, 64-76, 83-96, 108-123, 132, 143-149
+src/transport/tcp_transport.py                     171    141     26      0    15%   50-58, 65-70, 76, 88, 105-108, 117-129, 155-158, 168, 179-209, 216-241, 252-267, 279-301, 310-346, 364-376, 386-397, 412-420, 427-447, 456, 465
+src/transport/transport_manager.py                 137    115     46      0    12%   44-54, 68-92, 108-185, 194-202, 217-232, 244-268, 283-298, 307-317, 332-343, 352, 361-384, 393-394, 405
+src/tui/__init__.py                                  6      0      0      0   100%
+src/tui/api_key_panel.py                           162    135     48      0    13%   29-30, 43-44, 52-54, 58-71, 76-81, 85-94, 99-110, 114-116, 120-154, 158-164, 168-174, 178-192, 196-240, 244-280, 291-298, 302-309
+src/tui/connection_panel.py                        273    224     64      0    15%   31-32, 45-46, 59-60, 68, 81-82, 100-118, 127-162, 166-191, 200-202, 206-210, 222-280, 295-307, 311-314, 318-320, 324-332, 341-369, 378-397, 406-411, 420-425, 429-441, 445-451, 455-461, 465-472, 476-479, 483-489, 493-496, 500-511, 515, 526-536, 545-555, 564-581, 599-602, 610-611, 615
+src/tui/live_metrics_panel.py                      142    116     46      0    14%   38-55, 59-68, 72-77, 82-91, 114-129, 133-159, 163-170, 178-198, 202-209, 213-220, 224-231, 235-242, 250, 260-262, 271-278, 282-285
+src/tui/log_buffer.py                              116     92     30      0    16%   44-67, 76-87, 101-102, 110, 118, 122-126, 134-136, 145-150, 158, 179-197, 209-224, 228-246, 250-257, 261-264, 268-274
+src/tui/log_panel.py                               188    153     46      0    15%   32-33, 50-51, 69-80, 96-129, 133-137, 146-151, 159-164, 168, 173-174, 180-197, 209-238, 247-258, 267-293, 302-305, 309-311, 317-319, 323-331, 335-343, 347-351, 360-369, 386-399, 403-404
+src/tui/metrics_formatter.py                       115     76     16      0    30%   113, 130-148, 166-186, 197-211, 222-242, 253-274, 285-329, 346-373
+src/tui/metrics_subscriber.py                      156    130     58      0    12%   36-38, 55-72, 80-81, 92-102, 113-121, 125-135, 139-153, 157-177, 181-205, 216-258, 266-277, 288-296, 307-312, 322, 337, 345-347
+src/tui/screens/__init__.py                          2      0      0      0   100%
+src/tui/screens/api_key_screen.py                  108     89     16      0    15%   37-38, 46-50, 54-106, 110-117, 121-184, 188-199, 203-209, 213, 219-220
+src/tui/server_panel.py                            225    194     26      0    12%   45-46, 64-75, 84-113, 117-123, 127-155, 159-203, 212-251, 260-291, 300-310, 314-328, 332-346, 350-364, 368-378, 382-392, 396-406, 415
+src/tui/server_process_manager.py                   95     73     16      0    20%   30-31, 60-75, 84, 93-94, 103-107, 116-140, 149-177, 186-198, 207, 216, 225, 268-272, 287-292
+src/tui/status_bar.py                               96     71     10      0    24%   33-42, 46-47, 56-74, 84-87, 96-98, 107-109, 113-153, 162, 171, 180, 189, 198, 207, 225-233, 242-243, 255, 266
+src/tui/tui_app.py                                 459    385     72      1    14%   37-39, 52-53, 66-67, 80-81, 165-189, 198-212, 216-235, 239-256, 260-280, 288-311, 315-322, 326-351, 355-393, 397-459, 463-515, 519-520, 524-532, 536-538, 542-543, 547-549, 553-555, 559-561, 565-566, 570-578, 582, 587, 592, 597-709, 713-757, 766-782, 786-798, 802-841, 845-849, 853-857, 861-865, 869-870, 874-877, 881-883, 887-888, 892-893, 898-942, 946-974, 978-982, 986-987, 991-992, 1002-1003, 1007
+src/tui_launcher.py                                211    211     32      0     0%   8-469
+src/user_config.py                                 436    323    142      0    20%   384-419, 430-443, 459-489, 498-711, 723-972, 984-1086, 1102-1121, 1136-1157, 1166, 1247-1260, 1269, 1344-1348, 1357-1358, 1373-1375, 1385
+--------------------------------------------------------------------------------------------
+TOTAL                                            10535   8576   3502      2    14%
+Coverage HTML written to dir htmlcov
+FAIL Required test coverage of 80.0% not reached. Total coverage: 13.97%
