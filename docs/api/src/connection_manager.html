@@ -179,7 +179,7 @@ handling connection lifecycle, authentication, and monitoring.</p>
 </span><span id="L-52"><a href="#L-52"><span class="linenos"> 52</span></a>
 </span><span id="L-53"><a href="#L-53"><span class="linenos"> 53</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_api_keys_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="L-54"><a href="#L-54"><span class="linenos"> 54</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Ensure API keys are loaded from 1Password.</span>
-</span><span id="L-55"><a href="#L-55"><span class="linenos"> 55</span></a><span class="sd">        </span>
+</span><span id="L-55"><a href="#L-55"><span class="linenos"> 55</span></a>
 </span><span id="L-56"><a href="#L-56"><span class="linenos"> 56</span></a><span class="sd">        This method loads API keys if they haven&#39;t been loaded yet.</span>
 </span><span id="L-57"><a href="#L-57"><span class="linenos"> 57</span></a><span class="sd">        &quot;&quot;&quot;</span>
 </span><span id="L-58"><a href="#L-58"><span class="linenos"> 58</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_api_keys_loaded</span><span class="p">:</span>
@@ -240,7 +240,7 @@ handling connection lifecycle, authentication, and monitoring.</p>
 </span><span id="L-113"><a href="#L-113"><span class="linenos">113</span></a>        <span class="k">try</span><span class="p">:</span>
 </span><span id="L-114"><a href="#L-114"><span class="linenos">114</span></a>            <span class="c1"># Ensure API keys are loaded</span>
 </span><span id="L-115"><a href="#L-115"><span class="linenos">115</span></a>            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_api_keys_loaded</span><span class="p">()</span>
-</span><span id="L-116"><a href="#L-116"><span class="linenos">116</span></a>            
+</span><span id="L-116"><a href="#L-116"><span class="linenos">116</span></a>
 </span><span id="L-117"><a href="#L-117"><span class="linenos">117</span></a>            <span class="c1"># Generate API key using the secure generator</span>
 </span><span id="L-118"><a href="#L-118"><span class="linenos">118</span></a>            <span class="kn">from</span><span class="w"> </span><span class="nn">.api_key_generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIKeyGenerator</span>
 </span><span id="L-119"><a href="#L-119"><span class="linenos">119</span></a>
@@ -383,7 +383,7 @@ handling connection lifecycle, authentication, and monitoring.</p>
 </span><span id="L-256"><a href="#L-256"><span class="linenos">256</span></a><span class="sd">        &quot;&quot;&quot;</span>
 </span><span id="L-257"><a href="#L-257"><span class="linenos">257</span></a>        <span class="c1"># Ensure API keys are loaded</span>
 </span><span id="L-258"><a href="#L-258"><span class="linenos">258</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_api_keys_loaded</span><span class="p">()</span>
-</span><span id="L-259"><a href="#L-259"><span class="linenos">259</span></a>        
+</span><span id="L-259"><a href="#L-259"><span class="linenos">259</span></a>
 </span><span id="L-260"><a href="#L-260"><span class="linenos">260</span></a>        <span class="c1"># First check the in-memory cache</span>
 </span><span id="L-261"><a href="#L-261"><span class="linenos">261</span></a>        <span class="n">api_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key_value</span><span class="p">)</span>
 </span><span id="L-262"><a href="#L-262"><span class="linenos">262</span></a>
@@ -693,7 +693,7 @@ handling connection lifecycle, authentication, and monitoring.</p>
 </span><span id="ConnectionManager-53"><a href="#ConnectionManager-53"><span class="linenos"> 53</span></a>
 </span><span id="ConnectionManager-54"><a href="#ConnectionManager-54"><span class="linenos"> 54</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_api_keys_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="ConnectionManager-55"><a href="#ConnectionManager-55"><span class="linenos"> 55</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Ensure API keys are loaded from 1Password.</span>
-</span><span id="ConnectionManager-56"><a href="#ConnectionManager-56"><span class="linenos"> 56</span></a><span class="sd">        </span>
+</span><span id="ConnectionManager-56"><a href="#ConnectionManager-56"><span class="linenos"> 56</span></a>
 </span><span id="ConnectionManager-57"><a href="#ConnectionManager-57"><span class="linenos"> 57</span></a><span class="sd">        This method loads API keys if they haven&#39;t been loaded yet.</span>
 </span><span id="ConnectionManager-58"><a href="#ConnectionManager-58"><span class="linenos"> 58</span></a><span class="sd">        &quot;&quot;&quot;</span>
 </span><span id="ConnectionManager-59"><a href="#ConnectionManager-59"><span class="linenos"> 59</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_api_keys_loaded</span><span class="p">:</span>
@@ -754,7 +754,7 @@ handling connection lifecycle, authentication, and monitoring.</p>
 </span><span id="ConnectionManager-114"><a href="#ConnectionManager-114"><span class="linenos">114</span></a>        <span class="k">try</span><span class="p">:</span>
 </span><span id="ConnectionManager-115"><a href="#ConnectionManager-115"><span class="linenos">115</span></a>            <span class="c1"># Ensure API keys are loaded</span>
 </span><span id="ConnectionManager-116"><a href="#ConnectionManager-116"><span class="linenos">116</span></a>            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_api_keys_loaded</span><span class="p">()</span>
-</span><span id="ConnectionManager-117"><a href="#ConnectionManager-117"><span class="linenos">117</span></a>            
+</span><span id="ConnectionManager-117"><a href="#ConnectionManager-117"><span class="linenos">117</span></a>
 </span><span id="ConnectionManager-118"><a href="#ConnectionManager-118"><span class="linenos">118</span></a>            <span class="c1"># Generate API key using the secure generator</span>
 </span><span id="ConnectionManager-119"><a href="#ConnectionManager-119"><span class="linenos">119</span></a>            <span class="kn">from</span><span class="w"> </span><span class="nn">.api_key_generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIKeyGenerator</span>
 </span><span id="ConnectionManager-120"><a href="#ConnectionManager-120"><span class="linenos">120</span></a>
@@ -897,7 +897,7 @@ handling connection lifecycle, authentication, and monitoring.</p>
 </span><span id="ConnectionManager-257"><a href="#ConnectionManager-257"><span class="linenos">257</span></a><span class="sd">        &quot;&quot;&quot;</span>
 </span><span id="ConnectionManager-258"><a href="#ConnectionManager-258"><span class="linenos">258</span></a>        <span class="c1"># Ensure API keys are loaded</span>
 </span><span id="ConnectionManager-259"><a href="#ConnectionManager-259"><span class="linenos">259</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_api_keys_loaded</span><span class="p">()</span>
-</span><span id="ConnectionManager-260"><a href="#ConnectionManager-260"><span class="linenos">260</span></a>        
+</span><span id="ConnectionManager-260"><a href="#ConnectionManager-260"><span class="linenos">260</span></a>
 </span><span id="ConnectionManager-261"><a href="#ConnectionManager-261"><span class="linenos">261</span></a>        <span class="c1"># First check the in-memory cache</span>
 </span><span id="ConnectionManager-262"><a href="#ConnectionManager-262"><span class="linenos">262</span></a>        <span class="n">api_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key_value</span><span class="p">)</span>
 </span><span id="ConnectionManager-263"><a href="#ConnectionManager-263"><span class="linenos">263</span></a>
@@ -1298,7 +1298,7 @@ authentication, and connection monitoring.</p>
 </span><span id="ConnectionManager.generate_api_key-114"><a href="#ConnectionManager.generate_api_key-114"><span class="linenos">114</span></a>        <span class="k">try</span><span class="p">:</span>
 </span><span id="ConnectionManager.generate_api_key-115"><a href="#ConnectionManager.generate_api_key-115"><span class="linenos">115</span></a>            <span class="c1"># Ensure API keys are loaded</span>
 </span><span id="ConnectionManager.generate_api_key-116"><a href="#ConnectionManager.generate_api_key-116"><span class="linenos">116</span></a>            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_api_keys_loaded</span><span class="p">()</span>
-</span><span id="ConnectionManager.generate_api_key-117"><a href="#ConnectionManager.generate_api_key-117"><span class="linenos">117</span></a>            
+</span><span id="ConnectionManager.generate_api_key-117"><a href="#ConnectionManager.generate_api_key-117"><span class="linenos">117</span></a>
 </span><span id="ConnectionManager.generate_api_key-118"><a href="#ConnectionManager.generate_api_key-118"><span class="linenos">118</span></a>            <span class="c1"># Generate API key using the secure generator</span>
 </span><span id="ConnectionManager.generate_api_key-119"><a href="#ConnectionManager.generate_api_key-119"><span class="linenos">119</span></a>            <span class="kn">from</span><span class="w"> </span><span class="nn">.api_key_generator</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIKeyGenerator</span>
 </span><span id="ConnectionManager.generate_api_key-120"><a href="#ConnectionManager.generate_api_key-120"><span class="linenos">120</span></a>
@@ -1469,7 +1469,7 @@ authentication, and connection monitoring.</p>
 </span><span id="ConnectionManager.validate_api_key-257"><a href="#ConnectionManager.validate_api_key-257"><span class="linenos">257</span></a><span class="sd">        &quot;&quot;&quot;</span>
 </span><span id="ConnectionManager.validate_api_key-258"><a href="#ConnectionManager.validate_api_key-258"><span class="linenos">258</span></a>        <span class="c1"># Ensure API keys are loaded</span>
 </span><span id="ConnectionManager.validate_api_key-259"><a href="#ConnectionManager.validate_api_key-259"><span class="linenos">259</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_api_keys_loaded</span><span class="p">()</span>
-</span><span id="ConnectionManager.validate_api_key-260"><a href="#ConnectionManager.validate_api_key-260"><span class="linenos">260</span></a>        
+</span><span id="ConnectionManager.validate_api_key-260"><a href="#ConnectionManager.validate_api_key-260"><span class="linenos">260</span></a>
 </span><span id="ConnectionManager.validate_api_key-261"><a href="#ConnectionManager.validate_api_key-261"><span class="linenos">261</span></a>        <span class="c1"># First check the in-memory cache</span>
 </span><span id="ConnectionManager.validate_api_key-262"><a href="#ConnectionManager.validate_api_key-262"><span class="linenos">262</span></a>        <span class="n">api_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">api_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key_value</span><span class="p">)</span>
 </span><span id="ConnectionManager.validate_api_key-263"><a href="#ConnectionManager.validate_api_key-263"><span class="linenos">263</span></a>
