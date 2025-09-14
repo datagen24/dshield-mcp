@@ -47,6 +47,30 @@ def __init__(self)
 
 Initialize the API key panel.
 
+#### app
+
+```python
+def app(self)
+```
+
+Return the active Textual app or a test override.
+
+        - When `_app_override` is set (tests), return it.
+        - Otherwise, defer to Textual's base implementation.
+        - If there is no active app, return None.
+
+#### app
+
+```python
+def app(self, value)
+```
+
+#### app
+
+```python
+def app(self)
+```
+
 #### compose
 
 ```python
@@ -142,3 +166,113 @@ def on_api_key_delete(self, event)
 ```
 
 Handle API key deletion.
+
+#### set_api_key
+
+```python
+def set_api_key(self, key)
+```
+
+Set the current API key and refresh display.
+
+        Args:
+            key: API key value
+
+        Returns:
+            True when set.
+
+#### _update_display
+
+```python
+def _update_display(self)
+```
+
+#### get_api_key
+
+```python
+def get_api_key(self)
+```
+
+Get the current API key if set.
+
+#### validate_api_key
+
+```python
+def validate_api_key(self, key)
+```
+
+Validate API key format (alnum, underscore, dash).
+
+#### clear_api_key
+
+```python
+def clear_api_key(self)
+```
+
+Clear stored API key.
+
+#### is_key_visible
+
+```python
+def is_key_visible(self)
+```
+
+Return whether the key is visible (test helper).
+
+#### toggle_key_visibility
+
+```python
+def toggle_key_visibility(self)
+```
+
+Toggle key visibility flag (test helper).
+
+#### generate_new_key
+
+```python
+def generate_new_key(self)
+```
+
+Generate a new key and return it via helper.
+
+#### _generate_key
+
+```python
+def _generate_key(self)
+```
+
+#### save_api_key
+
+```python
+def save_api_key(self, key)
+```
+
+Persist provided API key via helper.
+
+#### _save_to_storage
+
+```python
+def _save_to_storage(self, key)
+```
+
+#### load_api_key
+
+```python
+def load_api_key(self)
+```
+
+Load API key via helper.
+
+#### _load_from_storage
+
+```python
+def _load_from_storage(self)
+```
+
+#### rotate_api_key
+
+```python
+def rotate_api_key(self)
+```
+
+Rotate (generate and set) a new API key.
