@@ -398,13 +398,13 @@ class TestAPIKeyPanel:
                         "needs_rotation": False,
                         "algo_version": "sha256-v1",
                         "rps_limit": 60,
-                    }
+                    },
                 ]
                 panel._update_table()
 
             # Replace the method with our mock
             panel.refresh_api_keys = mock_refresh_api_keys
-            
+
             panel.refresh_api_keys()
 
             # Should have loaded the API keys

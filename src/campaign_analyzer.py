@@ -9,7 +9,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 
@@ -104,7 +104,7 @@ class CampaignAnalyzer:
     and building campaign timelines for coordinated attack detection.
     """
 
-    def __init__(self, es_client: Optional[ElasticsearchClient] = None) -> None:
+    def __init__(self, es_client: ElasticsearchClient | None = None) -> None:
         """Initialize the CampaignAnalyzer.
 
         Args:

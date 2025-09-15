@@ -10,12 +10,25 @@ import json
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import pytest_asyncio
 
 from src.latex_template_tools import LaTeXTemplateTools
+
+
+# Fixture to mock get_user_config for all tests
+@pytest.fixture(autouse=True)
+def mock_user_config():
+    """Mock get_user_config to prevent subprocess calls."""
+    with patch('src.latex_template_tools.get_user_config') as mock_get_user_config:
+        mock_user_config = Mock()
+        mock_user_config.output_directory = "/tmp/test_output"
+        mock_user_config.template_directory = "/tmp/test_templates"
+        mock_get_user_config.return_value = mock_user_config
+        yield mock_user_config
+
 
 if TYPE_CHECKING:
     pass
@@ -216,38 +229,29 @@ Analysis of campaign {CAMPAIGN_NAME}.
         assert "EXTRA_VARIABLE" in result["validation"]["unused_variables"]
 
     @pytest.mark.asyncio
-    @patch('subprocess.run')
     async def test_generate_document_pdf_success(
         self,
-        mock_run: MagicMock,
         latex_tools: LaTeXTemplateTools,
         sample_document_data: dict[str, Any],
     ) -> None:
         """Test successful PDF document generation."""
-        # Mock pdflatex availability check
-        mock_run.return_value.returncode = 0
+        # Mock subprocess.run at the module level to work
+        # with our global fixture
+        with patch('src.latex_template_tools.subprocess.run') as mock_run:
+            # Mock pdflatex availability check
+            mock_result = MagicMock()
+            mock_result.returncode = 0
+            mock_result.stdout = "LaTeX compilation successful"
+            mock_result.stderr = ""
+            mock_run.return_value = mock_result
 
-        # Mock successful compilation
-        mock_run.return_value.stdout = "LaTeX compilation successful"
-        mock_run.return_value.stderr = ""
-
-        # Patch Path.exists to simulate PDF existence only for the expected PDF path
-        original_exists = Path.exists
-
-        def fake_exists(self):
-            if self.name == "main_report.pdf":
-                # Actually create the file if it doesn't exist
-                if not original_exists(self):
-                    self.write_text("PDF content")
-                return True
-            return original_exists(self)
-
-        with patch('pathlib.Path.exists', new=fake_exists):
-            result = await latex_tools.generate_document(
-                template_name="Attack_Report",
-                document_data=sample_document_data,
-                output_format="pdf",
-            )
+            # Mock Path.exists to simulate PDF existence
+            with patch('pathlib.Path.exists', return_value=True):
+                result = await latex_tools.generate_document(
+                    template_name="Attack_Report",
+                    document_data=sample_document_data,
+                    output_format="pdf",
+                )
 
         assert result["success"] is True
         assert result["document"] is not None
@@ -255,55 +259,69 @@ Analysis of campaign {CAMPAIGN_NAME}.
         assert result["document"]["output_format"] == "pdf"
 
     @pytest.mark.asyncio
-    @patch('subprocess.run')
     async def test_generate_document_pdf_compilation_failure(
         self,
-        mock_run: MagicMock,
         latex_tools: LaTeXTemplateTools,
         sample_document_data: dict[str, Any],
     ) -> None:
         """Test PDF document generation with compilation failure."""
-        # Mock pdflatex availability check
-        mock_run.return_value.returncode = 0
+        # Mock the subprocess.run at the module level to work with our global fixture
+        with patch('src.latex_template_tools.subprocess.run') as mock_run:
+            # Two returns: first availability check (success),
+            # then compilation (failure)
+            availability_result = MagicMock()
+            availability_result.returncode = 0  # pdflatex is available
+            availability_result.stdout = "/usr/bin/pdflatex"
+            availability_result.stderr = ""
 
-        # Mock compilation failure
-        mock_run.return_value.stdout = ""
-        mock_run.return_value.stderr = "LaTeX compilation failed"
+            compilation_result = MagicMock()
+            compilation_result.returncode = 1  # Compilation failure
+            compilation_result.stdout = ""
+            compilation_result.stderr = "LaTeX compilation failed"
 
-        # Patch Path.exists to simulate PDF not being created, but allow template files to be found
-        original_exists = Path.exists
+            mock_run.side_effect = [availability_result, compilation_result]
 
-        def fake_exists(self):
-            if self.name == "main_report.pdf":
-                return False
-            return original_exists(self)
+            # Mock Path.exists: template files exist but final PDF
+            # does not (compilation failed)
+            def mock_exists(path_self):
+                # Allow template files and directories to exist, but not the final PDF
+                path_str = str(path_self)
+                if path_str.endswith('main_report.pdf') or path_str.endswith('.pdf'):
+                    return False  # PDF doesn't exist because compilation failed
+                return True  # Everything else exists (templates, directories, etc.)
 
-        with patch('pathlib.Path.exists', new=fake_exists):
-            result = await latex_tools.generate_document(
-                template_name="Attack_Report",
-                document_data=sample_document_data,
-                output_format="pdf",
-            )
+            with patch.object(Path, 'exists', mock_exists):
+                result = await latex_tools.generate_document(
+                    template_name="Attack_Report",
+                    document_data=sample_document_data,
+                    output_format="pdf",
+                )
 
         assert result["success"] is False
         assert "error" in result
         assert "PDF generation failed" in result["error"]
 
     @pytest.mark.asyncio
-    @patch('subprocess.run')
     async def test_generate_document_pdflatex_not_found(
         self,
-        mock_run: MagicMock,
         latex_tools: LaTeXTemplateTools,
         sample_document_data: dict[str, Any],
     ) -> None:
         """Test PDF document generation when pdflatex is not available."""
-        # Mock pdflatex not found
-        mock_run.return_value.returncode = 1
+        # Mock the subprocess.run at the module level to simulate pdflatex not found
+        with patch('src.latex_template_tools.subprocess.run') as mock_run:
+            # Mock pdflatex not found (which command returns non-zero)
+            availability_result = MagicMock()
+            availability_result.returncode = 1  # pdflatex not found
+            availability_result.stdout = ""
+            availability_result.stderr = ""
+            mock_run.return_value = availability_result
 
-        result = await latex_tools.generate_document(
-            template_name="Attack_Report", document_data=sample_document_data, output_format="pdf"
-        )
+            result = await latex_tools.generate_document(
+                template_name="Attack_Report",
+                document_data=sample_document_data,
+                output_format="pdf",
+            )
 
         assert result["success"] is False
         assert "error" in result

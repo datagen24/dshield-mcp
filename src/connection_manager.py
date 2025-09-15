@@ -52,7 +52,7 @@ class ConnectionManager:
 
     async def _ensure_api_keys_loaded(self) -> None:
         """Ensure API keys are loaded from 1Password.
-        
+
         This method loads API keys if they haven't been loaded yet.
         """
         if not self._api_keys_loaded:
@@ -113,7 +113,7 @@ class ConnectionManager:
         try:
             # Ensure API keys are loaded
             await self._ensure_api_keys_loaded()
-            
+
             # Generate API key using the secure generator
             from .api_key_generator import APIKeyGenerator
 
@@ -256,7 +256,7 @@ class ConnectionManager:
         """
         # Ensure API keys are loaded
         await self._ensure_api_keys_loaded()
-        
+
         # First check the in-memory cache
         api_key = self.api_keys.get(key_value)
 

@@ -5,7 +5,7 @@ timeline building, scoring, and MCP tools integration.
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 import pytest_asyncio
@@ -82,7 +82,26 @@ class TestCampaignAnalysis:
     @pytest.mark.asyncio
     async def test_campaign_analyzer_initialization(self, mock_es_client):
         """Test campaign analyzer initialization."""
-        with patch('src.campaign_analyzer.CampaignAnalyzer'):
+        with (
+            patch('src.elasticsearch_client.get_config') as mock_get_config,
+            patch('src.elasticsearch_client.get_user_config') as mock_get_user_config_es,
+            patch('src.campaign_analyzer.get_user_config') as mock_get_user_config,
+        ):
+            mock_config = {
+                "elasticsearch": {
+                    "url": "http://localhost:9200",
+                    "username": "test",
+                    "password": "test",
+                }
+            }
+            mock_user_config = Mock()
+            mock_user_config.campaign_settings.correlation_window_minutes = 30
+            mock_user_config.campaign_settings.min_events_for_campaign = 5
+            mock_user_config.campaign_settings.min_confidence_threshold = 0.7
+            mock_get_config.return_value = mock_config
+            mock_get_user_config_es.return_value = mock_user_config
+            mock_get_user_config.return_value = mock_user_config
+
             # Test basic initialization
             analyzer = CampaignAnalyzer()
             assert analyzer is not None
@@ -236,7 +255,25 @@ class TestCampaignAnalysis:
     @pytest.mark.asyncio
     async def test_campaign_tools_initialization(self, mock_es_client):
         """Test campaign MCP tools initialization."""
-        with patch('src.campaign_mcp_tools.CampaignMCPTools'):
+        with (
+            patch('src.campaign_mcp_tools.get_user_config') as mock_get_user_config,
+            patch('src.elasticsearch_client.get_config') as mock_get_config,
+            patch('src.elasticsearch_client.get_user_config') as mock_get_user_config_es,
+            patch('src.campaign_analyzer.get_user_config') as mock_get_user_config_ca,
+        ):
+            mock_config = {
+                "elasticsearch": {
+                    "url": "http://localhost:9200",
+                    "username": "test",
+                    "password": "test",
+                }
+            }
+            mock_user_config = Mock()
+            mock_get_config.return_value = mock_config
+            mock_get_user_config_es.return_value = mock_user_config
+            mock_get_user_config.return_value = mock_user_config
+            mock_get_user_config_ca.return_value = mock_user_config
+
             # Test tools initialization
             tools = CampaignMCPTools(mock_es_client)
 

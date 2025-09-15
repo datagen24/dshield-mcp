@@ -23,13 +23,39 @@ import os
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 import pytest_asyncio
 
 from src.models import DomainIntelligence, ThreatIntelligenceResult, ThreatIntelligenceSource
 from src.threat_intelligence_manager import ThreatIntelligenceManager
+
+
+# Fixture to mock config functions for all tests
+@pytest.fixture(autouse=True)
+def mock_config_functions():
+    """Mock get_config and get_user_config to prevent subprocess calls."""
+    with (
+        patch('src.threat_intelligence_manager.get_config') as mock_get_config,
+        patch('src.threat_intelligence_manager.get_user_config') as mock_get_user_config,
+        patch('src.threat_intelligence_manager.DShieldClient') as mock_dshield_client,
+    ):
+        mock_config = {"dshield": {"api_key": "test_key"}, "threat_intel": {"cache_ttl_hours": 1}}
+        mock_user_config = Mock()
+        mock_user_config.performance_settings.enable_sqlite_cache = False
+        mock_user_config.performance_settings.sqlite_cache_ttl_hours = 24
+        mock_user_config.get_cache_database_path.return_value = "/tmp/test.db"
+        mock_get_config.return_value = mock_config
+        mock_get_user_config.return_value = mock_user_config
+
+        # Mock DShield client
+        mock_dshield_instance = Mock()
+        mock_dshield_instance.__class__.__name__ = "DShieldClient"
+        mock_dshield_client.return_value = mock_dshield_instance
+
+        yield mock_config, mock_user_config
+
 
 # Individual async tests are marked with @pytest.mark.asyncio
 

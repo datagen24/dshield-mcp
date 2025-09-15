@@ -111,11 +111,16 @@ class TransportManager:
             return True
         elif tui_mode in ("false", "0", "no"):
             # Explicit false values
-            self.logger.debug("TUI detection: Environment variable DSHIELD_TUI_MODE is set to false")
+            self.logger.debug(
+                "TUI detection: Environment variable DSHIELD_TUI_MODE is set to false"
+            )
             return False
         elif tui_mode:
             # Any other non-empty value (including invalid values) is treated as false
-            self.logger.debug("TUI detection: Environment variable DSHIELD_TUI_MODE is set to invalid value, treating as false")
+            self.logger.debug(
+                "TUI detection: Environment variable DSHIELD_TUI_MODE is set to "
+                "invalid value, treating as false"
+            )
             return False
         # If tui_mode is empty (""), continue to parent process detection
 

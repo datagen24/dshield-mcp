@@ -372,6 +372,56 @@ class DShieldMCPServer:
                 ("get_elasticsearch_circuit_breaker_status", {"type": "object", "properties": {}}),
                 ("get_dshield_circuit_breaker_status", {"type": "object", "properties": {}}),
                 ("get_latex_circuit_breaker_status", {"type": "object", "properties": {}}),
+                (
+                    "detect_statistical_anomalies",
+                    {
+                        "type": "object",
+                        "properties": {
+                            "time_range_hours": {
+                                "type": "integer",
+                                "description": "Time window in hours to analyze (default: 24)",
+                            },
+                            "anomaly_methods": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": (
+                                    "Methods: zscore, iqr, isolation_forest, time_series"
+                                ),
+                            },
+                            "sensitivity": {
+                                "type": "number",
+                                "description": "Sensitivity multiplier (e.g., z or IQR whisker)",
+                            },
+                            "dimensions": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": (
+                                    "Legacy dimension names (ignored if schema provided)"
+                                ),
+                            },
+                            "return_summary_only": {"type": "boolean"},
+                            "max_anomalies": {"type": "integer"},
+                            "dimension_schema": {
+                                "type": "object",
+                                "description": (
+                                    "Schema: {name: {field, agg, size, interval, percents}}"
+                                ),
+                            },
+                            "enable_iqr": {"type": "boolean"},
+                            "enable_percentiles": {"type": "boolean"},
+                            "time_series_mode": {
+                                "type": "string",
+                                "enum": ["fast", "robust"],
+                                "description": "fast (mean dev) or robust (MAD + rolling z)",
+                            },
+                            "seasonality_hour_of_day": {"type": "boolean"},
+                            "raw_sample_mode": {"type": "boolean"},
+                            "raw_sample_size": {"type": "integer"},
+                            "min_iforest_samples": {"type": "integer"},
+                            "scale_iforest_features": {"type": "boolean"},
+                        },
+                    },
+                ),
             ]
 
             # Add tools based on availability
@@ -2200,7 +2250,15 @@ class DShieldMCPServer:
     async def _detect_statistical_anomalies(
         self, arguments: dict[str, Any]
     ) -> list[dict[str, Any]]:
-        """Detect statistical anomalies in DShield data patterns."""
+        """Detect statistical anomalies in DShield data patterns.
+
+        Notes:
+            - mcp-protocol-core: Keep tool IO predictable; validate inputs and surface
+              structured errors via MCPErrorHandler.
+            - mcp-performance: Default to fast paths; heavy options (percentiles, robust
+              time-series) are opt-in via parameters.
+            - mcp-error-handling: Wrap execution in timeouts; do not raise raw exceptions.
+        """
         time_range_hours = arguments.get("time_range_hours", 24)
         anomaly_methods = arguments.get("anomaly_methods", ["zscore", "iqr"])
         sensitivity = arguments.get("sensitivity", 2.5)
@@ -2209,6 +2267,16 @@ class DShieldMCPServer:
         )
         return_summary_only = arguments.get("return_summary_only", True)
         max_anomalies = arguments.get("max_anomalies", 50)
+        # New optional parameters exposed via tool schema
+        dimension_schema = arguments.get("dimension_schema")
+        enable_iqr = arguments.get("enable_iqr")
+        enable_percentiles = arguments.get("enable_percentiles")
+        time_series_mode = arguments.get("time_series_mode", "fast")
+        seasonality_hour_of_day = arguments.get("seasonality_hour_of_day")
+        raw_sample_mode = arguments.get("raw_sample_mode", False)
+        raw_sample_size = arguments.get("raw_sample_size", 50)
+        min_iforest_samples = arguments.get("min_iforest_samples")
+        scale_iforest_features = arguments.get("scale_iforest_features")
 
         logger.info(
             "Starting statistical anomaly detection",
@@ -2230,6 +2298,15 @@ class DShieldMCPServer:
                 dimensions=dimensions,
                 return_summary_only=return_summary_only,
                 max_anomalies=max_anomalies,
+                dimension_schema=dimension_schema,
+                enable_iqr=enable_iqr,
+                enable_percentiles=enable_percentiles,
+                time_series_mode=time_series_mode,
+                seasonality_hour_of_day=seasonality_hour_of_day,
+                raw_sample_mode=raw_sample_mode,
+                raw_sample_size=raw_sample_size,
+                min_iforest_samples=min_iforest_samples,
+                scale_iforest_features=scale_iforest_features,
             )
 
             if result.get("success", False):

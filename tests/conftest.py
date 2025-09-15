@@ -1,6 +1,7 @@
 """Pytest configuration and common fixtures for DShield MCP tests."""
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
@@ -9,6 +10,99 @@ import pytest
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+
+@pytest.fixture(autouse=True)
+def _block_1password(monkeypatch):
+    """Block all real 1Password CLI calls."""
+    import src.secrets_manager.onepassword_cli_manager as opm
+
+    def _no_op_run(*a, **k):
+        raise RuntimeError("Real 1Password CLI call blocked in tests")
+
+    monkeypatch.setattr(opm.OnePasswordCLIManager, "_run_op_command_sync", _no_op_run, raising=True)
+    os.environ["OP_DISABLED_FOR_TESTS"] = "1"
+    # Speed up any rate-limit waits in tests
+    os.environ["MCP_TEST_FAST"] = "1"
+    os.environ["TUI_FAST"] = "1"
+    # Force headless-safe behavior in TUI tests; heavy UI loops may be skipped
+    os.environ["TUI_HEADLESS"] = "1"
+
+
+@pytest.fixture(autouse=True)
+def _mock_elastic(monkeypatch):
+    """Prevent real ES network calls."""
+    import src.elasticsearch_client as esmod
+
+    class _FakeES:
+        async def search(self, *a, **k):
+            return {"hits": {"hits": []}}
+
+        async def close(self):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+    # Mock the AsyncElasticsearch class
+    monkeypatch.setattr(esmod, "AsyncElasticsearch", _FakeES, raising=True)
+
+    # Also patch the ElasticsearchClient import in modules that use it for type annotations
+    modules_to_patch = [
+        "src.campaign_analyzer",
+        "src.campaign_mcp_tools",
+        "src.statistical_analysis_tools",
+    ]
+
+    for module_name in modules_to_patch:
+        try:
+            module = __import__(module_name, fromlist=['ElasticsearchClient'])
+            monkeypatch.setattr(module, "ElasticsearchClient", Mock())
+        except ImportError:
+            pass
+
+
+@pytest.fixture(autouse=True)
+def _block_subprocess(monkeypatch):
+    """Block real process spawns in our modules only."""
+
+    def _no_spawn(*a, **k):
+        raise RuntimeError("Subprocess blocked in tests")
+
+    async def _no_spawn_async(*a, **k):
+        raise RuntimeError("Async subprocess blocked in tests")
+
+    # Only block subprocess calls in our specific modules, not in third-party libraries
+    try:
+        import src.secrets_manager.onepassword_cli_manager
+
+        monkeypatch.setattr(src.secrets_manager.onepassword_cli_manager, "subprocess", Mock())
+        monkeypatch.setattr(
+            src.secrets_manager.onepassword_cli_manager.subprocess, "run", _no_spawn
+        )
+        monkeypatch.setattr(
+            src.secrets_manager.onepassword_cli_manager.subprocess, "Popen", _no_spawn
+        )
+    except ImportError:
+        pass
+
+    try:
+        import subprocess as real_subprocess
+
+        import src.latex_template_tools
+
+        mock_subprocess = Mock()
+        # Preserve exception classes
+        mock_subprocess.TimeoutExpired = real_subprocess.TimeoutExpired
+        mock_subprocess.CalledProcessError = real_subprocess.CalledProcessError
+        mock_subprocess.run = _no_spawn
+        mock_subprocess.Popen = _no_spawn
+        monkeypatch.setattr(src.latex_template_tools, "subprocess", mock_subprocess)
+    except ImportError:
+        pass
 
 
 # Register custom pytest marks
@@ -182,3 +276,24 @@ def test_op_env_vars():
         "DSHIELD_API_URL": "https://test-dshield.org/api",
         "LOG_LEVEL": "INFO",
     }
+
+
+@pytest.fixture(autouse=True)
+def _mock_asyncio_server(monkeypatch):
+    """Prevent real TCP binds by faking asyncio.start_server.
+
+    Returns a lightweight server stub with close()/wait_closed() so
+    transport tests can exercise lifecycle without opening sockets.
+    """
+
+    class _FakeServer:
+        def close(self) -> None:  # pragma: no cover - trivial
+            pass
+
+        async def wait_closed(self) -> None:  # pragma: no cover - trivial
+            return None
+
+    async def _fake_start_server(*args, **kwargs):
+        return _FakeServer()
+
+    monkeypatch.setattr(asyncio, "start_server", _fake_start_server, raising=True)

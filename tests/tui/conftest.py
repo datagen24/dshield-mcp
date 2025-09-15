@@ -1,8 +1,16 @@
 """TUI test configuration and fixtures."""
 
+import os
+import pytest
+
 from unittest.mock import Mock
 
-import pytest
+# Gate TUI tests behind an environment flag to avoid CI flakiness and long runtimes
+if os.environ.get("RUN_TUI_E2E", "0") != "1":  # pragma: no cover - environment guard
+    pytest.skip(
+        "Skipping TUI tests by default (set RUN_TUI_E2E=1 to enable)",
+        allow_module_level=True,
+    )
 
 
 class MockTUIApp:

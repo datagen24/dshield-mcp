@@ -5,14 +5,13 @@ storage policy and rotation functionality.
 """
 
 from datetime import UTC, datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from textual.app import App  # type: ignore
 
 from src.secrets_manager.base_secrets_manager import APIKey
 from src.tui.api_key_panel import APIKeyPanel, APIKeyRotate
-from tests.utils.minimal_textual_app import TextualTestHelper
 
 
 class TestTUIAPIKeyPolicy:
@@ -34,7 +33,6 @@ class TestTUIAPIKeyPolicy:
         panel = APIKeyPanel()
         # Mock the methods that need the app
         panel.refresh_api_keys = MagicMock()
-        panel._update_table = MagicMock()
         panel.query_one = MagicMock()
         panel.notify = MagicMock()
         panel.post_message = MagicMock()
@@ -67,11 +65,12 @@ class TestTUIAPIKeyPolicy:
         self, api_key_panel: APIKeyPanel, sample_api_key: APIKey
     ) -> None:
         """Test that refresh_api_keys includes new policy fields."""
+
         # Mock the refresh_api_keys method to simulate what it would do
         def mock_refresh_api_keys():
             # Simulate the logic that refresh_api_keys would perform
             api_key_panel.api_keys = []
-            for key_value, api_key in {"test_key_value": sample_api_key}.items():
+            for _key_value, api_key in {"test_key_value": sample_api_key}.items():
                 key_info = {
                     "key_id": api_key.key_id,
                     "name": api_key.name,
@@ -84,10 +83,10 @@ class TestTUIAPIKeyPolicy:
                     "rps_limit": api_key.rps_limit,
                 }
                 api_key_panel.api_keys.append(key_info)
-        
+
         # Replace the method with our mock
         api_key_panel.refresh_api_keys = mock_refresh_api_keys
-        
+
         # Test refresh
         api_key_panel.refresh_api_keys()
 
@@ -125,7 +124,7 @@ class TestTUIAPIKeyPolicy:
         def mock_refresh_api_keys():
             # Simulate the logic that refresh_api_keys would perform
             api_key_panel.api_keys = []
-            for key_value, api_key in {"old_key_value": old_key}.items():
+            for _key_value, api_key in {"old_key_value": old_key}.items():
                 # Check if key is expired
                 is_expired = False
                 if api_key.expires_at:
@@ -136,7 +135,9 @@ class TestTUIAPIKeyPolicy:
                         "key_id": api_key.key_id,
                         "name": api_key.name,
                         "created_at": api_key.created_at.isoformat(),
-                        "expires_at": api_key.expires_at.isoformat() if api_key.expires_at else None,
+                        "expires_at": api_key.expires_at.isoformat()
+                        if api_key.expires_at
+                        else None,
                         "permissions": api_key.permissions,
                         "is_expired": is_expired,
                         "needs_rotation": getattr(api_key, 'needs_rotation', False),
@@ -144,10 +145,10 @@ class TestTUIAPIKeyPolicy:
                         "rps_limit": getattr(api_key, 'rps_limit', 60),
                     }
                 )
-        
+
         # Replace the method with our mock
         api_key_panel.refresh_api_keys = mock_refresh_api_keys
-        
+
         # Test refresh
         api_key_panel.refresh_api_keys()
 

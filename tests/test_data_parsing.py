@@ -2,9 +2,21 @@
 
 from unittest.mock import Mock, patch
 
+import pytest
+
 from src.data_processor import DataProcessor
 from src.elasticsearch_client import ElasticsearchClient
 from src.models import DShieldAttack, EventSeverity
+
+
+# Fixture to mock get_user_config for all tests
+@pytest.fixture(autouse=True)
+def mock_user_config():
+    """Mock get_user_config to prevent subprocess calls."""
+    with patch('src.elasticsearch_client.get_user_config') as mock_get_user_config:
+        mock_user_config = Mock()
+        mock_get_user_config.return_value = mock_user_config
+        yield mock_user_config
 
 
 class MockUserConfig:

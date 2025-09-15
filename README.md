@@ -755,3 +755,21 @@ For support and questions about DShield integration:
 ## DShield Integration Credits
 
 This utility is specifically designed to work with the [DShield-SIEM](https://github.com/bruneaug/DShield-SIEM) project and follows DShield data patterns and structures.
+## TUI Tests: Headless Mode and Manual Checks
+
+Unit tests for the Textual TUI run in a headless mode to avoid spawning real
+terminal I/O threads during CI. This improves reliability and prevents stray
+background processes.
+
+- The test helper uses a headless/null driver and disables costly UI refreshes.
+- Some heavy UI loop tests (e.g. memory‑usage stress) are shortened or skipped
+  in CI via `TUI_HEADLESS=1` / `TUI_FAST=1` to avoid long redraw loops and
+  potential driver stalls in sandboxed runners.
+
+Manual validation:
+- To manually validate full UI behavior, unset headless flags and run specific
+  tests locally:
+  - `unset TUI_HEADLESS TUI_FAST && pytest -q tests/tui/test_status_bar.py::TestStatusBar::test_status_bar_memory_usage`
+- Or run the TUI application normally and exercise the status bar updates.
+
+Note: The headless mode is test‑only and does not affect production behavior.

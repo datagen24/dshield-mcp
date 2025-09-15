@@ -144,17 +144,9 @@ def sync_directories(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Build file lists
-    staged_files = {
-        p.relative_to(staged_dir)
-        for p in staged_dir.rglob("*")
-        if p.is_file()
-    }
+    staged_files = {p.relative_to(staged_dir) for p in staged_dir.rglob("*") if p.is_file()}
 
-    output_files = {
-        p.relative_to(output_dir)
-        for p in output_dir.rglob("*")
-        if p.is_file()
-    }
+    output_files = {p.relative_to(output_dir) for p in output_dir.rglob("*") if p.is_file()}
 
     # Copy new/changed files
     for rel in sorted(staged_files):
@@ -615,8 +607,12 @@ def main() -> int:
         Exit code (0 for success, 1 for failure)
     """
     parser = argparse.ArgumentParser(description="Build API docs with incremental updates.")
-    parser.add_argument("--force", action="store_true", help="Force full rebuild (clean target before syncing)")
-    parser.add_argument("--dry-run", action="store_true", help="Preview changes without modifying files")
+    parser.add_argument(
+        "--force", action="store_true", help="Force full rebuild (clean target before syncing)"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Preview changes without modifying files"
+    )
     parser.add_argument(
         "--no-delete",
         action="store_true",
@@ -684,7 +680,9 @@ def main() -> int:
             return 1
 
         print("Synchronizing staged documentation → target directory...")
-        summary = sync_directories(staged_dir, output_dir, dry_run=dry_run, delete_removed=delete_removed)
+        summary = sync_directories(
+            staged_dir, output_dir, dry_run=dry_run, delete_removed=delete_removed
+        )
 
     # Final verification on target
     verification = verify_documentation_exists(output_dir)

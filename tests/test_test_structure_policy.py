@@ -176,6 +176,29 @@ class TestTestStructurePolicy:
             "test_tui_api_key_policy.py",  # Integration test
             "test_connection_manager_policy.py",  # Integration test
             "test_api_key_policy_migration.py",  # Integration test
+            # Fast/smoke helper suites that span multiple modules
+            "test_transport_manager_smoke.py",
+            "test_base_transport_stub.py",
+            "test_stdio_transport_smoke.py",
+            "test_error_handler_fast.py",
+            "test_onepassword_error_mapping.py",
+            "test_query_builders_smoke.py",
+            "test_query_builders_fast.py",
+            "test_config_loader_smoke.py",
+            "test_config_loader_fast.py",
+            "test_user_config_smoke.py",
+            "test_env_overlay_smoke.py",
+            "test_connection_manager_fast.py",
+            "test_connection_manager_smoke.py",
+            "test_tcp_auth_fast.py",
+            "test_op_secrets_smoke.py",
+            "test_onepasswordsecrets_fast.py",
+            "test_tools_fast.py",
+            "test_input_validator_smoke.py",
+            "test_rate_limiter_behavior.py",
+            "test_security_manager_smoke.py",
+            "test_security_manager_fast.py",
+            "test_input_validator_strict.py",
         }
 
         filtered_orphans = [
