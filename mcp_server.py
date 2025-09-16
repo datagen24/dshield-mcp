@@ -13,22 +13,24 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import structlog
+
 from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool  # Fixed import for Tool
-
 from src.campaign_analyzer import CampaignAnalyzer
 from src.campaign_mcp_tools import CampaignMCPTools
 from src.context_injector import ContextInjector
 from src.data_dictionary import DataDictionary
 from src.data_processor import DataProcessor
 from src.dshield_client import DShieldClient
-from src.dynamic_tool_registry import TOOL_DESCRIPTIONS, DynamicToolRegistry
+from src.dynamic_tool_registry import DynamicToolRegistry
 from src.elasticsearch_client import ElasticsearchClient
 from src.feature_manager import FeatureManager
 from src.health_check_manager import HealthCheckManager
 from src.latex_template_tools import LaTeXTemplateTools
+from src.mcp.tools.dispatcher import ToolDispatcher
+from src.mcp.tools.loader import ToolLoader
 from src.mcp_error_handler import ErrorHandlingConfig, MCPErrorHandler
 from src.operation_tracker import OperationTracker
 from src.resource_manager import ResourceManager
@@ -103,6 +105,12 @@ class DShieldMCPServer:
         self.health_manager = HealthCheckManager()
         self.feature_manager = FeatureManager(self.health_manager)
         self.tool_registry = DynamicToolRegistry(self.feature_manager)
+        
+        # Initialize tool loader and dispatcher
+        from pathlib import Path
+        tools_directory = Path(__file__).parent / "src" / "mcp" / "tools"
+        self.tool_loader = ToolLoader(tools_directory)
+        self.tool_dispatcher = ToolDispatcher(self.tool_loader)
 
         # Load user configuration
         try:
@@ -160,405 +168,26 @@ class DShieldMCPServer:
         - Threat intelligence enrichment
         - Data dictionary access
         """
+        # Load all tools from individual files
+        self.tool_loader.load_all_tools()
+        
+        # Register tool handlers
+        self._register_tool_handlers()
+        
+        # Register MCP handlers
+        self._register_mcp_handlers()
 
+    def _register_mcp_handlers(self) -> None:
+        """Register MCP protocol handlers."""
         @self.server.list_tools()  # type: ignore[misc,no-untyped-call]
         async def handle_list_tools() -> list[Tool]:
             """List all available tools based on feature availability."""
-            # Only return tools that are actually available
-            available_tools = []
-
-            # Define all possible tools with their schemas
-            all_tool_definitions = [
-                (
-                    "query_dshield_events",
-                    {
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to query (default: 24)",
-                            },
-                            "time_range": {
-                                "type": "object",
-                                "description": "Exact time range with start and end timestamps",
-                                "properties": {
-                                    "start": {"type": "string", "format": "date-time"},
-                                    "end": {"type": "string", "format": "date-time"},
-                                },
-                            },
-                            "relative_time": {
-                                "type": "string",
-                                "description": "Relative time range (e.g., 'last_6_hours', "
-                                "'last_24_hours', 'last_7_days')",
-                            },
-                            "time_window": {
-                                "type": "object",
-                                "description": "Time window around a specific timestamp",
-                                "properties": {
-                                    "around": {"type": "string", "format": "date-time"},
-                                    "window_minutes": {"type": "integer"},
-                                },
-                            },
-                            "indices": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "DShield Elasticsearch indices to query",
-                            },
-                            "filters": {
-                                "type": "object",
-                                "description": "Additional query filters",
-                            },
-                            "fields": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Specific fields to return (reduces payload size)",
-                            },
-                            "page": {
-                                "type": "integer",
-                                "description": "Page number for pagination (default: 1)",
-                            },
-                            "page_size": {
-                                "type": "integer",
-                                "description": "Number of results per page (default: 100, "
-                                "max: 1000)",
-                            },
-                            "sort_by": {
-                                "type": "string",
-                                "description": "Field to sort by (default: '@timestamp')",
-                            },
-                            "sort_order": {
-                                "type": "string",
-                                "enum": ["asc", "desc"],
-                                "description": "Sort order (default: 'desc')",
-                            },
-                            "cursor": {
-                                "type": "string",
-                                "description": "Cursor token for cursor-based pagination "
-                                "(better for large datasets)",
-                            },
-                            "optimization": {
-                                "type": "string",
-                                "enum": ["auto", "none"],
-                                "description": "Smart query optimization mode (default: 'auto')",
-                            },
-                            "fallback_strategy": {
-                                "type": "string",
-                                "enum": ["aggregate", "sample", "error"],
-                                "description": "Fallback strategy when optimization fails "
-                                "(default: 'aggregate')",
-                            },
-                            "max_result_size_mb": {
-                                "type": "number",
-                                "description": "Maximum result size in MB before optimization "
-                                "(default: 10.0)",
-                            },
-                            "query_timeout_seconds": {
-                                "type": "integer",
-                                "description": "Query timeout in seconds (default: 30)",
-                            },
-                            "include_summary": {
-                                "type": "boolean",
-                                "description": "Include summary statistics with results "
-                                "(default: true)",
-                            },
-                        },
-                    },
-                ),
-                (
-                    "stream_dshield_events_with_session_context",
-                    {
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time range in hours to query (default: 24)",
-                            },
-                            "chunk_size": {
-                                "type": "integer",
-                                "description": "Number of events per chunk (default: 500, "
-                                "max: 1000)",
-                            },
-                            "session_fields": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Fields to use for session grouping "
-                                "(default: ['source.ip', 'destination.ip'])",
-                            },
-                            "max_session_gap_minutes": {
-                                "type": "integer",
-                                "description": "Maximum gap in minutes to consider events part of "
-                                "same session (default: 30)",
-                            },
-                            "filters": {
-                                "type": "object",
-                                "description": "Additional query filters",
-                            },
-                            "stream_id": {
-                                "type": "string",
-                                "description": "Stream ID for resuming previous stream",
-                            },
-                        },
-                    },
-                ),
-                (
-                    "get_data_dictionary",
-                    {
-                        "type": "object",
-                        "properties": {
-                            "category": {
-                                "type": "string",
-                                "description": "Data category to retrieve (e.g., 'core_fields', "
-                                "'network_fields')",
-                            },
-                            "format": {
-                                "type": "string",
-                                "enum": ["json", "markdown", "summary"],
-                                "description": "Output format (default: 'json')",
-                            },
-                        },
-                    },
-                ),
-                (
-                    "get_health_status",
-                    {
-                        "type": "object",
-                        "properties": {
-                            "detailed": {
-                                "type": "boolean",
-                                "description": "Include detailed health information "
-                                "(default: false)",
-                            }
-                        },
-                    },
-                ),
-                (
-                    "get_feature_status",
-                    {
-                        "type": "object",
-                        "properties": {
-                            "feature": {
-                                "type": "string",
-                                "description": "Specific feature to check (optional)",
-                            }
-                        },
-                    },
-                ),
-                (
-                    "get_error_analytics",
-                    {
-                        "type": "object",
-                        "properties": {
-                            "window_seconds": {
-                                "type": "integer",
-                                "description": "Time window in seconds for error analysis "
-                                "(default: 300)",
-                            }
-                        },
-                    },
-                ),
-                (
-                    "get_error_handling_status",
-                    {
-                        "type": "object",
-                        "properties": {
-                            "include_analytics": {
-                                "type": "boolean",
-                                "description": "Include error analytics in response "
-                                "(default: true)",
-                            }
-                        },
-                    },
-                ),
-                ("get_elasticsearch_circuit_breaker_status", {"type": "object", "properties": {}}),
-                ("get_dshield_circuit_breaker_status", {"type": "object", "properties": {}}),
-                ("get_latex_circuit_breaker_status", {"type": "object", "properties": {}}),
-                (
-                    "detect_statistical_anomalies",
-                    {
-                        "type": "object",
-                        "properties": {
-                            "time_range_hours": {
-                                "type": "integer",
-                                "description": "Time window in hours to analyze (default: 24)",
-                            },
-                            "anomaly_methods": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": (
-                                    "Methods: zscore, iqr, isolation_forest, time_series"
-                                ),
-                            },
-                            "sensitivity": {
-                                "type": "number",
-                                "description": "Sensitivity multiplier (e.g., z or IQR whisker)",
-                            },
-                            "dimensions": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": (
-                                    "Legacy dimension names (ignored if schema provided)"
-                                ),
-                            },
-                            "return_summary_only": {"type": "boolean"},
-                            "max_anomalies": {"type": "integer"},
-                            "dimension_schema": {
-                                "type": "object",
-                                "description": (
-                                    "Schema: {name: {field, agg, size, interval, percents}}"
-                                ),
-                            },
-                            "enable_iqr": {"type": "boolean"},
-                            "enable_percentiles": {"type": "boolean"},
-                            "time_series_mode": {
-                                "type": "string",
-                                "enum": ["fast", "robust"],
-                                "description": "fast (mean dev) or robust (MAD + rolling z)",
-                            },
-                            "seasonality_hour_of_day": {"type": "boolean"},
-                            "raw_sample_mode": {"type": "boolean"},
-                            "raw_sample_size": {"type": "integer"},
-                            "min_iforest_samples": {"type": "integer"},
-                            "scale_iforest_features": {"type": "boolean"},
-                        },
-                    },
-                ),
-            ]
-
-            # Add tools based on availability
-            for tool_name, schema in all_tool_definitions:
-                if self.tool_registry.is_tool_available(tool_name):
-                    available_tools.append(
-                        Tool(
-                            name=tool_name,
-                            description=TOOL_DESCRIPTIONS.get(tool_name, f"Tool: {tool_name}"),
-                            inputSchema=schema,
-                        )
-                    )
-
-            logger.info(
-                "Listed available tools",
-                available_count=len(available_tools),
-                total_defined=len(all_tool_definitions),
-            )
-
-            return available_tools
+            return await self._handle_list_tools()
 
         @self.server.call_tool()  # type: ignore[misc]
         async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[dict[str, Any]]:
-            """Handle tool calls."""
-            if not self._is_tool_available(name):
-                return await self._tool_unavailable_response(name)
-            try:
-                if name == "query_dshield_events":
-                    result = await asyncio.wait_for(
-                        self._query_dshield_events(arguments),
-                        timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0),
-                    )
-                    return result
-                elif name == "query_dshield_aggregations":
-                    return await self._query_dshield_aggregations(arguments)
-                elif name == "stream_dshield_events":
-                    return await self._stream_dshield_events(arguments)
-                elif name == "stream_dshield_events_with_session_context":
-                    return await self._stream_dshield_events_with_session_context(arguments)
-                elif name == "query_dshield_attacks":
-                    return await self._query_dshield_attacks(arguments)
-                elif name == "query_dshield_reputation":
-                    return await self._query_dshield_reputation(arguments)
-                elif name == "query_dshield_top_attackers":
-                    return await self._query_dshield_top_attackers(arguments)
-                elif name == "query_dshield_geographic_data":
-                    return await self._query_dshield_geographic_data(arguments)
-                elif name == "query_dshield_port_data":
-                    return await self._query_dshield_port_data(arguments)
-                elif name == "get_dshield_statistics":
-                    return await self._get_dshield_statistics(arguments)
-                elif name == "diagnose_data_availability":
-                    return await self._diagnose_data_availability(arguments)
-                elif name == "enrich_ip_with_dshield":
-                    return await self._enrich_ip_with_dshield(arguments)
-                elif name == "generate_attack_report":
-                    result = await asyncio.wait_for(
-                        self._generate_attack_report(arguments),
-                        timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0),
-                    )
-                    return result
-                elif name == "query_events_by_ip":
-                    return await self._query_events_by_ip(arguments)
-                elif name == "get_security_summary":
-                    return await self._get_security_summary(arguments)
-                elif name == "test_elasticsearch_connection":
-                    return await self._test_elasticsearch_connection(arguments)
-                elif name == "get_data_dictionary":
-                    return await self._get_data_dictionary(arguments)
-                elif name == "analyze_campaign":
-                    result = await asyncio.wait_for(
-                        self._analyze_campaign(arguments),
-                        timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0),
-                    )
-                    return result
-                elif name == "expand_campaign_indicators":
-                    return await self._expand_campaign_indicators(arguments)
-                elif name == "get_campaign_timeline":
-                    return await self._get_campaign_timeline(arguments)
-                elif name == "compare_campaigns":
-                    return await self._compare_campaigns(arguments)
-                elif name == "detect_ongoing_campaigns":
-                    return await self._detect_ongoing_campaigns(arguments)
-                elif name == "search_campaigns":
-                    return await self._search_campaigns(arguments)
-                elif name == "get_campaign_details":
-                    return await self._get_campaign_details(arguments)
-                elif name == "generate_latex_document":
-                    return await self._generate_latex_document(arguments)
-                elif name == "list_latex_templates":
-                    return await self._list_latex_templates(arguments)
-                elif name == "get_latex_template_schema":
-                    return await self._get_latex_template_schema(arguments)
-                elif name == "validate_latex_document_data":
-                    return await self._validate_latex_document_data(arguments)
-                elif name == "enrich_ip_comprehensive":
-                    return await self._enrich_ip_comprehensive(arguments)
-                elif name == "enrich_domain_comprehensive":
-                    return await self._enrich_domain_comprehensive(arguments)
-                elif name == "correlate_threat_indicators":
-                    return await self._correlate_threat_indicators(arguments)
-                elif name == "get_threat_intelligence_summary":
-                    return await self._get_threat_intelligence_summary(arguments)
-                elif name == "detect_statistical_anomalies":
-                    result = await asyncio.wait_for(
-                        self._detect_statistical_anomalies(arguments),
-                        timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0),
-                    )
-                    return result
-                elif name == "get_error_analytics":
-                    return await self._get_error_analytics(arguments)
-                elif name == "get_error_handling_status":
-                    return await self._get_error_handling_status(arguments)
-                elif name == "get_elasticsearch_circuit_breaker_status":
-                    return await self._get_elasticsearch_circuit_breaker_status(arguments)
-                elif name == "get_dshield_circuit_breaker_status":
-                    return await self._get_dshield_circuit_breaker_status(arguments)
-                elif name == "get_latex_circuit_breaker_status":
-                    return await self._get_latex_circuit_breaker_status(arguments)
-                else:
-                    raise ValueError(f"Unknown tool: {name}")
-            except TimeoutError:
-                logger.error("Tool call timed out", tool=name)
-                return [self.error_handler.create_timeout_error(name, 30.0)]
-            except ValueError as e:
-                logger.error("Tool call validation error", tool=name, error=str(e))
-                # Convert ValueError to ValidationError for proper error handling
-                from pydantic import ValidationError
-
-                # Create a simple ValidationError for ValueError
-                validation_error = ValidationError(
-                    [{"type": "value_error", "loc": (), "msg": str(e), "input": None}], ValueError
-                )
-                return [self.error_handler.create_validation_error(name, validation_error)]
-            except Exception as e:
-                logger.error("Tool call failed", tool=name, error=str(e))
-                return [self.error_handler.create_internal_error(f"Tool call failed: {e!s}")]
+            """Handle tool calls using the dispatcher."""
+            return await self._handle_call_tool(name, arguments)
 
         @self.server.list_resources()  # type: ignore[misc,no-untyped-call]
         async def handle_list_resources() -> list[dict[str, Any]]:
@@ -639,6 +268,98 @@ class DShieldMCPServer:
                     uri, "unavailable", f"Failed to read resource '{uri}': {e!s}"
                 )
                 return json.dumps(error_response)
+
+    def _register_tool_handlers(self) -> None:
+        """Register tool handlers with the dispatcher.
+        
+        This method registers all the tool handlers with the dispatcher,
+        mapping tool names to their corresponding handler methods.
+        """
+        # Register individual tool handlers for methods that exist
+        self.tool_dispatcher.register_handler("query_dshield_events", self._query_dshield_events)
+        self.tool_dispatcher.register_handler(
+            "stream_dshield_events_with_session_context", 
+            self._stream_dshield_events_with_session_context
+        )
+        self.tool_dispatcher.register_handler("get_data_dictionary", self._get_data_dictionary)
+        self.tool_dispatcher.register_handler("analyze_campaign", self._analyze_campaign)
+        self.tool_dispatcher.register_handler(
+            "expand_campaign_indicators", self._expand_campaign_indicators
+        )
+        self.tool_dispatcher.register_handler("get_campaign_timeline", self._get_campaign_timeline)
+        self.tool_dispatcher.register_handler(
+            "enrich_ip_with_dshield", self._enrich_ip_with_dshield
+        )
+        self.tool_dispatcher.register_handler(
+            "generate_attack_report", self._generate_attack_report
+        )
+        
+        # Register additional handlers as they become available
+        # TODO: Add handlers for get_health_status, get_feature_status, detect_statistical_anomalies
+        # when their corresponding methods are implemented
+        
+        logger.info("Registered tool handlers with dispatcher")
+
+    async def _handle_list_tools(self) -> list[Tool]:
+        """Handle list tools request."""
+        # Get available features
+        available_features = self.feature_manager.get_available_features()
+        
+        # Get available tools from the tool loader
+        available_tool_definitions = self.tool_dispatcher.get_available_tools(
+            available_features
+        )
+        
+        # Convert to MCP Tool objects
+        available_tools = []
+        for tool_def in available_tool_definitions:
+            available_tools.append(
+                Tool(
+                    name=tool_def.name,
+                    description=tool_def.description,
+                    inputSchema=tool_def.schema,
+                )
+            )
+
+        logger.info(
+            "Listed available tools",
+            available_count=len(available_tools),
+            total_loaded=len(self.tool_loader.get_all_tool_definitions()),
+        )
+
+        return available_tools
+
+    async def _handle_call_tool(self, name: str, arguments: dict[str, Any]) -> list[dict[str, Any]]:
+        """Handle tool call request."""
+        if not self.tool_dispatcher.is_tool_available(
+            name, self.feature_manager.get_available_features()
+        ):
+            return await self._tool_unavailable_response(name)
+        
+        try:
+            # Use the dispatcher to handle the tool call
+            result = await self.tool_dispatcher.dispatch_tool_call(
+                name, 
+                arguments,
+                timeout=self.error_handler.config.timeouts.get("tool_execution", 120.0)
+            )
+            return result
+        except TimeoutError:
+            logger.error("Tool call timed out", tool=name)
+            return [self.error_handler.create_timeout_error(name, 30.0)]
+        except ValueError as e:
+            logger.error("Tool call validation error", tool=name, error=str(e))
+            # Convert ValueError to ValidationError for proper error handling
+            from pydantic import ValidationError
+
+            # Create a simple ValidationError for ValueError
+            validation_error = ValidationError(
+                [{"type": "value_error", "loc": (), "msg": str(e), "input": None}], ValueError
+            )
+            return [self.error_handler.create_validation_error(name, validation_error)]
+        except Exception as e:
+            logger.error("Tool call failed", tool=name, error=str(e))
+            return [self.error_handler.create_internal_error(f"Tool call failed: {e!s}")]
 
     async def initialize(self) -> None:
         """Initialize the MCP server and clients with graceful degradation."""
