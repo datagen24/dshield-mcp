@@ -342,3 +342,4 @@ class TestRefactoredMCPServer:
                 # Verify that load_all_tools was called
                 mock_loader.load_all_tools.assert_called_once()
 
+
