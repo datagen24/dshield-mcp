@@ -271,17 +271,21 @@ class DShieldMCPServer:
 
     def _register_tool_handlers(self) -> None:
         """Register tool handlers with the dispatcher.
-        
+
         This method registers all the tool handlers with the dispatcher,
         mapping tool names to their corresponding handler methods.
         """
         # Register individual tool handlers for methods that exist
         self.tool_dispatcher.register_handler("query_dshield_events", self._query_dshield_events)
         self.tool_dispatcher.register_handler(
-            "stream_dshield_events_with_session_context", 
+            "stream_dshield_events_with_session_context",
             self._stream_dshield_events_with_session_context
         )
         self.tool_dispatcher.register_handler("get_data_dictionary", self._get_data_dictionary)
+        self.tool_dispatcher.register_handler("get_health_status", self._get_health_status)
+        self.tool_dispatcher.register_handler(
+            "detect_statistical_anomalies", self._detect_statistical_anomalies
+        )
         self.tool_dispatcher.register_handler("analyze_campaign", self._analyze_campaign)
         self.tool_dispatcher.register_handler(
             "expand_campaign_indicators", self._expand_campaign_indicators
@@ -293,11 +297,7 @@ class DShieldMCPServer:
         self.tool_dispatcher.register_handler(
             "generate_attack_report", self._generate_attack_report
         )
-        
-        # Register additional handlers as they become available
-        # TODO: Add handlers for get_health_status, get_feature_status, detect_statistical_anomalies
-        # when their corresponding methods are implemented
-        
+
         logger.info("Registered tool handlers with dispatcher")
 
     async def _handle_list_tools(self) -> list[Tool]:
@@ -1493,6 +1493,171 @@ class DShieldMCPServer:
                 data["analysis_guidelines"] = DataDictionary.get_analysis_guidelines()
 
             return [{"type": "text", "text": json.dumps(data, indent=2, default=str)}]
+
+    async def _get_health_status(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
+        """Get health status of the MCP server and its dependencies."""
+        detailed = arguments.get("detailed", False)
+
+        logger.info("Getting health status", detailed=detailed)
+
+        try:
+            # Run all health checks
+            health_results = await self.health_manager.run_all_checks()
+
+            # Get feature availability summary
+            feature_summary = self.feature_manager.get_feature_summary()
+
+            if detailed:
+                # Return comprehensive health information
+                response_data = {
+                    "status": "healthy" if health_results.get("summary", {}).get("healthy", 0) > 0 else "degraded",
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "health_checks": health_results,
+                    "features": feature_summary,
+                    "server_info": {
+                        "tools_loaded": len(self.tool_loader.get_all_tool_definitions()),
+                        "tools_available": len(self.tool_loader.get_available_tools(
+                            self.feature_manager.get_available_features()
+                        )),
+                    }
+                }
+            else:
+                # Return summary information
+                summary = health_results.get("summary", {})
+                response_data = {
+                    "status": "healthy" if summary.get("healthy", 0) > 0 else "degraded",
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "healthy_services": summary.get("healthy", 0),
+                    "unhealthy_services": summary.get("unhealthy", 0),
+                    "available_features": len(self.feature_manager.get_available_features()),
+                    "total_tools": len(self.tool_loader.get_all_tool_definitions()),
+                }
+
+            return [{"type": "text", "text": json.dumps(response_data, indent=2, default=str)}]
+
+        except Exception as e:
+            logger.error("Failed to get health status", error=str(e))
+            return [
+                {
+                    "type": "text",
+                    "text": f"Error getting health status: {e!s}\n\n"
+                    "The health check system may not be fully initialized.",
+                }
+            ]
+
+    async def _detect_statistical_anomalies(self, arguments: dict[str, Any]) -> list[dict[str, Any]]:
+        """Detect statistical anomalies in DShield event data."""
+        time_range_hours = arguments.get("time_range_hours", 24)
+        anomaly_methods = arguments.get("anomaly_methods", ["zscore"])
+        sensitivity = arguments.get("sensitivity", 3.0)
+        return_summary_only = arguments.get("return_summary_only", False)
+        max_anomalies = arguments.get("max_anomalies", 100)
+        dimension_schema = arguments.get("dimension_schema")
+
+        logger.info(
+            "Detecting statistical anomalies",
+            time_range_hours=time_range_hours,
+            methods=anomaly_methods,
+            sensitivity=sensitivity,
+        )
+
+        try:
+            if not self.elastic_client:
+                logger.error("Elasticsearch client not initialized")
+                return [
+                    {
+                        "type": "text",
+                        "text": "Error: Elasticsearch client not initialized. "
+                        "Statistical anomaly detection requires Elasticsearch.",
+                    }
+                ]
+
+            # Initialize statistical analysis tools if needed
+            from src.statistical_analysis_tools import StatisticalAnalysisTools
+            stat_tools = StatisticalAnalysisTools(
+                self.elastic_client,
+                self.error_handler
+            )
+
+            # Detect anomalies using the specified methods
+            results = {}
+            for method in anomaly_methods:
+                try:
+                    if method == "zscore":
+                        anomalies = await stat_tools.detect_zscore_anomalies(
+                            time_range_hours=time_range_hours,
+                            z_threshold=sensitivity,
+                            dimension_schema=dimension_schema,
+                        )
+                    elif method == "iqr":
+                        anomalies = await stat_tools.detect_iqr_anomalies(
+                            time_range_hours=time_range_hours,
+                            iqr_multiplier=sensitivity,
+                            dimension_schema=dimension_schema,
+                        )
+                    elif method == "isolation_forest":
+                        anomalies = await stat_tools.detect_isolation_forest_anomalies(
+                            time_range_hours=time_range_hours,
+                            contamination=0.1,
+                            dimension_schema=dimension_schema,
+                        )
+                    elif method == "time_series":
+                        anomalies = await stat_tools.detect_time_series_anomalies(
+                            time_range_hours=time_range_hours,
+                            sensitivity=sensitivity,
+                            dimension_schema=dimension_schema,
+                        )
+                    else:
+                        logger.warning("Unsupported anomaly detection method", method=method)
+                        continue
+
+                    # Limit anomalies if requested
+                    if max_anomalies and len(anomalies) > max_anomalies:
+                        anomalies = anomalies[:max_anomalies]
+
+                    results[method] = anomalies
+
+                except Exception as method_error:
+                    logger.error(
+                        "Failed to detect anomalies with method",
+                        method=method,
+                        error=str(method_error)
+                    )
+                    results[method] = {"error": str(method_error)}
+
+            # Format response
+            if return_summary_only:
+                summary = {
+                    "time_range_hours": time_range_hours,
+                    "methods_used": anomaly_methods,
+                    "sensitivity": sensitivity,
+                    "results_by_method": {
+                        method: {
+                            "anomalies_found": len(data) if isinstance(data, list) else 0,
+                            "error": data.get("error") if isinstance(data, dict) else None
+                        }
+                        for method, data in results.items()
+                    }
+                }
+                return [{"type": "text", "text": json.dumps(summary, indent=2, default=str)}]
+            else:
+                response_text = f"Statistical Anomaly Detection Results\n"
+                response_text += f"Time Range: {time_range_hours} hours\n"
+                response_text += f"Methods: {', '.join(anomaly_methods)}\n"
+                response_text += f"Sensitivity: {sensitivity}\n\n"
+                response_text += json.dumps(results, indent=2, default=str)
+                return [{"type": "text", "text": response_text}]
+
+        except Exception as e:
+            logger.error("Failed to detect statistical anomalies", error=str(e))
+            return [
+                {
+                    "type": "text",
+                    "text": f"Error detecting statistical anomalies: {e!s}\n\n"
+                    "Please check your Elasticsearch configuration and ensure the statistical "
+                    "analysis tools are properly initialized.",
+                }
+            ]
 
     async def _get_recent_dshield_events(self) -> list[dict[str, Any]]:
         """Get recent DShield events for resource reading."""
