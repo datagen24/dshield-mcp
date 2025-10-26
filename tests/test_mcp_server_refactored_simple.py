@@ -12,9 +12,9 @@ from typing import Any, Dict
 
 import pytest
 
-from src.mcp.tools.base import ToolCategory, ToolDefinition
-from src.mcp.tools.loader import ToolLoader
-from src.mcp.tools.dispatcher import ToolDispatcher
+from src.mcp_tools.tools.base import ToolCategory, ToolDefinition
+from src.mcp_tools.tools.loader import ToolLoader
+from src.mcp_tools.tools.dispatcher import ToolDispatcher
 
 
 class TestRefactoredMCPServer:
@@ -41,7 +41,7 @@ class TestRefactoredMCPServer:
     def test_tool_loader_initialization(self):
         """Test that ToolLoader is properly initialized."""
         from pathlib import Path
-        from src.mcp.tools.loader import ToolLoader
+        from src.mcp_tools.tools.loader import ToolLoader
         
         # Test ToolLoader initialization
         tools_directory = Path("src/mcp/tools")
@@ -52,8 +52,8 @@ class TestRefactoredMCPServer:
 
     def test_tool_dispatcher_initialization(self):
         """Test that ToolDispatcher is properly initialized."""
-        from src.mcp.tools.dispatcher import ToolDispatcher
-        from src.mcp.tools.loader import ToolLoader
+        from src.mcp_tools.tools.dispatcher import ToolDispatcher
+        from src.mcp_tools.tools.loader import ToolLoader
         from pathlib import Path
         
         # Test ToolDispatcher initialization
@@ -409,8 +409,8 @@ class TestRefactoredMCPServer:
     def test_tool_loader_integration(self):
         """Test integration between server and tool loader."""
         from pathlib import Path
-        from src.mcp.tools.loader import ToolLoader
-        from src.mcp.tools.dispatcher import ToolDispatcher
+        from src.mcp_tools.tools.loader import ToolLoader
+        from src.mcp_tools.tools.dispatcher import ToolDispatcher
         
         # Test integration
         tools_directory = Path("src/mcp/tools")

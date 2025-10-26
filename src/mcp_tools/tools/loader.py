@@ -84,7 +84,7 @@ class ToolLoader:
         logger.debug("Loading tool file", file=tool_file.name)
 
         # Import the module dynamically
-        module_name = f"src.mcp.tools.{tool_file.stem}"
+        module_name = f"src.mcp_tools.tools.{tool_file.stem}"
         spec = importlib.util.spec_from_file_location(module_name, tool_file)
 
         if spec is None or spec.loader is None:

@@ -29,8 +29,8 @@ from src.elasticsearch_client import ElasticsearchClient
 from src.feature_manager import FeatureManager
 from src.health_check_manager import HealthCheckManager
 from src.latex_template_tools import LaTeXTemplateTools
-from src.mcp.tools.dispatcher import ToolDispatcher
-from src.mcp.tools.loader import ToolLoader
+from src.mcp_tools.tools.dispatcher import ToolDispatcher
+from src.mcp_tools.tools.loader import ToolLoader
 from src.mcp_error_handler import ErrorHandlingConfig, MCPErrorHandler
 from src.operation_tracker import OperationTracker
 from src.resource_manager import ResourceManager
@@ -108,7 +108,7 @@ class DShieldMCPServer:
         
         # Initialize tool loader and dispatcher
         from pathlib import Path
-        tools_directory = Path(__file__).parent / "src" / "mcp" / "tools"
+        tools_directory = Path(__file__).parent / "src" / "mcp_tools" / "tools"
         self.tool_loader = ToolLoader(tools_directory)
         self.tool_dispatcher = ToolDispatcher(self.tool_loader)
 

@@ -4,9 +4,9 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from typing import Any, Dict, List
 
-from src.mcp.tools.base import ToolDefinition, ToolCategory
-from src.mcp.tools.loader import ToolLoader
-from src.mcp.tools.dispatcher import ToolDispatcher
+from src.mcp_tools.tools.base import ToolDefinition, ToolCategory
+from src.mcp_tools.tools.loader import ToolLoader
+from src.mcp_tools.tools.dispatcher import ToolDispatcher
 
 
 class MockPerformanceSettings:
