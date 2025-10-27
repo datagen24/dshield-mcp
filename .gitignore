@@ -154,6 +154,8 @@ results/
 *.xml
 *.yaml
 *.yml
+# Exception: Include Read the Docs configuration
+!.readthedocs.yaml
 
 # Development tools and test scripts (exclude from releases)
 dev_tools/
@@ -203,6 +205,8 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/build/
+docs/source/api/_autosummary/
 
 # PyBuilder
 .pybuilder/
