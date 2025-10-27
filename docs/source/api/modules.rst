@@ -40,6 +40,7 @@ Module Overview
 For detailed module documentation, see the following sections:
 
 * :doc:`tools` - MCP Tools Reference
+* :doc:`core-components` - Core Components Reference
 * :doc:`clients` - Data Client Reference
 * :doc:`analyzers` - Intelligence Analyzer Reference
 * :doc:`utilities` - Utility Module Reference

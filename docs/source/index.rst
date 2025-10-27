@@ -61,6 +61,7 @@ Table of Contents
    :maxdepth: 2
    :caption: User Documentation
 
+   user-guide/integration
    user-guide/usage
    user-guide/configuration
    user-guide/error-handling
