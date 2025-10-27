@@ -1,0 +1,12 @@
+# Sphinx documentation requirements for Read the Docs
+
+# Core Sphinx
+sphinx>=7.0.0
+sphinx-rtd-theme>=2.0.0
+
+# Extensions
+sphinx-autodoc-typehints>=2.0.0
+myst-parser>=2.0.0
+
+# Additional dependencies for API documentation
+pdoc>=15.0.0
