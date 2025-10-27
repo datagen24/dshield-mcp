@@ -71,7 +71,7 @@ Events sharing the same values for these fields are considered part of the same 
 - Session-aware analytics (e.g., session timelines, anomaly detection) can be built on top of this foundation
 
 ## Testing
-- See `dev_tools/test_smart_chunking.py` for comprehensive test coverage and usage examples 
+- See `dev_tools/test_smart_chunking.py` for comprehensive test coverage and usage examples
 
 ## Dependencies
 
@@ -99,4 +99,4 @@ Events sharing the same values for these fields are considered part of the same 
   1. Update your MCP server and dependencies to the latest version.
   2. Review and test smart chunking features with your existing workflows.
   3. Monitor performance and resource usage after deployment, and adjust chunk size or session fields as needed.
-- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved. 
+- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved.

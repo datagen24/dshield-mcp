@@ -34,4 +34,3 @@ globs: **/*.py
 - Review generated documentation for completeness and accuracy
 - Link API documentation in project README and documentation index
 - Add a prominent note in documentation and README to direct AI and users to the Markdown API docs in `docs/api_markdown` for optimal AI ingestion and reference.
-

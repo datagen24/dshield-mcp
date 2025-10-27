@@ -34,6 +34,9 @@
                     <a class="class" href="#OperationTracker">OperationTracker</a>
                             <ul class="memberlist">
                         <li>
+                                <a class="function" href="#OperationTracker.__init__">OperationTracker</a>
+                        </li>
+                        <li>
                                 <a class="variable" href="#OperationTracker.active_operations">active_operations</a>
                         </li>
                         <li>
@@ -78,31 +81,59 @@
                         <label class="view-source-button" for="mod-operation_tracker-view-source"><span>View Source</span></label>
 
                         <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos"> 1</span></a><span class="sd">&quot;&quot;&quot;Operation tracker for DShield MCP server.&quot;&quot;&quot;</span>
-</span><span id="L-2"><a href="#L-2"><span class="linenos"> 2</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+</span><span id="L-2"><a href="#L-2"><span class="linenos"> 2</span></a>
 </span><span id="L-3"><a href="#L-3"><span class="linenos"> 3</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-</span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a>
-</span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a><span class="k">class</span><span class="w"> </span><span class="nc">OperationTracker</span><span class="p">:</span>
-</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tracks active operations for graceful shutdown.&quot;&quot;&quot;</span>
-</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a>
-</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">timeout</span>
+</span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a>
+</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a>
+</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a><span class="k">class</span><span class="w"> </span><span class="nc">OperationTracker</span><span class="p">:</span>
+</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tracks active operations for graceful shutdown.&quot;&quot;&quot;</span>
+</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a>
+</span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the operation tracker.&quot;&quot;&quot;</span>
+</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 </span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a>
-</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">complete_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>        <span class="k">if</span> <span class="n">operation_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
-</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
-</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
+</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_operation</span><span class="p">(</span>
+</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
+</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register an active operation for tracking.</span>
 </span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a>
-</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a>            <span class="k">return</span>
-</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">([</span><span class="n">task</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
-</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a>
-</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_active_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> 
+</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="sd">        Args:</span>
+</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a><span class="sd">            operation_id: Unique identifier for the operation.</span>
+</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a><span class="sd">            task: The asyncio task to track.</span>
+</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a><span class="sd">            timeout: Timeout in seconds for the operation.</span>
+</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span>
+</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">timeout</span>
+</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a>
+</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">complete_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mark an operation as completed and remove it from tracking.</span>
+</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a>
+</span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a><span class="sd">        Args:</span>
+</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a><span class="sd">            operation_id: Unique identifier for the operation to complete.</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a>        <span class="k">if</span> <span class="n">operation_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
+</span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
+</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
+</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a>
+</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Wait for all active operations to complete.</span>
+</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a>
+</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a><span class="sd">        Args:</span>
+</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a><span class="sd">            timeout: Maximum time to wait in seconds.</span>
+</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
+</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a>            <span class="k">return</span>
+</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">([</span><span class="n">task</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+</span><span id="L-47"><a href="#L-47"><span class="linenos">47</span></a>
+</span><span id="L-48"><a href="#L-48"><span class="linenos">48</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_active_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span id="L-49"><a href="#L-49"><span class="linenos">49</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Get list of active operation IDs.</span>
+</span><span id="L-50"><a href="#L-50"><span class="linenos">50</span></a>
+</span><span id="L-51"><a href="#L-51"><span class="linenos">51</span></a><span class="sd">        Returns:</span>
+</span><span id="L-52"><a href="#L-52"><span class="linenos">52</span></a><span class="sd">            List of active operation identifiers.</span>
+</span><span id="L-53"><a href="#L-53"><span class="linenos">53</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-54"><a href="#L-54"><span class="linenos">54</span></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 </span></pre></div>
 
 
@@ -118,28 +149,54 @@
 
     </div>
     <a class="headerlink" href="#OperationTracker"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker-6"><a href="#OperationTracker-6"><span class="linenos"> 6</span></a><span class="k">class</span><span class="w"> </span><span class="nc">OperationTracker</span><span class="p">:</span>
-</span><span id="OperationTracker-7"><a href="#OperationTracker-7"><span class="linenos"> 7</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tracks active operations for graceful shutdown.&quot;&quot;&quot;</span>
-</span><span id="OperationTracker-8"><a href="#OperationTracker-8"><span class="linenos"> 8</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="OperationTracker-9"><a href="#OperationTracker-9"><span class="linenos"> 9</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="OperationTracker-10"><a href="#OperationTracker-10"><span class="linenos">10</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-</span><span id="OperationTracker-11"><a href="#OperationTracker-11"><span class="linenos">11</span></a>
-</span><span id="OperationTracker-12"><a href="#OperationTracker-12"><span class="linenos">12</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="OperationTracker-13"><a href="#OperationTracker-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span>
-</span><span id="OperationTracker-14"><a href="#OperationTracker-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">timeout</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker-8"><a href="#OperationTracker-8"><span class="linenos"> 8</span></a><span class="k">class</span><span class="w"> </span><span class="nc">OperationTracker</span><span class="p">:</span>
+</span><span id="OperationTracker-9"><a href="#OperationTracker-9"><span class="linenos"> 9</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Tracks active operations for graceful shutdown.&quot;&quot;&quot;</span>
+</span><span id="OperationTracker-10"><a href="#OperationTracker-10"><span class="linenos">10</span></a>
+</span><span id="OperationTracker-11"><a href="#OperationTracker-11"><span class="linenos">11</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="OperationTracker-12"><a href="#OperationTracker-12"><span class="linenos">12</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the operation tracker.&quot;&quot;&quot;</span>
+</span><span id="OperationTracker-13"><a href="#OperationTracker-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="OperationTracker-14"><a href="#OperationTracker-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 </span><span id="OperationTracker-15"><a href="#OperationTracker-15"><span class="linenos">15</span></a>
-</span><span id="OperationTracker-16"><a href="#OperationTracker-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">complete_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="OperationTracker-17"><a href="#OperationTracker-17"><span class="linenos">17</span></a>        <span class="k">if</span> <span class="n">operation_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
-</span><span id="OperationTracker-18"><a href="#OperationTracker-18"><span class="linenos">18</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
-</span><span id="OperationTracker-19"><a href="#OperationTracker-19"><span class="linenos">19</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
+</span><span id="OperationTracker-16"><a href="#OperationTracker-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_operation</span><span class="p">(</span>
+</span><span id="OperationTracker-17"><a href="#OperationTracker-17"><span class="linenos">17</span></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
+</span><span id="OperationTracker-18"><a href="#OperationTracker-18"><span class="linenos">18</span></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="OperationTracker-19"><a href="#OperationTracker-19"><span class="linenos">19</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register an active operation for tracking.</span>
 </span><span id="OperationTracker-20"><a href="#OperationTracker-20"><span class="linenos">20</span></a>
-</span><span id="OperationTracker-21"><a href="#OperationTracker-21"><span class="linenos">21</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="OperationTracker-22"><a href="#OperationTracker-22"><span class="linenos">22</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
-</span><span id="OperationTracker-23"><a href="#OperationTracker-23"><span class="linenos">23</span></a>            <span class="k">return</span>
-</span><span id="OperationTracker-24"><a href="#OperationTracker-24"><span class="linenos">24</span></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">([</span><span class="n">task</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
-</span><span id="OperationTracker-25"><a href="#OperationTracker-25"><span class="linenos">25</span></a>
-</span><span id="OperationTracker-26"><a href="#OperationTracker-26"><span class="linenos">26</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_active_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span><span id="OperationTracker-27"><a href="#OperationTracker-27"><span class="linenos">27</span></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> 
+</span><span id="OperationTracker-21"><a href="#OperationTracker-21"><span class="linenos">21</span></a><span class="sd">        Args:</span>
+</span><span id="OperationTracker-22"><a href="#OperationTracker-22"><span class="linenos">22</span></a><span class="sd">            operation_id: Unique identifier for the operation.</span>
+</span><span id="OperationTracker-23"><a href="#OperationTracker-23"><span class="linenos">23</span></a><span class="sd">            task: The asyncio task to track.</span>
+</span><span id="OperationTracker-24"><a href="#OperationTracker-24"><span class="linenos">24</span></a><span class="sd">            timeout: Timeout in seconds for the operation.</span>
+</span><span id="OperationTracker-25"><a href="#OperationTracker-25"><span class="linenos">25</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="OperationTracker-26"><a href="#OperationTracker-26"><span class="linenos">26</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span>
+</span><span id="OperationTracker-27"><a href="#OperationTracker-27"><span class="linenos">27</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">timeout</span>
+</span><span id="OperationTracker-28"><a href="#OperationTracker-28"><span class="linenos">28</span></a>
+</span><span id="OperationTracker-29"><a href="#OperationTracker-29"><span class="linenos">29</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">complete_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="OperationTracker-30"><a href="#OperationTracker-30"><span class="linenos">30</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mark an operation as completed and remove it from tracking.</span>
+</span><span id="OperationTracker-31"><a href="#OperationTracker-31"><span class="linenos">31</span></a>
+</span><span id="OperationTracker-32"><a href="#OperationTracker-32"><span class="linenos">32</span></a><span class="sd">        Args:</span>
+</span><span id="OperationTracker-33"><a href="#OperationTracker-33"><span class="linenos">33</span></a><span class="sd">            operation_id: Unique identifier for the operation to complete.</span>
+</span><span id="OperationTracker-34"><a href="#OperationTracker-34"><span class="linenos">34</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="OperationTracker-35"><a href="#OperationTracker-35"><span class="linenos">35</span></a>        <span class="k">if</span> <span class="n">operation_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
+</span><span id="OperationTracker-36"><a href="#OperationTracker-36"><span class="linenos">36</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
+</span><span id="OperationTracker-37"><a href="#OperationTracker-37"><span class="linenos">37</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
+</span><span id="OperationTracker-38"><a href="#OperationTracker-38"><span class="linenos">38</span></a>
+</span><span id="OperationTracker-39"><a href="#OperationTracker-39"><span class="linenos">39</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="OperationTracker-40"><a href="#OperationTracker-40"><span class="linenos">40</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Wait for all active operations to complete.</span>
+</span><span id="OperationTracker-41"><a href="#OperationTracker-41"><span class="linenos">41</span></a>
+</span><span id="OperationTracker-42"><a href="#OperationTracker-42"><span class="linenos">42</span></a><span class="sd">        Args:</span>
+</span><span id="OperationTracker-43"><a href="#OperationTracker-43"><span class="linenos">43</span></a><span class="sd">            timeout: Maximum time to wait in seconds.</span>
+</span><span id="OperationTracker-44"><a href="#OperationTracker-44"><span class="linenos">44</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="OperationTracker-45"><a href="#OperationTracker-45"><span class="linenos">45</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
+</span><span id="OperationTracker-46"><a href="#OperationTracker-46"><span class="linenos">46</span></a>            <span class="k">return</span>
+</span><span id="OperationTracker-47"><a href="#OperationTracker-47"><span class="linenos">47</span></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">([</span><span class="n">task</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+</span><span id="OperationTracker-48"><a href="#OperationTracker-48"><span class="linenos">48</span></a>
+</span><span id="OperationTracker-49"><a href="#OperationTracker-49"><span class="linenos">49</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_active_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span id="OperationTracker-50"><a href="#OperationTracker-50"><span class="linenos">50</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Get list of active operation IDs.</span>
+</span><span id="OperationTracker-51"><a href="#OperationTracker-51"><span class="linenos">51</span></a>
+</span><span id="OperationTracker-52"><a href="#OperationTracker-52"><span class="linenos">52</span></a><span class="sd">        Returns:</span>
+</span><span id="OperationTracker-53"><a href="#OperationTracker-53"><span class="linenos">53</span></a><span class="sd">            List of active operation identifiers.</span>
+</span><span id="OperationTracker-54"><a href="#OperationTracker-54"><span class="linenos">54</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="OperationTracker-55"><a href="#OperationTracker-55"><span class="linenos">55</span></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 </span></pre></div>
 
 
@@ -147,9 +204,31 @@
 </div>
 
 
+                            <div id="OperationTracker.__init__" class="classattr">
+                                        <input id="OperationTracker.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="name">OperationTracker</span><span class="signature pdoc-code condensed">()</span>
+
+                <label class="view-source-button" for="OperationTracker.__init__-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#OperationTracker.__init__"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.__init__-11"><a href="#OperationTracker.__init__-11"><span class="linenos">11</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="OperationTracker.__init__-12"><a href="#OperationTracker.__init__-12"><span class="linenos">12</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the operation tracker.&quot;&quot;&quot;</span>
+</span><span id="OperationTracker.__init__-13"><a href="#OperationTracker.__init__-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="OperationTracker.__init__-14"><a href="#OperationTracker.__init__-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Initialize the operation tracker.</p>
+</div>
+
+
+                            </div>
                             <div id="OperationTracker.active_operations" class="classattr">
                                 <div class="attr variable">
-            <span class="name">active_operations</span><span class="annotation">: Dict[str, _asyncio.Task]</span>
+            <span class="name">active_operations</span><span class="annotation">: dict[str, _asyncio.Task[typing.Any]]</span>
 
         
     </div>
@@ -160,7 +239,7 @@
                             </div>
                             <div id="OperationTracker.operation_timeouts" class="classattr">
                                 <div class="attr variable">
-            <span class="name">operation_timeouts</span><span class="annotation">: Dict[str, int]</span>
+            <span class="name">operation_timeouts</span><span class="annotation">: dict[str, int]</span>
 
         
     </div>
@@ -174,19 +253,35 @@
 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">register_operation</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span>, </span><span class="param"><span class="n">task</span><span class="p">:</span> <span class="n">_asyncio</span><span class="o">.</span><span class="n">Task</span>, </span><span class="param"><span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">register_operation</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">task</span><span class="p">:</span> <span class="n">_asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>,</span><span class="param">	<span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
                 <label class="view-source-button" for="OperationTracker.register_operation-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#OperationTracker.register_operation"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.register_operation-12"><a href="#OperationTracker.register_operation-12"><span class="linenos">12</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="OperationTracker.register_operation-13"><a href="#OperationTracker.register_operation-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span>
-</span><span id="OperationTracker.register_operation-14"><a href="#OperationTracker.register_operation-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">timeout</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.register_operation-16"><a href="#OperationTracker.register_operation-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_operation</span><span class="p">(</span>
+</span><span id="OperationTracker.register_operation-17"><a href="#OperationTracker.register_operation-17"><span class="linenos">17</span></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
+</span><span id="OperationTracker.register_operation-18"><a href="#OperationTracker.register_operation-18"><span class="linenos">18</span></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="OperationTracker.register_operation-19"><a href="#OperationTracker.register_operation-19"><span class="linenos">19</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register an active operation for tracking.</span>
+</span><span id="OperationTracker.register_operation-20"><a href="#OperationTracker.register_operation-20"><span class="linenos">20</span></a>
+</span><span id="OperationTracker.register_operation-21"><a href="#OperationTracker.register_operation-21"><span class="linenos">21</span></a><span class="sd">        Args:</span>
+</span><span id="OperationTracker.register_operation-22"><a href="#OperationTracker.register_operation-22"><span class="linenos">22</span></a><span class="sd">            operation_id: Unique identifier for the operation.</span>
+</span><span id="OperationTracker.register_operation-23"><a href="#OperationTracker.register_operation-23"><span class="linenos">23</span></a><span class="sd">            task: The asyncio task to track.</span>
+</span><span id="OperationTracker.register_operation-24"><a href="#OperationTracker.register_operation-24"><span class="linenos">24</span></a><span class="sd">            timeout: Timeout in seconds for the operation.</span>
+</span><span id="OperationTracker.register_operation-25"><a href="#OperationTracker.register_operation-25"><span class="linenos">25</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="OperationTracker.register_operation-26"><a href="#OperationTracker.register_operation-26"><span class="linenos">26</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span>
+</span><span id="OperationTracker.register_operation-27"><a href="#OperationTracker.register_operation-27"><span class="linenos">27</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">timeout</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><p>Register an active operation for tracking.</p>
+
+<p>Args:
+    operation_id: Unique identifier for the operation.
+    task: The asyncio task to track.
+    timeout: Timeout in seconds for the operation.</p>
+</div>
+
 
                             </div>
                             <div id="OperationTracker.complete_operation" class="classattr">
@@ -200,14 +295,24 @@
 
     </div>
     <a class="headerlink" href="#OperationTracker.complete_operation"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.complete_operation-16"><a href="#OperationTracker.complete_operation-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">complete_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="OperationTracker.complete_operation-17"><a href="#OperationTracker.complete_operation-17"><span class="linenos">17</span></a>        <span class="k">if</span> <span class="n">operation_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
-</span><span id="OperationTracker.complete_operation-18"><a href="#OperationTracker.complete_operation-18"><span class="linenos">18</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
-</span><span id="OperationTracker.complete_operation-19"><a href="#OperationTracker.complete_operation-19"><span class="linenos">19</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.complete_operation-29"><a href="#OperationTracker.complete_operation-29"><span class="linenos">29</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">complete_operation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="OperationTracker.complete_operation-30"><a href="#OperationTracker.complete_operation-30"><span class="linenos">30</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Mark an operation as completed and remove it from tracking.</span>
+</span><span id="OperationTracker.complete_operation-31"><a href="#OperationTracker.complete_operation-31"><span class="linenos">31</span></a>
+</span><span id="OperationTracker.complete_operation-32"><a href="#OperationTracker.complete_operation-32"><span class="linenos">32</span></a><span class="sd">        Args:</span>
+</span><span id="OperationTracker.complete_operation-33"><a href="#OperationTracker.complete_operation-33"><span class="linenos">33</span></a><span class="sd">            operation_id: Unique identifier for the operation to complete.</span>
+</span><span id="OperationTracker.complete_operation-34"><a href="#OperationTracker.complete_operation-34"><span class="linenos">34</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="OperationTracker.complete_operation-35"><a href="#OperationTracker.complete_operation-35"><span class="linenos">35</span></a>        <span class="k">if</span> <span class="n">operation_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
+</span><span id="OperationTracker.complete_operation-36"><a href="#OperationTracker.complete_operation-36"><span class="linenos">36</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
+</span><span id="OperationTracker.complete_operation-37"><a href="#OperationTracker.complete_operation-37"><span class="linenos">37</span></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation_timeouts</span><span class="p">[</span><span class="n">operation_id</span><span class="p">]</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><p>Mark an operation as completed and remove it from tracking.</p>
+
+<p>Args:
+    operation_id: Unique identifier for the operation to complete.</p>
+</div>
+
 
                             </div>
                             <div id="OperationTracker.wait_for_operations" class="classattr">
@@ -221,14 +326,24 @@
 
     </div>
     <a class="headerlink" href="#OperationTracker.wait_for_operations"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.wait_for_operations-21"><a href="#OperationTracker.wait_for_operations-21"><span class="linenos">21</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="OperationTracker.wait_for_operations-22"><a href="#OperationTracker.wait_for_operations-22"><span class="linenos">22</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
-</span><span id="OperationTracker.wait_for_operations-23"><a href="#OperationTracker.wait_for_operations-23"><span class="linenos">23</span></a>            <span class="k">return</span>
-</span><span id="OperationTracker.wait_for_operations-24"><a href="#OperationTracker.wait_for_operations-24"><span class="linenos">24</span></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">([</span><span class="n">task</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.wait_for_operations-39"><a href="#OperationTracker.wait_for_operations-39"><span class="linenos">39</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wait_for_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="OperationTracker.wait_for_operations-40"><a href="#OperationTracker.wait_for_operations-40"><span class="linenos">40</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Wait for all active operations to complete.</span>
+</span><span id="OperationTracker.wait_for_operations-41"><a href="#OperationTracker.wait_for_operations-41"><span class="linenos">41</span></a>
+</span><span id="OperationTracker.wait_for_operations-42"><a href="#OperationTracker.wait_for_operations-42"><span class="linenos">42</span></a><span class="sd">        Args:</span>
+</span><span id="OperationTracker.wait_for_operations-43"><a href="#OperationTracker.wait_for_operations-43"><span class="linenos">43</span></a><span class="sd">            timeout: Maximum time to wait in seconds.</span>
+</span><span id="OperationTracker.wait_for_operations-44"><a href="#OperationTracker.wait_for_operations-44"><span class="linenos">44</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="OperationTracker.wait_for_operations-45"><a href="#OperationTracker.wait_for_operations-45"><span class="linenos">45</span></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span>
+</span><span id="OperationTracker.wait_for_operations-46"><a href="#OperationTracker.wait_for_operations-46"><span class="linenos">46</span></a>            <span class="k">return</span>
+</span><span id="OperationTracker.wait_for_operations-47"><a href="#OperationTracker.wait_for_operations-47"><span class="linenos">47</span></a>        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">wait</span><span class="p">([</span><span class="n">task</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">values</span><span class="p">()],</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><p>Wait for all active operations to complete.</p>
+
+<p>Args:
+    timeout: Maximum time to wait in seconds.</p>
+</div>
+
 
                             </div>
                             <div id="OperationTracker.get_active_operations" class="classattr">
@@ -236,18 +351,28 @@
 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">get_active_operations</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>:</span></span>
+        <span class="name">get_active_operations</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>:</span></span>
 
                 <label class="view-source-button" for="OperationTracker.get_active_operations-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#OperationTracker.get_active_operations"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.get_active_operations-26"><a href="#OperationTracker.get_active_operations-26"><span class="linenos">26</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_active_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-</span><span id="OperationTracker.get_active_operations-27"><a href="#OperationTracker.get_active_operations-27"><span class="linenos">27</span></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> 
+            <div class="pdoc-code codehilite"><pre><span></span><span id="OperationTracker.get_active_operations-49"><a href="#OperationTracker.get_active_operations-49"><span class="linenos">49</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_active_operations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+</span><span id="OperationTracker.get_active_operations-50"><a href="#OperationTracker.get_active_operations-50"><span class="linenos">50</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Get list of active operation IDs.</span>
+</span><span id="OperationTracker.get_active_operations-51"><a href="#OperationTracker.get_active_operations-51"><span class="linenos">51</span></a>
+</span><span id="OperationTracker.get_active_operations-52"><a href="#OperationTracker.get_active_operations-52"><span class="linenos">52</span></a><span class="sd">        Returns:</span>
+</span><span id="OperationTracker.get_active_operations-53"><a href="#OperationTracker.get_active_operations-53"><span class="linenos">53</span></a><span class="sd">            List of active operation identifiers.</span>
+</span><span id="OperationTracker.get_active_operations-54"><a href="#OperationTracker.get_active_operations-54"><span class="linenos">54</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="OperationTracker.get_active_operations-55"><a href="#OperationTracker.get_active_operations-55"><span class="linenos">55</span></a>        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><p>Get list of active operation IDs.</p>
+
+<p>Returns:
+    List of active operation identifiers.</p>
+</div>
+
 
                             </div>
                 </section>

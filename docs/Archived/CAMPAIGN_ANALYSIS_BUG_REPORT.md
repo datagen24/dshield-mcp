@@ -1,8 +1,8 @@
 # Campaign Analysis Bug Report
 
-**Date:** 2025-07-06  
-**Branch:** `fix/campaign-analysis-debugging`  
-**Test IP:** `141.98.80.121`  
+**Date:** 2025-07-06
+**Branch:** `fix/campaign-analysis-debugging`
+**Test IP:** `141.98.80.121`
 **Test Results:** 4/6 tests passed (Updated after query syntax fixes)
 
 ## Executive Summary
@@ -19,7 +19,7 @@ The campaign analysis functionality has several critical issues that prevent pro
 - **Component:** `src/elasticsearch_client.py`
 - **Description:** Many fields are not being mapped correctly from Elasticsearch documents
 - **Impact:** Campaign analysis cannot properly extract IP addresses and other critical data
-- **Evidence:** 
+- **Evidence:**
   ```
   Field type 'destination_ip' not mapped in document
   Field type 'source_ip' not mapped in document
@@ -86,7 +86,7 @@ The campaign analysis functionality has several critical issues that prevent pro
 - **Component:** `src/elasticsearch_client.py`
 - **Description:** IP enrichment query has syntax error with array values
 - **Impact:** IP reputation and enrichment data cannot be retrieved
-- **Evidence:** 
+- **Evidence:**
   ```
   BadRequestError(400, 'x_content_parse_exception', '[term] query does not support array of values')
   ```
@@ -160,4 +160,4 @@ The campaign analysis functionality has several critical issues that prevent pro
 
 - [Campaign Analysis Debugging](CAMPAIGN_ANALYSIS_DEBUGGING.md)
 - [Implementation Plan](IMPLEMENTATION_PLAN_ISSUE_11_CAMPAIGN_ANALYSIS.md)
-- [Enhancements](Enhancements.md) 
+- [Enhancements](Enhancements.md)

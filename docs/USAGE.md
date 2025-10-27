@@ -153,7 +153,7 @@ The data dictionary is automatically provided to AI models during initialization
 1. **Generate Context**:
    ```python
    from src.context_injector import ContextInjector
-   
+
    context_injector = ContextInjector()
    context = context_injector.prepare_security_context(events, threat_intelligence)
    chatgpt_context = context_injector.inject_context_for_chatgpt(context)
@@ -239,16 +239,16 @@ async def demonstrate_data_dictionary():
     # Get the initial prompt for models
     prompt = DataDictionary.get_initial_prompt()
     print(f"Generated prompt ({len(prompt)} characters)")
-    
+
     # Get field descriptions
     field_descriptions = DataDictionary.get_field_descriptions()
     print(f"Available field categories: {list(field_descriptions.keys())}")
-    
+
     # Get query examples
     query_examples = DataDictionary.get_query_examples()
     for name, example in query_examples.items():
         print(f"{name}: {example['description']}")
-    
+
     # Get analysis guidelines
     guidelines = DataDictionary.get_analysis_guidelines()
     print(f"Correlation rules: {len(guidelines['correlation_rules'])}")
@@ -280,31 +280,31 @@ async def basic_analysis():
     es_client = ElasticsearchClient()
     dshield_client = DShieldClient()
     data_processor = DataProcessor()
-    
+
     # Connect to Elasticsearch
     await es_client.connect()
-    
+
     # Query recent events
     events = await es_client.query_security_events(time_range_hours=24)
-    
+
     # Process events
     processed_events = data_processor.process_security_events(events)
-    
+
     # Generate summary
     summary = data_processor.generate_security_summary(processed_events)
-    
+
     # Extract IPs for enrichment
     unique_ips = data_processor.extract_unique_ips(processed_events)
-    
+
     # Enrich with threat intelligence
     threat_intelligence = {}
     for ip in unique_ips[:10]:  # Limit to avoid rate limiting
         ti_data = await dshield_client.get_ip_reputation(ip)
         threat_intelligence[ip] = ti_data
-    
+
     # Generate attack report
     report = data_processor.generate_attack_report(processed_events, threat_intelligence)
-    
+
     return summary, report, threat_intelligence
 
 # Run analysis
@@ -317,18 +317,18 @@ summary, report, ti = asyncio.run(basic_analysis())
 async def analyze_specific_ips(ip_addresses):
     es_client = ElasticsearchClient()
     dshield_client = DShieldClient()
-    
+
     await es_client.connect()
-    
+
     # Query events for specific IPs
     events = await es_client.query_events_by_ip(ip_addresses, time_range_hours=24)
-    
+
     # Enrich IPs with threat intelligence
     threat_intelligence = {}
     for ip in ip_addresses:
         ti_data = await dshield_client.get_ip_reputation(ip)
         threat_intelligence[ip] = ti_data
-    
+
     return events, threat_intelligence
 
 # Analyze specific IPs
@@ -347,37 +347,37 @@ from src.data_processor import DataProcessor
 async def monitor_security_events():
     es_client = ElasticsearchClient()
     data_processor = DataProcessor()
-    
+
     await es_client.connect()
-    
+
     while True:
         try:
             # Query recent events (last hour)
             events = await es_client.query_security_events(time_range_hours=1)
-            
+
             if events:
                 # Process and analyze
                 processed_events = data_processor.process_security_events(events)
                 summary = data_processor.generate_security_summary(processed_events)
-                
+
                 # Check for high-severity events
                 high_severity = summary.get('events_by_severity', {}).get('high', 0)
                 critical_severity = summary.get('events_by_severity', {}).get('critical', 0)
-                
+
                 if high_severity > 0 or critical_severity > 0:
                     print(f"ALERT: {high_severity} high and {critical_severity} critical events detected!")
-                    
+
                     # Generate report for high-severity events
-                    high_events = [e for e in processed_events 
+                    high_events = [e for e in processed_events
                                  if e.get('severity') in ['high', 'critical']]
                     report = data_processor.generate_attack_report(high_events)
-                    
+
                     print(f"Report: {report['title']}")
                     print(f"Impact: {report['impact_assessment']}")
-            
+
             # Wait before next check
             await asyncio.sleep(300)  # 5 minutes
-            
+
         except Exception as e:
             print(f"Error in monitoring: {e}")
             await asyncio.sleep(60)  # Wait 1 minute on error
@@ -553,4 +553,4 @@ For issues and questions:
 1. Check the troubleshooting section
 2. Review the example code
 3. Check the configuration validation
-4. Enable debug logging for detailed error information 
+4. Enable debug logging for detailed error information

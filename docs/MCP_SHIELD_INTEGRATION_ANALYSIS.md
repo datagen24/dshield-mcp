@@ -217,32 +217,32 @@ from typing import Dict, List, Any
 
 class MCPShieldScanner:
     """Integration wrapper for MCP-Shield security scanning."""
-    
+
     def __init__(self, config_path: str = None):
         self.config_path = config_path or self._find_mcp_config()
-        
+
     def scan(self, claude_api_key: str = None) -> Dict[str, Any]:
         """Run MCP-Shield security scan."""
         cmd = ["npx", "mcp-shield"]
-        
+
         if self.config_path:
             cmd.extend(["--path", self.config_path])
-            
+
         if claude_api_key:
             cmd.extend(["--claude-api-key", claude_api_key])
-            
+
         # Add safe list for trusted servers
         cmd.extend(["--safe-list", "dshield-elastic-mcp"])
-        
+
         result = subprocess.run(cmd, capture_output=True, text=True)
-        
+
         return {
             "exit_code": result.returncode,
             "stdout": result.stdout,
             "stderr": result.stderr,
             "vulnerabilities": self._parse_vulnerabilities(result.stdout)
         }
-    
+
     def _parse_vulnerabilities(self, output: str) -> List[Dict[str, Any]]:
         """Parse MCP-Shield output for vulnerabilities."""
         # Implementation for parsing scan results
@@ -264,22 +264,22 @@ on:
 jobs:
   security-scan:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        
+
     - name: Install MCP-Shield
       run: npm install -g mcp-shield
-      
+
     - name: Run Security Scan
       run: |
         mcp-shield --path .mcp/ --safe-list "dshield-elastic-mcp" --claude-api-key ${{ secrets.CLAUDE_API_KEY }}
-        
+
     - name: Upload Security Report
       uses: actions/upload-artifact@v3
       with:
@@ -297,7 +297,7 @@ import json
 
 class SecurityValidator:
     """Security validation for MCP tools."""
-    
+
     def __init__(self):
         self.sensitive_patterns = [
             r'~/.ssh',
@@ -308,7 +308,7 @@ class SecurityValidator:
             r'secret',
             r'key'
         ]
-        
+
         self.hidden_instruction_patterns = [
             r'<instructions>',
             r'<secret>',
@@ -318,11 +318,11 @@ class SecurityValidator:
             r'do not mention',
             r'do not tell'
         ]
-    
+
     def validate_tool_description(self, description: str) -> List[Dict[str, Any]]:
         """Validate tool description for security issues."""
         issues = []
-        
+
         # Check for hidden instructions
         for pattern in self.hidden_instruction_patterns:
             if re.search(pattern, description, re.IGNORECASE):
@@ -332,7 +332,7 @@ class SecurityValidator:
                     "severity": "high",
                     "description": f"Potential hidden instructions detected: {pattern}"
                 })
-        
+
         # Check for sensitive file access
         for pattern in self.sensitive_patterns:
             if re.search(pattern, description, re.IGNORECASE):
@@ -342,16 +342,16 @@ class SecurityValidator:
                     "severity": "high",
                     "description": f"Potential sensitive file access: {pattern}"
                 })
-        
+
         return issues
-    
+
     def validate_tool_schema(self, schema: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Validate tool schema for security issues."""
         issues = []
-        
+
         # Check for suspicious parameters
         suspicious_params = ['feedback', 'debug', 'extra', 'metadata', 'notes']
-        
+
         if 'properties' in schema:
             for param in suspicious_params:
                 if param in schema['properties']:
@@ -361,7 +361,7 @@ class SecurityValidator:
                         "severity": "medium",
                         "description": f"Potentially suspicious parameter: {param}"
                     })
-        
+
         return issues
 ```
 
@@ -454,7 +454,7 @@ The current codebase shows good security practices, but adding automated securit
 - [MCP-Shield Repository](https://github.com/riseandignite/mcp-shield)
 - [MCP Security Research](https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
-- [DShield MCP Project](https://github.com/your-org/dshield-mcp) 
+- [DShield MCP Project](https://github.com/your-org/dshield-mcp)
 
 ## Dependencies
 
@@ -495,4 +495,4 @@ See `requirements.txt`, `requirements-dev.txt`, and Node.js documentation for fu
 - **Optimization Strategies:**
   - Use safe lists and exclusions to minimize unnecessary scanning
   - Schedule scans during off-peak hours or as part of nightly builds
-  - Monitor scan times and optimize configuration as needed 
+  - Monitor scan times and optimize configuration as needed

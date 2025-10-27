@@ -1,0 +1,246 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dshield-mcp"
+version = "1.0.0"
+description = "DShield Monitoring and Control Platform - MCP Server"
+authors = [
+    {name = "DShield MCP Team", email = "team@dshield-mcp.org"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Core MCP dependencies
+    "mcp",
+    "structlog>=23.0.0",
+    # Elasticsearch client
+    "elasticsearch>=8.0.0,<9.0.0",
+    # HTTP client for DShield API
+    "aiohttp>=3.12.13",
+    "httpx>=0.24.0",
+    # Data processing and validation
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    # Environment configuration
+    "python-dotenv>=1.0.0",
+    # Async utilities
+    "asyncio-mqtt>=0.13.0",
+    # Date/time handling
+    "python-dateutil>=2.8.0",
+    # Scientific computing and ML (optimized for Apple M-series)
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "scikit-learn>=1.3.0",
+    # TUI and Terminal Interface
+    "textual>=5.0.0",
+    "rich>=13.3.3",
+    # TCP Transport and Process Management
+    "psutil>=5.9.0",
+    # Network and Security
+    "cryptography>=41.0.0",
+    # YAML support
+    "PyYAML>=6.0",
+    # Additional utilities
+    "zipp>=3.23.0",
+    "h11>=0.16.0",
+    "pytest-cov>=6.2.1",
+    "pytest-asyncio>=1.1.0",
+    "pdoc>=15.0.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+
+    # Code formatting and linting
+    "black>=24.3.0",
+    "flake8>=6.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+
+    # Type checking
+    "types-python-dateutil>=2.8.0",
+
+    # Documentation
+    "sphinx>=6.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+    "pdoc>=14.0.0",
+    "pydoc-markdown>=4.8.0",
+
+    # Development tools
+    "pre-commit>=3.0.0",
+    "tox>=4.0.0",
+
+    # Jupyter notebooks (for development/testing)
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
+
+    # Debugging
+    "ipdb>=0.13.0",
+
+    # TUI Development and Testing
+    "textual-dev>=0.1.0",
+
+    # Security and Testing Tools
+    "bandit>=1.7.0",
+    "safety>=2.0.0",
+
+    # Security fixes
+    "requests>=2.32.4",
+    "setuptools>=78.1.1",
+    "urllib3>=2.5.0",
+    "zipp>=3.19.1",
+]
+
+[project.scripts]
+dshield-mcp = "mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "preserve"
+
+[tool.ruff.lint]
+# Enable comprehensive rule sets
+select = [
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "D",    # pydocstyle
+    "C90",  # mccabe complexity
+    "RUF",  # Ruff-specific rules
+]
+# Justified ignores with explanations
+ignore = [
+    "D203",   # 1 blank line required before class docstring (conflicts with D211)
+    "D212",   # Multi-line docstring summary should start at the first line (conflicts with D213)
+    "RUF006", # Store reference to asyncio.create_task - would require major refactoring
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+# Set complexity threshold - increased for existing codebase
+max-complexity = 15
+
+[tool.ruff.lint.per-file-ignores]
+# TUI files: Skip docstrings and annotations (Textual library has typing issues)
+"src/tui/**" = ["D", "ANN"]
+# Test files: Skip docstrings (tests are self-documenting)
+"tests/**" = ["D"]
+# Example files: Allow longer lines and complexity for demonstration
+"examples/**" = ["E501", "C901"]
+# Scripts: Allow print statements and longer lines
+"scripts/**" = ["T201", "E501"]
+# Specific complex functions that need future refactoring - document as technical debt
+"mcp_server.py" = ["C901"]  # _register_tools and handle_call_tool need refactoring
+"src/elasticsearch_client.py" = ["C901"]  # Multiple complex query methods need refactoring
+"src/user_config.py" = ["C901"]  # Configuration validation needs refactoring
+"src/config_loader.py" = ["C901"]  # Error handling config functions need refactoring
+"src/data_processor.py" = ["C901"]  # Security summary generation needs refactoring
+"src/threat_intelligence_manager.py" = ["C901"]  # Data availability diagnosis needs refactoring
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "textual.*",
+    "mcp.*",
+    "elasticsearch.*",
+    "aiohttp.*",
+    "structlog.*",
+    "pydantic.*",
+    "networkx.*",
+    "sklearn.*",
+    "psutil.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[dependency-groups]
+dev = [
+    "pytest-faulthandler>=2.0.1,<3",
+    "pytest-mock>=3.14.1",
+    "pytest-random-order>=1.1.0,<2",
+    "pytest-timeout>=2.3.1,<3",
+    "types-jsonschema>=4.25.1.20250822",
+]

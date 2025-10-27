@@ -24,19 +24,19 @@ The main class that provides all LaTeX template automation functionality:
 ```python
 class LaTeXTemplateTools:
     """MCP tools for LaTeX template automation and document generation."""
-    
+
     def __init__(self, template_base_path: Optional[str] = None):
         """Initialize with template directory path."""
-    
+
     async def generate_document(self, template_name: str, document_data: Dict[str, Any], ...) -> Dict[str, Any]:
         """Generate complete document from template."""
-    
+
     async def list_available_templates(self) -> Dict[str, Any]:
         """List all available templates with metadata."""
-    
+
     async def get_template_schema(self, template_name: str) -> Dict[str, Any]:
         """Get template schema and requirements."""
-    
+
     async def validate_document_data(self, template_name: str, document_data: Dict[str, Any]) -> Dict[str, Any]:
         """Validate document data against template requirements."""
 ```
@@ -218,7 +218,7 @@ async def test_generate_document_tex_format(self, latex_tools: LaTeXTemplateTool
         document_data=sample_document_data,
         output_format="tex"
     )
-    
+
     assert result["success"] is True
     assert result["document"]["template_name"] == "Attack_Report"
     assert result["document"]["output_format"] == "tex"
@@ -363,4 +363,4 @@ validation = await latex_tools.validate_document_data("Attack_Report", document_
 
 The LaTeX Template Automation feature provides a robust, scalable solution for generating professional documents through MCP tools. The modular design, comprehensive validation, and flexible configuration make it suitable for various use cases beyond security reporting.
 
-The implementation follows best practices for security, performance, and maintainability, with extensive testing and documentation to ensure reliability and ease of use. 
+The implementation follows best practices for security, performance, and maintainability, with extensive testing and documentation to ensure reliability and ease of use.

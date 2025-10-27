@@ -5,20 +5,20 @@ alwaysApply: true
 ---
 
 Update this rule if user requested changes to the project requirement, etc.
-# Tech Stack Document for dsheild-mcp
+# Tech Stack Document for dshield-mcp
 
 This document explains, in everyday language, the technology choices behind the `dsheild-mcp` (DShield Monitoring and Control Platform) project. It covers everything from how the system talks to users, to how it keeps data safe and fast.
 
 ## 1. Frontend Technologies
 
-Although `dsheild-mcp` is a backend service without a traditional web or mobile user interface, it still exposes a simple “front door” for users and other tools:
+Although `dshield-mcp` is a backend service without a traditional web or mobile user interface, it still exposes a simple “front door” for users and other tools:
 
 *   Command-line interaction (CLI)
-*   MCP protocol endpoints (JSON over HTTP via `aiohttp`)
+*   MCP protocol over STDIO and TCP transports (JSON-RPC 2.0)
 
 Key points:
 
-*   There is no graphical user interface—security analysts interact through terminal commands or via AI/automation clients.
+*   There is no graphical web user interface—security analysts interact through terminal commands or via AI/automation clients. An optional Textual-based TUI is available for local monitoring and control.
 *   Results come back as structured JSON or generated PDF reports, ready to view or plug into other systems.
 
 ## 2. Backend Technologies
@@ -27,11 +27,16 @@ All of the core work—connecting to data stores, crunching numbers, and generat
 
 **Programming Language**
 
-*   Python 3.8+ (main language for all logic and tools)
+*   Python 3.12+ (project target and CI target)
 
-**Web & HTTP Framework**
+**MCP Server and Transports**
 
-*   aiohttp (handles incoming MCP requests and outgoing API calls in an asynchronous, efficient way)
+*   mcp (Python MCP server library) for STDIO transport
+*   Custom TCP transport/server implementing JSON-RPC 2.0 with authentication and security
+
+**HTTP Clients**
+
+*   aiohttp and httpx (outgoing HTTP calls to external services like DShield API)
 
 **Database & Search**
 
@@ -39,7 +44,8 @@ All of the core work—connecting to data stores, crunching numbers, and generat
 
 **Data Modeling & Validation**
 
-*   Pydantic (defines clear data models and checks incoming data for correctness)
+*   Pydantic v2 (models and validation)
+*   pydantic-settings (typed configuration management)
 
 **Configuration & Secrets**
 
@@ -56,6 +62,16 @@ All of the core work—connecting to data stores, crunching numbers, and generat
 *   pathlib, tempfile, subprocess (file handling and external process calls)
 *   datetime / python-dateutil (time handling and parsing)
 *   dataclasses, typing, enum, collections.Counter (code clarity and data operations)
+
+**Console UI (optional)**
+
+*   Textual (TUI) for local monitoring and developer tooling
+
+**Transport Defaults and Targets**
+
+*   Default launch mode: STDIO (recommended for analyst workstations)
+*   Advanced modes: TCP server and TUI
+*   TCP deployment targets: macOS hosts and Red Hat UBI container (planned; container support to be finalized)
 
 **Network & Analysis**
 
@@ -83,7 +99,7 @@ How the platform is hosted, updated, and versioned:
 
 *   Version Control: Git (hosted on GitHub)
 *   CI/CD: GitHub Actions (runs tests, linting, security scans, and builds docs automatically on each commit)
-*   Deployment: Runs on any Linux server or VM with Python 3.8+, Elasticsearch access, and a LaTeX distribution installed
+*   Deployment: Runs on macOS or Linux servers/VMs with Python 3.12+, Elasticsearch access, and a LaTeX distribution installed
 *   Containerization (optional): You can package the service in Docker for consistent environments, though it’s not required by the core system
 
 These choices ensure:
@@ -94,7 +110,7 @@ These choices ensure:
 
 ## 4. Third-Party Integrations
 
-`dsheild-mcp` works with several external services to enrich data and produce high-quality outputs:
+`dshield-mcp` works with several external services to enrich data and produce high-quality outputs:
 
 *   **DShield API:** Fetches real-time threat intelligence (IP reputation, top attackers, attack summaries) with built-in caching and rate limiting
 *   **Elasticsearch Cluster:** Primary store for all incoming security events, supporting smart pagination and aggregations
@@ -112,8 +128,8 @@ We’ve put several layers in place to keep data safe and the system responsive:
 *   No hard-coded secrets—everything comes from environment variables or the 1Password CLI
 *   Input validation via Pydantic models to prevent injection attacks
 *   Rate limiting and caching around DShield API calls to avoid external throttling
-*   Structured logging with no sensitive data in logs
-*   Access controls on MCP endpoints (can be extended with API keys or network rules). Current implementation uses STDIO; future implementation may use network sockets, in which we will need to implement an authentication layer
+*   Structured logging with no sensitive data in logs (configured to stderr)
+*   Access controls on MCP transports (STDIO and TCP) with API-key authentication and permissions on TCP
 *   Security validation tools (`SecurityValidator` and `SecurityMonitor`) check for hidden instructions or anomalous tool usage
 
 **Performance Optimizations**
@@ -128,16 +144,17 @@ Together, these measures aim for end-to-end campaign analysis in under 60 second
 
 ## 6. Conclusion and Overall Tech Stack Summary
 
-`dsheild-mcp` brings together a modern, Python-centric toolkit to automate sophisticated security analysis in a DShield SIEM environment. Key highlights:
+`dshield-mcp` brings together a modern, Python-centric toolkit to automate sophisticated security analysis in a DShield SIEM environment. Key highlights:
 
-*   **Python 3.8+** with async support for responsive I/O
-*   **aiohttp** and **AsyncElasticsearch** for fast, non-blocking operations
-*   **Pydantic** for rock-solid data validation and configuration management
-*   **structlog** for clear, structured logging
+*   **Python 3.12+** with async support
+*   **mcp (STDIO)** and a **custom TCP server** for JSON-RPC 2.0 transport
+*   **AsyncElasticsearch** for fast, non-blocking ES operations
+*   **Pydantic v2** and **pydantic-settings** for data validation and configuration
+*   **structlog** for clear, structured logging (stderr)
 *   **1Password CLI** for zero-trust secret handling
 *   **Elasticsearch** as a scalable event store with smart query strategies
 *   **LaTeX** for professional PDF reporting
 *   **GitHub Actions** for automated testing, linting, and documentation
-*   **Optional graph and ML libraries** (networkx, scikit-learn) for future pattern detection enhancements
+*   **Optional graph and ML libraries** (networkx, scikit-learn) and **Textual TUI** for local monitoring
 
 This stack was chosen to balance **performance**, **security**, **extensibility**, and **ease of use**—giving security analysts a powerful backend service that integrates seamlessly with their existing workflows and infrastructure.

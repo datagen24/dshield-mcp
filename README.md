@@ -15,6 +15,7 @@ This MCP (Model Context Protocol) utility connects your DShield SIEM with ChatGP
 - **Config Optimization**: Streamlined index patterns to minimize connection retries
 - **LaTeX Template Automation**: Generate professional security reports using customizable LaTeX templates with variable substitution and PDF compilation
 - **Data Availability Diagnostics**: Comprehensive troubleshooting tools for data availability issues with actionable recommendations
+- **Persistent API Key Management**: Secure API key storage and management with 1Password integration, configurable permissions, and expiration handling
 
 ## DShield-Specific Capabilities
 
@@ -44,6 +45,40 @@ The following index patterns are supported and optimized for minimal retries:
 - **DShieldGeographicData**: Geographic attack distribution
 - **DShieldPortData**: Port-based attack analysis
 - **DShieldStatistics**: Comprehensive DShield statistics
+
+### API Key Management
+The system provides comprehensive API key management with persistent storage and security features:
+
+**Key Features:**
+- **Persistent Storage**: API keys stored securely in 1Password using the `op` CLI
+- **Configurable Permissions**: Granular permission control (read tools, write back, admin access)
+- **Expiration Management**: Configurable expiration periods with automatic validation
+- **Rate Limiting**: Per-key rate limiting to prevent abuse
+- **TUI Management**: Visual interface for key generation, management, and deletion
+- **Session Management**: Automatic session termination when keys are revoked
+
+**Configuration:**
+```yaml
+api_key_management:
+  storage_provider: "1password_cli"
+  onepassword_cli:
+    vault: "DShield-MCP"  # Your 1Password vault name
+    cache_ttl: 60
+    sync_interval: 60
+  defaults:
+    expiration_days: 90
+    rate_limit_per_minute: 60
+    permissions:
+      read_tools: true
+      write_back: false
+      admin_access: false
+```
+
+**Usage:**
+- Generate keys through the TUI interface or programmatically
+- Keys are automatically loaded on server startup
+- Expired keys are automatically rejected
+- Keys can be deleted with automatic session termination
 
 ### Diagnostic & Troubleshooting
 The system includes comprehensive diagnostic capabilities to help troubleshoot data availability issues:
@@ -115,7 +150,8 @@ For detailed implementation information and development history:
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.10 or higher (UV will install the correct version if needed)
+- UV package manager
 - Access to Elasticsearch cluster with DShield data
 - DShield API key (optional, for threat intelligence enrichment)
 - LaTeX distribution (optional, for PDF report generation)
@@ -123,7 +159,21 @@ For detailed implementation information and development history:
   - **Linux**: Install TeX Live via `sudo apt-get install texlive-full` (Ubuntu/Debian) or `sudo yum install texlive-scheme-full` (RHEL/CentOS)
   - **Windows**: Install MiKTeX from https://miktex.org/download
 
-### Virtual Environment Setup
+### UV Package Manager Installation
+
+**Install UV first:**
+```bash
+# Linux/macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Windows (PowerShell)
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Or via pip
+pip install uv
+```
+
+### Environment Setup
 
 #### Option 1: Automated Setup (Recommended)
 
@@ -142,7 +192,21 @@ chmod +x setup_venv.sh
 setup_venv.bat
 ```
 
-#### Option 2: Manual Setup
+#### Option 2: Manual UV Setup
+
+**All platforms:**
+```bash
+# Install project dependencies
+uv sync
+
+# Install development dependencies
+uv sync --group dev
+
+# Copy environment template
+cp .env.example .env
+```
+
+#### Option 3: Traditional pip Setup (Legacy)
 
 **Linux/macOS:**
 ```bash
@@ -194,7 +258,7 @@ copy .env.example .env
    ELASTICSEARCH_URL=https://your-elasticsearch-cluster:9200
    ELASTICSEARCH_USERNAME=elastic
    ELASTICSEARCH_PASSWORD=your-password
-   
+
    # DShield API Configuration (optional)
    DSHIELD_API_KEY=your-dshield-api-key
    DSHIELD_API_URL=https://dshield.org/api
@@ -216,7 +280,27 @@ The output directory is created automatically if it doesn't exist.
 
 ### Running the Application
 
-#### Activate Virtual Environment
+#### Option 1: Using UV (Recommended)
+
+**All platforms:**
+```bash
+# Run the MCP server directly with UV
+uv run python mcp_server.py
+
+# Run the TUI interface
+uv run python -m src.tui_launcher
+
+# Run the TCP server
+uv run python -m src.server_launcher --transport tcp
+
+# Run examples
+uv run python examples/basic_usage.py
+
+# Run tests
+uv run pytest
+```
+
+#### Option 2: Traditional Virtual Environment
 
 **Linux/macOS:**
 ```bash
@@ -224,44 +308,51 @@ The output directory is created automatically if it doesn't exist.
 ./activate_venv.sh
 
 # Or manually activate
-source venv/bin/activate
-```
-
-**Windows:**
-```cmd
-venv\Scripts\activate.bat
-```
-
-#### Run the MCP Server
-```bash
-# Activate virtual environment first
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate.bat  # Windows
+source .venv/bin/activate
 
 # Run the MCP server
 python mcp_server.py
 ```
 
+**Windows:**
+```cmd
+.venv\Scripts\activate.bat
+python mcp_server.py
+```
+
+#### Run the MCP Server (STDIO default)
+```bash
+# Using UV (recommended)
+uv run python mcp_server.py
+
+# Or with traditional virtual environment
+source .venv/bin/activate  # Linux/macOS
+# or
+.venv\Scripts\activate.bat  # Windows
+python mcp_server.py
+
+STDIO is the default and recommended mode for analyst workstations. Advanced modes include TCP server and the optional Textual-based TUI.
+```
+
 #### Run Examples
 ```bash
-# Basic usage example
+# Using UV (recommended)
+uv run python examples/basic_usage.py
+uv run python examples/data_dictionary_usage.py
+uv run python examples/latex_template_usage.py
+uv run python examples/enhanced_threat_intelligence_usage.py
+uv run python examples/statistical_anomaly_detection_usage.py
+
+# Or with traditional virtual environment
+source .venv/bin/activate  # Linux/macOS
+# or
+.venv\Scripts\activate.bat  # Windows
+
 python examples/basic_usage.py
-
-# Data dictionary usage example
 python examples/data_dictionary_usage.py
-
-# LaTeX template usage example
 python examples/latex_template_usage.py
-
-# Test installation (in dev_tools folder)
-cd dev_tools && python test_installation.py
-
-# Test data dictionary functionality (in dev_tools folder)
-cd dev_tools && python test_data_dictionary.py
-
-# Configure settings
-python config.py
+python examples/enhanced_threat_intelligence_usage.py
+python examples/statistical_anomaly_detection_usage.py
 ```
 
 #### Deactivate Virtual Environment
@@ -333,6 +424,7 @@ python debug_elasticsearch.py
 - `ELASTICSEARCH_PASSWORD`: Elasticsearch password
 - `DSHIELD_API_KEY`: DShield API key for threat intelligence
 - `LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
+- `LOG_FILE_PATH`: Optional path to a log file (recommended). JSON-RPC protocol messages are sent on stdout; logs are written to stderr and to the configured file.
 
 ### 1Password Integration
 
@@ -344,10 +436,10 @@ The DShield MCP supports 1Password CLI integration for secure secret management.
    ```bash
    # macOS (using Homebrew)
    brew install 1password-cli
-   
+
    # Linux
    # Download from: https://1password.com/downloads/command-line/
-   
+
    # Windows
    # Download from: https://1password.com/downloads/command-line/
    ```
@@ -404,6 +496,12 @@ If 1Password CLI is not available or fails to resolve a URL:
 - The system will log a warning
 - The original `op://` URL will be used as-is
 - This prevents application crashes if 1Password is unavailable
+
+### Transports and OS Targets
+
+- Default: STDIO (analyst workstations)
+- Advanced: TCP server and TUI
+- TCP targets: macOS hosts and Red Hat UBI-based container (planned; container support will be finalized in a future iteration)
 
 ### DShield Elasticsearch Indices
 
@@ -656,4 +754,22 @@ For support and questions about DShield integration:
 
 ## DShield Integration Credits
 
-This utility is specifically designed to work with the [DShield-SIEM](https://github.com/bruneaug/DShield-SIEM) project and follows DShield data patterns and structures. 
+This utility is specifically designed to work with the [DShield-SIEM](https://github.com/bruneaug/DShield-SIEM) project and follows DShield data patterns and structures.
+## TUI Tests: Headless Mode and Manual Checks
+
+Unit tests for the Textual TUI run in a headless mode to avoid spawning real
+terminal I/O threads during CI. This improves reliability and prevents stray
+background processes.
+
+- The test helper uses a headless/null driver and disables costly UI refreshes.
+- Some heavy UI loop tests (e.g. memory‑usage stress) are shortened or skipped
+  in CI via `TUI_HEADLESS=1` / `TUI_FAST=1` to avoid long redraw loops and
+  potential driver stalls in sandboxed runners.
+
+Manual validation:
+- To manually validate full UI behavior, unset headless flags and run specific
+  tests locally:
+  - `unset TUI_HEADLESS TUI_FAST && pytest -q tests/tui/test_status_bar.py::TestStatusBar::test_status_bar_memory_usage`
+- Or run the TUI application normally and exercise the status bar updates.
+
+Note: The headless mode is test‑only and does not affect production behavior.

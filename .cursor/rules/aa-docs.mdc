@@ -25,3 +25,9 @@ alwaysApply: true
 - When an enhancement or feature is completed, summarize it and move the entry from enhancements.md to CHANGELOG.md.
 - Ensure that enhancements.md reflects only current and future work, not completed items.
 - Regularly review and reconcile enhancements.md and CHANGELOG.md to maintain accuracy and clarity in project history.
+ - Documentation generation is required and must block PR merges: generate HTML via pdoc to `docs/api` and Markdown via pydoc-markdown to `docs/api_markdown`.
+    - this has been automated using the scripts/build_api_docs.py script
+ - Docstring standards: Google-style docstrings for all modules, classes, methods, and functions with types, returns, raises, and examples where helpful.
+ - Keep API docs synchronized with code: update docstrings when signatures change; document breaking changes and deprecations; version docs alongside code.
+ - Run documentation generation in CI on every PR and on merge to main. PRs must include links to updated docs in the PR body.
+ - Implementation docs are required when a feature/fix is complex enough to warrant one; link them from the PR and `docs/README.md`.

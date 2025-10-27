@@ -1,9 +1,12 @@
 import pytest
-from src.health_check_manager import HealthCheckManager
-from src.feature_manager import FeatureManager
+
 from src.dynamic_tool_registry import DynamicToolRegistry
+from src.feature_manager import FeatureManager
+from src.health_check_manager import HealthCheckManager
+
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_health_check_manager():
     manager = HealthCheckManager()
     result = await manager.run_all_checks()
@@ -11,13 +14,15 @@ async def test_health_check_manager():
     assert "status" in result
     assert "details" in result
     assert "summary" in result
-    
+
     # Check that the status contains boolean values
     health_status = result["status"]
     assert isinstance(health_status, dict)
     assert all(isinstance(v, bool) for v in health_status.values())
 
+
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_feature_manager():
     health_manager = HealthCheckManager()
     await health_manager.run_all_checks()
@@ -26,7 +31,9 @@ async def test_feature_manager():
     features = feature_manager.get_available_features()
     assert isinstance(features, list)
 
+
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_dynamic_tool_registry():
     health_manager = HealthCheckManager()
     await health_manager.run_all_checks()
@@ -43,4 +50,4 @@ async def test_dynamic_tool_registry():
     ]
     available = registry.register_tools(all_tools)
     assert isinstance(available, list)
-    assert set(available).issubset(set(all_tools)) 
+    assert set(available).issubset(set(all_tools))

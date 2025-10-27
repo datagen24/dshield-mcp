@@ -1,9 +1,9 @@
 # BUG-003: Seed Event Retrieval Fix Implementation
 
-**Date:** 2025-07-06  
-**Issue:** [#27](https://github.com/datagen24/dsheild-mcp/issues/27)  
-**PR:** [#35](https://github.com/datagen24/dsheild-mcp/pull/35)  
-**Status:** ✅ RESOLVED  
+**Date:** 2025-07-06
+**Issue:** [#27](https://github.com/datagen24/dsheild-mcp/issues/27)
+**PR:** [#35](https://github.com/datagen24/dsheild-mcp/pull/35)
+**Status:** ✅ RESOLVED
 **Test Results:** 6/6 tests passing (100% success rate)
 
 ## 🎯 Problem Summary
@@ -48,17 +48,17 @@ dshield_field_mappings = {
     # Original mappings
     'source_ip': 'source_ip',
     'destination_ip': 'destination_ip',
-    
+
     # ECS field mappings
     'source.address': 'source.address',
     'destination.address': 'destination.address',
     'related.ip': 'related.ip',
-    
+
     # Additional IP field variations
     'src_ip': 'source.address',
     'dst_ip': 'destination.address',
     'ip': 'related.ip',
-    
+
     # ... comprehensive mappings for all fields
 }
 ```
@@ -88,11 +88,11 @@ bool_query = {
 def _get_seed_events(self, ip_addresses, time_range=None, max_events=100):
     """Get seed events for campaign analysis with simplified query logic."""
     seed_events = []
-    
+
     for ip in ip_addresses:
         # Query each IP field individually
         ip_fields = ['source.address', 'destination.address', 'related.ip']
-        
+
         for field in ip_fields:
             query = {
                 "bool": {
@@ -101,7 +101,7 @@ def _get_seed_events(self, ip_addresses, time_range=None, max_events=100):
                     ]
                 }
             }
-            
+
             if time_range:
                 query["bool"]["filter"].append({
                     "range": {
@@ -111,12 +111,12 @@ def _get_seed_events(self, ip_addresses, time_range=None, max_events=100):
                         }
                     }
                 })
-            
+
             # Execute query and collect results
             results = self._execute_query(query, size=max_events)
             if results:
                 seed_events.extend(results)
-    
+
     return seed_events[:max_events]
 ```
 
@@ -142,12 +142,12 @@ def find_available_ips_in_data(es_client, limit=5):
             }
         }
     }
-    
+
     response = es_client._execute_query(query)
     if response and 'aggregations' in response:
         buckets = response['aggregations']['unique_ips']['buckets']
         return [bucket['key'] for bucket in buckets]
-    
+
     return []
 
 # Use in tests
@@ -184,7 +184,7 @@ The test script includes:
 ### Test Results
 ```
 ✅ seed_event_retrieval: PASS
-✅ analyze_campaign: PASS  
+✅ analyze_campaign: PASS
 ✅ detect_ongoing_campaigns: PASS
 ✅ search_campaigns: PASS
 ✅ data_aggregation: PASS
@@ -293,5 +293,5 @@ Overall: 6/6 tests passing (100% success rate)
 
 ---
 
-**Status:** ✅ COMPLETE  
-**Next Steps:** Monitor production usage and gather feedback for potential optimizations 
+**Status:** ✅ COMPLETE
+**Next Steps:** Monitor production usage and gather feedback for potential optimizations

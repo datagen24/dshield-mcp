@@ -33,4 +33,4 @@ echo "5. Commit details:"
 git log --oneline -1
 
 echo "=== Changes committed successfully! ==="
-echo "You can now push to your branch or create a pull request." 
+echo "You can now push to your branch or create a pull request."

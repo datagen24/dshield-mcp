@@ -79,4 +79,4 @@ This document tracks the migration of all MCP tool definitions in `handle_list_t
 - All MCP tool definitions have been migrated to use the `Tool` object.
 - The server now lists and registers all tools correctly, and the previous runtime error is resolved.
 - Data dictionary and threat intelligence summary tools are working as expected.
-- The only remaining issue is Elasticsearch v9 compatibility, which will be tracked in a separate issue. 
+- The only remaining issue is Elasticsearch v9 compatibility, which will be tracked in a separate issue.

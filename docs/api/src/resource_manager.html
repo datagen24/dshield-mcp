@@ -34,6 +34,9 @@
                     <a class="class" href="#ResourceManager">ResourceManager</a>
                             <ul class="memberlist">
                         <li>
+                                <a class="function" href="#ResourceManager.__init__">ResourceManager</a>
+                        </li>
+                        <li>
                                 <a class="variable" href="#ResourceManager.resources">resources</a>
                         </li>
                         <li>
@@ -78,33 +81,51 @@
                         <label class="view-source-button" for="mod-resource_manager-view-source"><span>View Source</span></label>
 
                         <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos"> 1</span></a><span class="sd">&quot;&quot;&quot;Resource manager for DShield MCP server.&quot;&quot;&quot;</span>
-</span><span id="L-2"><a href="#L-2"><span class="linenos"> 2</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span>
+</span><span id="L-2"><a href="#L-2"><span class="linenos"> 2</span></a>
 </span><span id="L-3"><a href="#L-3"><span class="linenos"> 3</span></a><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-</span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a>
-</span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a><span class="k">class</span><span class="w"> </span><span class="nc">ResourceManager</span><span class="p">:</span>
-</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages resource cleanup during shutdown.&quot;&quot;&quot;</span>
-</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="L-4"><a href="#L-4"><span class="linenos"> 4</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+</span><span id="L-5"><a href="#L-5"><span class="linenos"> 5</span></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+</span><span id="L-6"><a href="#L-6"><span class="linenos"> 6</span></a>
+</span><span id="L-7"><a href="#L-7"><span class="linenos"> 7</span></a>
+</span><span id="L-8"><a href="#L-8"><span class="linenos"> 8</span></a><span class="k">class</span><span class="w"> </span><span class="nc">ResourceManager</span><span class="p">:</span>
+</span><span id="L-9"><a href="#L-9"><span class="linenos"> 9</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages resource cleanup during shutdown.&quot;&quot;&quot;</span>
 </span><span id="L-10"><a href="#L-10"><span class="linenos">10</span></a>
-</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_resource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cleanup_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
-</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cleanup_func</span><span class="p">)</span>
-</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a>
-</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_cleanup_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler_func</span><span class="p">)</span>
-</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a>
-</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a>        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span>
-</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a>            <span class="k">try</span><span class="p">:</span>
-</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a>                <span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="p">()</span>
-</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a>                <span class="k">if</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">iscoroutine</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
-</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a>                    <span class="k">await</span> <span class="n">result</span>
-</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MCP SERVER] Resource cleanup error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a>
-</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">force_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_all</span><span class="p">()</span> 
+</span><span id="L-11"><a href="#L-11"><span class="linenos">11</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-12"><a href="#L-12"><span class="linenos">12</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the resource manager.&quot;&quot;&quot;</span>
+</span><span id="L-13"><a href="#L-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="L-14"><a href="#L-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="L-15"><a href="#L-15"><span class="linenos">15</span></a>
+</span><span id="L-16"><a href="#L-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_resource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cleanup_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-17"><a href="#L-17"><span class="linenos">17</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a resource with its cleanup function.</span>
+</span><span id="L-18"><a href="#L-18"><span class="linenos">18</span></a>
+</span><span id="L-19"><a href="#L-19"><span class="linenos">19</span></a><span class="sd">        Args:</span>
+</span><span id="L-20"><a href="#L-20"><span class="linenos">20</span></a><span class="sd">            resource: The resource to track.</span>
+</span><span id="L-21"><a href="#L-21"><span class="linenos">21</span></a><span class="sd">            cleanup_func: Function to call for cleanup.</span>
+</span><span id="L-22"><a href="#L-22"><span class="linenos">22</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-23"><a href="#L-23"><span class="linenos">23</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+</span><span id="L-24"><a href="#L-24"><span class="linenos">24</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cleanup_func</span><span class="p">)</span>
+</span><span id="L-25"><a href="#L-25"><span class="linenos">25</span></a>
+</span><span id="L-26"><a href="#L-26"><span class="linenos">26</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_cleanup_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-27"><a href="#L-27"><span class="linenos">27</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a cleanup handler function.</span>
+</span><span id="L-28"><a href="#L-28"><span class="linenos">28</span></a>
+</span><span id="L-29"><a href="#L-29"><span class="linenos">29</span></a><span class="sd">        Args:</span>
+</span><span id="L-30"><a href="#L-30"><span class="linenos">30</span></a><span class="sd">            handler_func: Function to call during cleanup.</span>
+</span><span id="L-31"><a href="#L-31"><span class="linenos">31</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-32"><a href="#L-32"><span class="linenos">32</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler_func</span><span class="p">)</span>
+</span><span id="L-33"><a href="#L-33"><span class="linenos">33</span></a>
+</span><span id="L-34"><a href="#L-34"><span class="linenos">34</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-35"><a href="#L-35"><span class="linenos">35</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute all registered cleanup handlers.&quot;&quot;&quot;</span>
+</span><span id="L-36"><a href="#L-36"><span class="linenos">36</span></a>        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span>
+</span><span id="L-37"><a href="#L-37"><span class="linenos">37</span></a>            <span class="k">try</span><span class="p">:</span>
+</span><span id="L-38"><a href="#L-38"><span class="linenos">38</span></a>                <span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="p">()</span>
+</span><span id="L-39"><a href="#L-39"><span class="linenos">39</span></a>                <span class="k">if</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">iscoroutine</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+</span><span id="L-40"><a href="#L-40"><span class="linenos">40</span></a>                    <span class="k">await</span> <span class="n">result</span>
+</span><span id="L-41"><a href="#L-41"><span class="linenos">41</span></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="L-42"><a href="#L-42"><span class="linenos">42</span></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MCP SERVER] Resource cleanup error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="L-43"><a href="#L-43"><span class="linenos">43</span></a>
+</span><span id="L-44"><a href="#L-44"><span class="linenos">44</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">force_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="L-45"><a href="#L-45"><span class="linenos">45</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Force cleanup of all resources.&quot;&quot;&quot;</span>
+</span><span id="L-46"><a href="#L-46"><span class="linenos">46</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_all</span><span class="p">()</span>
 </span></pre></div>
 
 
@@ -120,30 +141,45 @@
 
     </div>
     <a class="headerlink" href="#ResourceManager"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager-6"><a href="#ResourceManager-6"><span class="linenos"> 6</span></a><span class="k">class</span><span class="w"> </span><span class="nc">ResourceManager</span><span class="p">:</span>
-</span><span id="ResourceManager-7"><a href="#ResourceManager-7"><span class="linenos"> 7</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages resource cleanup during shutdown.&quot;&quot;&quot;</span>
-</span><span id="ResourceManager-8"><a href="#ResourceManager-8"><span class="linenos"> 8</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager-9"><a href="#ResourceManager-9"><span class="linenos"> 9</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="ResourceManager-10"><a href="#ResourceManager-10"><span class="linenos">10</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager-9"><a href="#ResourceManager-9"><span class="linenos"> 9</span></a><span class="k">class</span><span class="w"> </span><span class="nc">ResourceManager</span><span class="p">:</span>
+</span><span id="ResourceManager-10"><a href="#ResourceManager-10"><span class="linenos">10</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages resource cleanup during shutdown.&quot;&quot;&quot;</span>
 </span><span id="ResourceManager-11"><a href="#ResourceManager-11"><span class="linenos">11</span></a>
-</span><span id="ResourceManager-12"><a href="#ResourceManager-12"><span class="linenos">12</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_resource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cleanup_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager-13"><a href="#ResourceManager-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
-</span><span id="ResourceManager-14"><a href="#ResourceManager-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cleanup_func</span><span class="p">)</span>
-</span><span id="ResourceManager-15"><a href="#ResourceManager-15"><span class="linenos">15</span></a>
-</span><span id="ResourceManager-16"><a href="#ResourceManager-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_cleanup_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager-17"><a href="#ResourceManager-17"><span class="linenos">17</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler_func</span><span class="p">)</span>
-</span><span id="ResourceManager-18"><a href="#ResourceManager-18"><span class="linenos">18</span></a>
-</span><span id="ResourceManager-19"><a href="#ResourceManager-19"><span class="linenos">19</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager-20"><a href="#ResourceManager-20"><span class="linenos">20</span></a>        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span>
-</span><span id="ResourceManager-21"><a href="#ResourceManager-21"><span class="linenos">21</span></a>            <span class="k">try</span><span class="p">:</span>
-</span><span id="ResourceManager-22"><a href="#ResourceManager-22"><span class="linenos">22</span></a>                <span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="p">()</span>
-</span><span id="ResourceManager-23"><a href="#ResourceManager-23"><span class="linenos">23</span></a>                <span class="k">if</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">iscoroutine</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
-</span><span id="ResourceManager-24"><a href="#ResourceManager-24"><span class="linenos">24</span></a>                    <span class="k">await</span> <span class="n">result</span>
-</span><span id="ResourceManager-25"><a href="#ResourceManager-25"><span class="linenos">25</span></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="ResourceManager-26"><a href="#ResourceManager-26"><span class="linenos">26</span></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MCP SERVER] Resource cleanup error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="ResourceManager-27"><a href="#ResourceManager-27"><span class="linenos">27</span></a>
-</span><span id="ResourceManager-28"><a href="#ResourceManager-28"><span class="linenos">28</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">force_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager-29"><a href="#ResourceManager-29"><span class="linenos">29</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_all</span><span class="p">()</span> 
+</span><span id="ResourceManager-12"><a href="#ResourceManager-12"><span class="linenos">12</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager-13"><a href="#ResourceManager-13"><span class="linenos">13</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the resource manager.&quot;&quot;&quot;</span>
+</span><span id="ResourceManager-14"><a href="#ResourceManager-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="ResourceManager-15"><a href="#ResourceManager-15"><span class="linenos">15</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="ResourceManager-16"><a href="#ResourceManager-16"><span class="linenos">16</span></a>
+</span><span id="ResourceManager-17"><a href="#ResourceManager-17"><span class="linenos">17</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_resource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cleanup_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager-18"><a href="#ResourceManager-18"><span class="linenos">18</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a resource with its cleanup function.</span>
+</span><span id="ResourceManager-19"><a href="#ResourceManager-19"><span class="linenos">19</span></a>
+</span><span id="ResourceManager-20"><a href="#ResourceManager-20"><span class="linenos">20</span></a><span class="sd">        Args:</span>
+</span><span id="ResourceManager-21"><a href="#ResourceManager-21"><span class="linenos">21</span></a><span class="sd">            resource: The resource to track.</span>
+</span><span id="ResourceManager-22"><a href="#ResourceManager-22"><span class="linenos">22</span></a><span class="sd">            cleanup_func: Function to call for cleanup.</span>
+</span><span id="ResourceManager-23"><a href="#ResourceManager-23"><span class="linenos">23</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ResourceManager-24"><a href="#ResourceManager-24"><span class="linenos">24</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+</span><span id="ResourceManager-25"><a href="#ResourceManager-25"><span class="linenos">25</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cleanup_func</span><span class="p">)</span>
+</span><span id="ResourceManager-26"><a href="#ResourceManager-26"><span class="linenos">26</span></a>
+</span><span id="ResourceManager-27"><a href="#ResourceManager-27"><span class="linenos">27</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_cleanup_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager-28"><a href="#ResourceManager-28"><span class="linenos">28</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a cleanup handler function.</span>
+</span><span id="ResourceManager-29"><a href="#ResourceManager-29"><span class="linenos">29</span></a>
+</span><span id="ResourceManager-30"><a href="#ResourceManager-30"><span class="linenos">30</span></a><span class="sd">        Args:</span>
+</span><span id="ResourceManager-31"><a href="#ResourceManager-31"><span class="linenos">31</span></a><span class="sd">            handler_func: Function to call during cleanup.</span>
+</span><span id="ResourceManager-32"><a href="#ResourceManager-32"><span class="linenos">32</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ResourceManager-33"><a href="#ResourceManager-33"><span class="linenos">33</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler_func</span><span class="p">)</span>
+</span><span id="ResourceManager-34"><a href="#ResourceManager-34"><span class="linenos">34</span></a>
+</span><span id="ResourceManager-35"><a href="#ResourceManager-35"><span class="linenos">35</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager-36"><a href="#ResourceManager-36"><span class="linenos">36</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute all registered cleanup handlers.&quot;&quot;&quot;</span>
+</span><span id="ResourceManager-37"><a href="#ResourceManager-37"><span class="linenos">37</span></a>        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span>
+</span><span id="ResourceManager-38"><a href="#ResourceManager-38"><span class="linenos">38</span></a>            <span class="k">try</span><span class="p">:</span>
+</span><span id="ResourceManager-39"><a href="#ResourceManager-39"><span class="linenos">39</span></a>                <span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="p">()</span>
+</span><span id="ResourceManager-40"><a href="#ResourceManager-40"><span class="linenos">40</span></a>                <span class="k">if</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">iscoroutine</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+</span><span id="ResourceManager-41"><a href="#ResourceManager-41"><span class="linenos">41</span></a>                    <span class="k">await</span> <span class="n">result</span>
+</span><span id="ResourceManager-42"><a href="#ResourceManager-42"><span class="linenos">42</span></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="ResourceManager-43"><a href="#ResourceManager-43"><span class="linenos">43</span></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MCP SERVER] Resource cleanup error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="ResourceManager-44"><a href="#ResourceManager-44"><span class="linenos">44</span></a>
+</span><span id="ResourceManager-45"><a href="#ResourceManager-45"><span class="linenos">45</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">force_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager-46"><a href="#ResourceManager-46"><span class="linenos">46</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Force cleanup of all resources.&quot;&quot;&quot;</span>
+</span><span id="ResourceManager-47"><a href="#ResourceManager-47"><span class="linenos">47</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_all</span><span class="p">()</span>
 </span></pre></div>
 
 
@@ -151,9 +187,31 @@
 </div>
 
 
+                            <div id="ResourceManager.__init__" class="classattr">
+                                        <input id="ResourceManager.__init__-view-source" class="view-source-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+<div class="attr function">
+            
+        <span class="name">ResourceManager</span><span class="signature pdoc-code condensed">()</span>
+
+                <label class="view-source-button" for="ResourceManager.__init__-view-source"><span>View Source</span></label>
+
+    </div>
+    <a class="headerlink" href="#ResourceManager.__init__"></a>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.__init__-12"><a href="#ResourceManager.__init__-12"><span class="linenos">12</span></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager.__init__-13"><a href="#ResourceManager.__init__-13"><span class="linenos">13</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the resource manager.&quot;&quot;&quot;</span>
+</span><span id="ResourceManager.__init__-14"><a href="#ResourceManager.__init__-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="ResourceManager.__init__-15"><a href="#ResourceManager.__init__-15"><span class="linenos">15</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+</span></pre></div>
+
+
+            <div class="docstring"><p>Initialize the resource manager.</p>
+</div>
+
+
+                            </div>
                             <div id="ResourceManager.resources" class="classattr">
                                 <div class="attr variable">
-            <span class="name">resources</span><span class="annotation">: List[Any]</span>
+            <span class="name">resources</span><span class="annotation">: list[typing.Any]</span>
 
         
     </div>
@@ -164,7 +222,7 @@
                             </div>
                             <div id="ResourceManager.cleanup_handlers" class="classattr">
                                 <div class="attr variable">
-            <span class="name">cleanup_handlers</span><span class="annotation">: List[Callable[[], Any]]</span>
+            <span class="name">cleanup_handlers</span><span class="annotation">: list[Callable[[], typing.Any]]</span>
 
         
     </div>
@@ -178,19 +236,31 @@
 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">register_resource</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">resource</span><span class="p">:</span> <span class="n">Any</span>, </span><span class="param"><span class="n">cleanup_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">register_resource</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">resource</span><span class="p">:</span> <span class="n">Any</span>, </span><span class="param"><span class="n">cleanup_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
                 <label class="view-source-button" for="ResourceManager.register_resource-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#ResourceManager.register_resource"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.register_resource-12"><a href="#ResourceManager.register_resource-12"><span class="linenos">12</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_resource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cleanup_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager.register_resource-13"><a href="#ResourceManager.register_resource-13"><span class="linenos">13</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
-</span><span id="ResourceManager.register_resource-14"><a href="#ResourceManager.register_resource-14"><span class="linenos">14</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cleanup_func</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.register_resource-17"><a href="#ResourceManager.register_resource-17"><span class="linenos">17</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_resource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">cleanup_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager.register_resource-18"><a href="#ResourceManager.register_resource-18"><span class="linenos">18</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a resource with its cleanup function.</span>
+</span><span id="ResourceManager.register_resource-19"><a href="#ResourceManager.register_resource-19"><span class="linenos">19</span></a>
+</span><span id="ResourceManager.register_resource-20"><a href="#ResourceManager.register_resource-20"><span class="linenos">20</span></a><span class="sd">        Args:</span>
+</span><span id="ResourceManager.register_resource-21"><a href="#ResourceManager.register_resource-21"><span class="linenos">21</span></a><span class="sd">            resource: The resource to track.</span>
+</span><span id="ResourceManager.register_resource-22"><a href="#ResourceManager.register_resource-22"><span class="linenos">22</span></a><span class="sd">            cleanup_func: Function to call for cleanup.</span>
+</span><span id="ResourceManager.register_resource-23"><a href="#ResourceManager.register_resource-23"><span class="linenos">23</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ResourceManager.register_resource-24"><a href="#ResourceManager.register_resource-24"><span class="linenos">24</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resource</span><span class="p">)</span>
+</span><span id="ResourceManager.register_resource-25"><a href="#ResourceManager.register_resource-25"><span class="linenos">25</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cleanup_func</span><span class="p">)</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><p>Register a resource with its cleanup function.</p>
+
+<p>Args:
+    resource: The resource to track.
+    cleanup_func: Function to call for cleanup.</p>
+</div>
+
 
                             </div>
                             <div id="ResourceManager.register_cleanup_handler" class="classattr">
@@ -198,18 +268,28 @@
 <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">register_cleanup_handler</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">handler_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
+        <span class="name">register_cleanup_handler</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">handler_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span></span><span class="return-annotation">) -> <span class="kc">None</span>:</span></span>
 
                 <label class="view-source-button" for="ResourceManager.register_cleanup_handler-view-source"><span>View Source</span></label>
 
     </div>
     <a class="headerlink" href="#ResourceManager.register_cleanup_handler"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.register_cleanup_handler-16"><a href="#ResourceManager.register_cleanup_handler-16"><span class="linenos">16</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_cleanup_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager.register_cleanup_handler-17"><a href="#ResourceManager.register_cleanup_handler-17"><span class="linenos">17</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler_func</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.register_cleanup_handler-27"><a href="#ResourceManager.register_cleanup_handler-27"><span class="linenos">27</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_cleanup_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[],</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager.register_cleanup_handler-28"><a href="#ResourceManager.register_cleanup_handler-28"><span class="linenos">28</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a cleanup handler function.</span>
+</span><span id="ResourceManager.register_cleanup_handler-29"><a href="#ResourceManager.register_cleanup_handler-29"><span class="linenos">29</span></a>
+</span><span id="ResourceManager.register_cleanup_handler-30"><a href="#ResourceManager.register_cleanup_handler-30"><span class="linenos">30</span></a><span class="sd">        Args:</span>
+</span><span id="ResourceManager.register_cleanup_handler-31"><a href="#ResourceManager.register_cleanup_handler-31"><span class="linenos">31</span></a><span class="sd">            handler_func: Function to call during cleanup.</span>
+</span><span id="ResourceManager.register_cleanup_handler-32"><a href="#ResourceManager.register_cleanup_handler-32"><span class="linenos">32</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="ResourceManager.register_cleanup_handler-33"><a href="#ResourceManager.register_cleanup_handler-33"><span class="linenos">33</span></a>        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">handler_func</span><span class="p">)</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><p>Register a cleanup handler function.</p>
+
+<p>Args:
+    handler_func: Function to call during cleanup.</p>
+</div>
+
 
                             </div>
                             <div id="ResourceManager.cleanup_all" class="classattr">
@@ -223,18 +303,21 @@
 
     </div>
     <a class="headerlink" href="#ResourceManager.cleanup_all"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.cleanup_all-19"><a href="#ResourceManager.cleanup_all-19"><span class="linenos">19</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager.cleanup_all-20"><a href="#ResourceManager.cleanup_all-20"><span class="linenos">20</span></a>        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span>
-</span><span id="ResourceManager.cleanup_all-21"><a href="#ResourceManager.cleanup_all-21"><span class="linenos">21</span></a>            <span class="k">try</span><span class="p">:</span>
-</span><span id="ResourceManager.cleanup_all-22"><a href="#ResourceManager.cleanup_all-22"><span class="linenos">22</span></a>                <span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="p">()</span>
-</span><span id="ResourceManager.cleanup_all-23"><a href="#ResourceManager.cleanup_all-23"><span class="linenos">23</span></a>                <span class="k">if</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">iscoroutine</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
-</span><span id="ResourceManager.cleanup_all-24"><a href="#ResourceManager.cleanup_all-24"><span class="linenos">24</span></a>                    <span class="k">await</span> <span class="n">result</span>
-</span><span id="ResourceManager.cleanup_all-25"><a href="#ResourceManager.cleanup_all-25"><span class="linenos">25</span></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-</span><span id="ResourceManager.cleanup_all-26"><a href="#ResourceManager.cleanup_all-26"><span class="linenos">26</span></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MCP SERVER] Resource cleanup error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.cleanup_all-35"><a href="#ResourceManager.cleanup_all-35"><span class="linenos">35</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager.cleanup_all-36"><a href="#ResourceManager.cleanup_all-36"><span class="linenos">36</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute all registered cleanup handlers.&quot;&quot;&quot;</span>
+</span><span id="ResourceManager.cleanup_all-37"><a href="#ResourceManager.cleanup_all-37"><span class="linenos">37</span></a>        <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_handlers</span><span class="p">:</span>
+</span><span id="ResourceManager.cleanup_all-38"><a href="#ResourceManager.cleanup_all-38"><span class="linenos">38</span></a>            <span class="k">try</span><span class="p">:</span>
+</span><span id="ResourceManager.cleanup_all-39"><a href="#ResourceManager.cleanup_all-39"><span class="linenos">39</span></a>                <span class="n">result</span> <span class="o">=</span> <span class="n">handler</span><span class="p">()</span>
+</span><span id="ResourceManager.cleanup_all-40"><a href="#ResourceManager.cleanup_all-40"><span class="linenos">40</span></a>                <span class="k">if</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">iscoroutine</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+</span><span id="ResourceManager.cleanup_all-41"><a href="#ResourceManager.cleanup_all-41"><span class="linenos">41</span></a>                    <span class="k">await</span> <span class="n">result</span>
+</span><span id="ResourceManager.cleanup_all-42"><a href="#ResourceManager.cleanup_all-42"><span class="linenos">42</span></a>            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+</span><span id="ResourceManager.cleanup_all-43"><a href="#ResourceManager.cleanup_all-43"><span class="linenos">43</span></a>                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[MCP SERVER] Resource cleanup error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><p>Execute all registered cleanup handlers.</p>
+</div>
+
 
                             </div>
                             <div id="ResourceManager.force_cleanup" class="classattr">
@@ -248,12 +331,15 @@
 
     </div>
     <a class="headerlink" href="#ResourceManager.force_cleanup"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.force_cleanup-28"><a href="#ResourceManager.force_cleanup-28"><span class="linenos">28</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">force_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="ResourceManager.force_cleanup-29"><a href="#ResourceManager.force_cleanup-29"><span class="linenos">29</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_all</span><span class="p">()</span> 
+            <div class="pdoc-code codehilite"><pre><span></span><span id="ResourceManager.force_cleanup-45"><a href="#ResourceManager.force_cleanup-45"><span class="linenos">45</span></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">force_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ResourceManager.force_cleanup-46"><a href="#ResourceManager.force_cleanup-46"><span class="linenos">46</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Force cleanup of all resources.&quot;&quot;&quot;</span>
+</span><span id="ResourceManager.force_cleanup-47"><a href="#ResourceManager.force_cleanup-47"><span class="linenos">47</span></a>        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_all</span><span class="p">()</span>
 </span></pre></div>
 
 
-    
+            <div class="docstring"><p>Force cleanup of all resources.</p>
+</div>
+
 
                             </div>
                 </section>

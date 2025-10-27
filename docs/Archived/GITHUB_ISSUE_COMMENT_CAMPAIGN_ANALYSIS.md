@@ -71,9 +71,9 @@ I've completed a comprehensive implementation plan for **Issue #11: Campaign Ana
 
 ### 📋 **Implementation Overview**
 
-**Timeline**: 3-4 weeks  
-**Scope**: Full campaign correlation and analysis engine  
-**Integration**: 7 new MCP tools for campaign investigation  
+**Timeline**: 3-4 weeks
+**Scope**: Full campaign correlation and analysis engine
+**Integration**: 7 new MCP tools for campaign investigation
 
 ### 🎯 **Key Features Planned**
 
@@ -85,7 +85,7 @@ I've completed a comprehensive implementation plan for **Issue #11: Campaign Ana
 
 #### Phase 2: MCP Integration & Tools (Week 2)
 - ✅ `analyze_campaign` - Analyze attack campaigns from seed indicators
-- ✅ `expand_campaign_indicators` - Expand IOCs to find related indicators  
+- ✅ `expand_campaign_indicators` - Expand IOCs to find related indicators
 - ✅ `get_campaign_timeline` - Build detailed attack timelines
 - ✅ `compare_campaigns` - Compare multiple campaigns for similarities
 - ✅ `detect_ongoing_campaigns` - Real-time detection of active campaigns
@@ -108,16 +108,16 @@ I've completed a comprehensive implementation plan for **Issue #11: Campaign Ana
 ```python
 class CampaignAnalyzer:
     """Core campaign analysis and correlation engine"""
-    
+
     def correlate_events(self, seed_events, correlation_criteria, time_window):
         """Correlate events based on specified criteria"""
-        
+
     def expand_indicators(self, seed_iocs, expansion_strategy):
         """Expand IOCs to find related indicators"""
-        
+
     def build_campaign_timeline(self, correlated_events):
         """Build chronological timeline of campaign events"""
-        
+
     def score_campaign(self, campaign_data):
         """Score campaign based on sophistication and impact"""
 ```
@@ -126,7 +126,7 @@ class CampaignAnalyzer:
 ```python
 def correlate_campaign_events(seed_events, correlation_config):
     # Stage 1: Direct IOC matches
-    # Stage 2: Infrastructure correlation  
+    # Stage 2: Infrastructure correlation
     # Stage 3: Behavioral correlation
     # Stage 4: Temporal correlation
     # Stage 5: Confidence scoring and filtering
@@ -189,8 +189,8 @@ ongoing_campaigns = detect_ongoing_campaigns(
 ```
 
 ### 📁 **File Structure**
-**New Files**: 17 files across `src/`, `tests/`, `examples/`, and `docs/`  
-**Modified Files**: 5 existing files for integration  
+**New Files**: 17 files across `src/`, `tests/`, `examples/`, and `docs/`
+**Modified Files**: 5 existing files for integration
 **Dependencies**: 3 new dependencies (`networkx`, `scikit-learn`, `python-dateutil`)
 
 ### 🎯 **Success Metrics**
@@ -230,7 +230,7 @@ This Campaign Analysis implementation will provide the DShield MCP project with 
 
 **Next Steps:**
 1. ✅ Campaign Analysis implementation plan complete
-2. 🔄 Review and approval  
+2. 🔄 Review and approval
 3. 🎯 Begin Phase 1 development (core correlation engine)
 4. 🧪 Establish test datasets for validation
 5. 🏗️ Create initial campaign analysis prototypes

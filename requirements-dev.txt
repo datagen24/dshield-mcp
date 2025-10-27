@@ -31,7 +31,18 @@ jupyter>=1.0.0
 ipykernel>=6.0.0
 
 # Debugging
-ipdb>=0.13.0 
+ipdb>=0.13.0
+
+# TUI Development and Testing
+textual-dev>=0.1.0  # Development tools for textual
+textual-pilot>=0.1.0  # Integration testing for textual apps
+rich-cli>=1.0.0     # CLI tools for rich
+pytest-textual-snapshot>=0.1.0  # Snapshot testing for textual apps
+
+# Security and Testing Tools
+bandit>=1.7.0        # Security linting
+safety>=2.0.0        # Security vulnerability scanning
+
 requests>=2.32.4 # not directly required, pinned by Snyk to avoid a vulnerability
 setuptools>=78.1.1 # not directly required, pinned by Snyk to avoid a vulnerability
 urllib3>=2.5.0 # not directly required, pinned by Snyk to avoid a vulnerability

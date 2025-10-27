@@ -10,3 +10,6 @@ alwaysApply: true
 - Keep dependencies updated based on Snyk security advisories.
 - Run `snyk code test` for static application security testing (SAST).
 - Generate and review Snyk test reports for security compliance.
+ - CI must fail on High and Critical severity issues (block PR merges) unless explicitly and temporarily ignored with documented rationale.
+ - Store Snyk reports under `artifacts/` for audit; schedule `snyk monitor` on a daily cadence.
+ - Node/JS scanning is disabled for this repository; Python targets only.

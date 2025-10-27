@@ -1,36 +1,49 @@
 #!/bin/bash
 
-# DShield MCP - Virtual Environment Activation Script
-# This script activates the virtual environment and provides helpful commands
+# DShield MCP - UV Environment Activation Script
+# This script activates the UV environment and provides helpful commands
 
-echo "=== DShield MCP Virtual Environment ==="
+echo "=== DShield MCP UV Environment ==="
 echo
 
-# Check if virtual environment exists
-if [ ! -d "venv" ]; then
-    echo "❌ Virtual environment not found!"
-    echo "Please run setup_venv.sh first to create the virtual environment."
+# Check if UV is installed
+if ! command -v uv &> /dev/null; then
+    echo "❌ UV package manager not found!"
+    echo "Please install UV first:"
+    echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo "  # or via pip: pip install uv"
     exit 1
 fi
 
-# Activate virtual environment
-echo "🔧 Activating virtual environment..."
-source venv/bin/activate
+# Check if UV environment exists
+if [ ! -d ".venv" ]; then
+    echo "❌ UV environment not found!"
+    echo "Please run setup_venv.sh first to create the environment."
+    exit 1
+fi
+
+# Activate UV environment
+echo "🔧 Activating UV environment..."
+source .venv/bin/activate
 
 # Show Python version and location
-echo "✅ Virtual environment activated!"
+echo "✅ UV environment activated!"
 echo "🐍 Python: $(python --version)"
 echo "📍 Location: $(which python)"
+echo "📦 UV: $(uv --version)"
 echo
 
 # Show available commands
 echo "📋 Available commands:"
-echo "  python mcp_server.py          - Run the MCP server"
-echo "  python examples/basic_usage.py - Run the example"
-echo "  python test_installation.py   - Test the installation"
-echo "  python test_op_integration.py - Test 1Password integration"
-echo "  python config.py              - Configure settings"
-echo "  deactivate                    - Deactivate virtual environment"
+echo "  uv run python mcp_server.py                    - Run the MCP server"
+echo "  uv run python examples/basic_usage.py          - Run the example"
+echo "  uv run pytest                                  - Run tests"
+echo "  uv run python -m src.tui_launcher              - Run TUI interface"
+echo "  uv run python -m src.server_launcher --transport tcp - Run TCP server"
+echo "  uv add <package>                               - Add new dependency"
+echo "  uv sync                                        - Sync dependencies"
+echo "  uv run <command>                               - Run any command in environment"
+echo "  deactivate                                     - Deactivate virtual environment"
 echo
 
 # Check if .env file exists
@@ -39,5 +52,5 @@ if [ ! -f ".env" ]; then
     echo "Please copy env.example to .env and configure your settings."
 fi
 
-echo "🚀 Ready to use DShield MCP!"
-echo "Type 'deactivate' to exit the virtual environment." 
+echo "🚀 Ready to use DShield MCP with UV!"
+echo "Type 'deactivate' to exit the virtual environment."

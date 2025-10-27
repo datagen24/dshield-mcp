@@ -146,7 +146,7 @@ Created comprehensive test scripts:
 No additional configuration required. Pagination parameters are optional and have sensible defaults:
 - `page`: 1 (first page)
 - `page_size`: 100 (reasonable default)
-- `include_summary`: true (provides useful context) 
+- `include_summary`: true (provides useful context)
 
 ## Dependencies
 
@@ -174,4 +174,4 @@ No additional configuration required. Pagination parameters are optional and hav
   1. Update your MCP server and dependencies to the latest version.
   2. Review and test pagination features with your existing workflows.
   3. Monitor performance and resource usage after deployment, and adjust page size as needed.
-- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved. 
+- **Deprecations:** No breaking changes or deprecated features are introduced in this release. All previous query functionality is preserved.

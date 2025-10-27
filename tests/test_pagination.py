@@ -1,32 +1,38 @@
 """Tests for pagination functionality in DShield MCP service."""
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, patch
+
 from src.elasticsearch_client import ElasticsearchClient
+
 
 @pytest.fixture
 def mock_es_client():
     """Create a mock ElasticsearchClient for testing pagination functionality.
-    
+
     Returns:
         Mock ElasticsearchClient with pagination info generation mocked.
 
     """
     client = ElasticsearchClient.__new__(ElasticsearchClient)
     client.max_results = 1000
-    client._generate_pagination_info = Mock(side_effect=lambda page, page_size, total_count: {
-        "current_page": page,
-        "page_size": page_size,
-        "total_count": total_count,
-        "total_pages": (total_count + page_size - 1) // page_size,
-        "has_next": page < ((total_count + page_size - 1) // page_size),
-        "has_previous": page > 1,
-        "next_page": page + 1 if page < ((total_count + page_size - 1) // page_size) else None,
-        "previous_page": page - 1 if page > 1 else None,
-        "start_index": (page - 1) * page_size + 1,
-        "end_index": min(page * page_size, total_count)
-    })
+    client._generate_pagination_info = Mock(
+        side_effect=lambda page, page_size, total_count: {
+            "current_page": page,
+            "page_size": page_size,
+            "total_count": total_count,
+            "total_pages": (total_count + page_size - 1) // page_size,
+            "has_next": page < ((total_count + page_size - 1) // page_size),
+            "has_previous": page > 1,
+            "next_page": page + 1 if page < ((total_count + page_size - 1) // page_size) else None,
+            "previous_page": page - 1 if page > 1 else None,
+            "start_index": (page - 1) * page_size + 1,
+            "end_index": min(page * page_size, total_count),
+        }
+    )
     return client
+
 
 class TestPagination:
     """Unit tests for pagination logic in ElasticsearchClient."""
@@ -127,5 +133,16 @@ class TestPagination:
         """Test that pagination info contains all expected keys."""
         page, page_size, total_count = 2, 10, 25
         pagination_info = mock_es_client._generate_pagination_info(page, page_size, total_count)
-        expected_keys = {"current_page", "page_size", "total_count", "total_pages", "has_next", "has_previous", "next_page", "previous_page", "start_index", "end_index"}
-        assert set(pagination_info.keys()) == expected_keys 
+        expected_keys = {
+            "current_page",
+            "page_size",
+            "total_count",
+            "total_pages",
+            "has_next",
+            "has_previous",
+            "next_page",
+            "previous_page",
+            "start_index",
+            "end_index",
+        }
+        assert set(pagination_info.keys()) == expected_keys

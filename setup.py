@@ -1,20 +1,30 @@
 #!/usr/bin/env python3
-"""
-Setup script for DShield MCP - Elastic SIEM Integration
-"""
+"""Setup script for DShield MCP - Elastic SIEM Integration."""
 
-from setuptools import setup, find_packages
-import os
+from setuptools import find_packages, setup  # type: ignore[import-untyped]
+
 
 # Read the README file
-def read_readme():
-    with open("README.md", "r", encoding="utf-8") as fh:
+def read_readme() -> str:
+    """Read the README file and return its contents.
+
+    Returns:
+        The contents of the README file
+    """
+    with open("README.md", encoding="utf-8") as fh:
         return fh.read()
 
+
 # Read requirements
-def read_requirements():
-    with open("requirements.txt", "r", encoding="utf-8") as fh:
+def read_requirements() -> list[str]:
+    """Read the requirements file and return a list of requirements.
+
+    Returns:
+        A list of requirements from requirements.txt
+    """
+    with open("requirements.txt", encoding="utf-8") as fh:
         return [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+
 
 setup(
     name="dshield-mcp",
@@ -32,14 +42,13 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Security",
         "Topic :: System :: Monitoring",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     install_requires=read_requirements(),
     entry_points={
         "console_scripts": [
@@ -56,4 +65,4 @@ setup(
         "Source": "https://github.com/your-org/dshield-mcp",
         "Documentation": "https://github.com/your-org/dshield-mcp/blob/main/README.md",
     },
-) 
+)

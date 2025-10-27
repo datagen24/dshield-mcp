@@ -58,13 +58,13 @@ error_handling:
     dshield_api_calls: 10        # seconds
     latex_compilation: 60        # seconds
     tool_execution: 120          # seconds
-  
+
   retry_settings:
     max_retries: 3
     base_delay: 1.0              # seconds
     max_delay: 30.0              # seconds
     exponential_base: 2.0
-  
+
   logging:
     include_stack_traces: true
     include_request_context: true
@@ -191,7 +191,7 @@ rootdir: /Users/speterson/src/dshield/dshield-mcp
 configfile: pytest.ini
 plugins: asyncio-1.1.0, anyio-4.10.0
 asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collected 6 items                                                                                           
+collected 6 items
 
 tests/test_elasticsearch_client.py::TestElasticsearchClientErrorHandling::test_init_with_error_handler PASSED
  [ 16%]
@@ -230,7 +230,7 @@ mock_user_config = <MagicMock name='get_user_config' id='4582371888'>
         """Test query events with error handler when RequestError occurs."""
         mock_get_config.return_value = TEST_CONFIG
         mock_resolve_secrets.return_value = TEST_CONFIG
-    
+
         # Mock user config
         mock_user_config_instance = Mock()
         mock_user_config_instance.get_setting.side_effect = lambda section, key: {
@@ -244,11 +244,11 @@ mock_user_config = <MagicMock name='get_user_config' id='4582371888'>
             ("logging", "enable_performance_logging"): False
         }.get((section, key), None)
         mock_user_config.return_value = mock_user_config_instance
-    
+
         # Create error handler
         error_handler = MCPErrorHandler()
         client = ElasticsearchClient(error_handler=error_handler)
-    
+
         # Mock client that raises RequestError
         mock_client = AsyncMock()
 >       mock_client.search.side_effect = RequestError("Test request error", "test", "test")
@@ -280,7 +280,7 @@ s, mock_user_config):
         """Test query events with error handler when TransportError occurs."""
         mock_get_config.return_value = TEST_CONFIG
         mock_resolve_secrets.return_value = TEST_CONFIG
-    
+
         # Mock user config
         mock_user_config_instance = Mock()
         mock_user_config_instance.get_setting.side_effect = lambda section, key: {
@@ -294,11 +294,11 @@ s, mock_user_config):
             ("logging", "enable_performance_logging"): False
         }.get((section, key), None)
         mock_user_config.return_value = mock_user_config_instance
-    
+
         # Create error handler
         error_handler = MCPErrorHandler()
         client = ElasticsearchClient(error_handler=error_handler)
-    
+
         # Mock client that raises TransportError
         mock_client = AsyncMock()
 >       mock_client.search.side_effect = TransportError("Test transport error", "test")
@@ -330,7 +330,7 @@ crets, mock_user_config):
         """Test query events without error handler raises exception."""
         mock_get_config.return_value = TEST_CONFIG
         mock_resolve_secrets.return_value = TEST_CONFIG
-    
+
         # Mock user config
         mock_user_config_instance = Mock()
         mock_user_config_instance.get_setting.side_effect = lambda section, key: {
@@ -344,9 +344,9 @@ crets, mock_user_config):
             ("logging", "enable_performance_logging"): False
         }.get((section, key), None)
         mock_user_config.return_value = mock_user_config_instance
-    
+
         client = ElasticsearchClient()
-    
+
         # Mock client that raises RequestError
         mock_client = AsyncMock()
 >       mock_client.search.side_effect = RequestError("Test request error", "test", "test")
@@ -378,7 +378,7 @@ r_config):
         """Test aggregation query with error handler."""
         mock_get_config.return_value = TEST_CONFIG
         mock_resolve_secrets.return_value = TEST_CONFIG
-    
+
         # Mock user config
         mock_user_config_instance = Mock()
         mock_user_config_instance.get_setting.side_effect = lambda section, key: {
@@ -392,11 +392,11 @@ r_config):
             ("logging", "enable_performance_logging"): False
         }.get((section, key), None)
         mock_user_config.return_value = mock_user_config_instance
-    
+
         # Create error handler
         error_handler = MCPErrorHandler()
         client = ElasticsearchClient(error_handler=error_handler)
-    
+
         # Mock client that raises RequestError
         mock_client = AsyncMock()
 >       mock_client.search.side_effect = RequestError("Test aggregation error", "test", "test")
@@ -552,7 +552,7 @@ I see the issue. The list_available_templates method is designed to be resilient
 Since this method is designed to be fault-tolerant, let me simplify the test to just verify that the error handler integration works. I'll test that the method can handle errors gracefully and that the error handler is properly integrated. Let me modify the test to be more realistic:
 Now let me run the tests again to see if they all pass:
 Excellent! All the LaTeX tools error handling tests are now passing. Let me run all the tests to make sure we haven't broken anything else:
-This test takes a substantial amount of time to run. We should run it at the end of the phase, but not intraphase 
+This test takes a substantial amount of time to run. We should run it at the end of the phase, but not intraphase
 
 You're absolutely right! Running all tests during development phases is time-consuming and slows down the iterative development process. Let me update our approach and documentation to reflect this best practice.
 Let me update the implementation document to clarify when to run comprehensive tests:
@@ -638,7 +638,7 @@ We have successfully completed Phase 2: Tool-Specific Error Handling for GitHub 
 
 #### ✅ **Completed Components**
 - **Elasticsearch Client Error Handling**: Integrated MCPErrorHandler for structured error responses
-- **DShield Client Error Handling**: Integrated MCPErrorHandler for structured error responses  
+- **DShield Client Error Handling**: Integrated MCPErrorHandler for structured error responses
 - **LaTeX Tools Error Handling**: Integrated MCPErrorHandler for structured error responses
 - **Test Fixes**: Resolved all 3 failing tests to ensure Phase 2 is completely solid
 
@@ -707,7 +707,7 @@ The error handling foundation is now solid and ready for the next phase of imple
 
 **Timeout Handling Progress**:
 - ✅ `query_dshield_events` - Added timeout handling
-- ✅ `analyze_campaign` - Added timeout handling  
+- ✅ `analyze_campaign` - Added timeout handling
 - ✅ `generate_attack_report` - Added timeout handling
 - ✅ `detect_statistical_anomalies` - Added timeout handling
 - ✅ All remaining tools - Timeout handling implemented
@@ -720,18 +720,18 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[Dict[st
     try:
         # Validate tool exists
         self.error_handler.validate_tool_exists(name, self.available_tools)
-        
+
         # Validate arguments against schema
         self.error_handler.validate_arguments(name, arguments, self.get_tool_schema(name))
-        
+
         # Execute tool with timeout
         result = await asyncio.wait_for(
             self._execute_tool(name, arguments),
             timeout=self.config.error_handling.timeouts.tool_execution
         )
-        
+
         return result
-        
+
     except asyncio.TimeoutError:
         return self.error_handler.create_timeout_error(name)
     except ValidationError as e:

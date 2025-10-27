@@ -26,22 +26,22 @@ MCP Server → StatisticalAnalysisTools → Elasticsearch Aggregations → Stati
 ```python
 class StatisticalAnalysisTools:
     """MCP tools for statistical analysis and anomaly detection."""
-    
+
     async def detect_statistical_anomalies(...) -> Dict[str, Any]:
         """Main entry point for anomaly detection."""
-    
+
     async def _get_anomaly_aggregations(...) -> Dict[str, Any]:
         """Retrieve aggregated data from Elasticsearch."""
-    
+
     async def _apply_anomaly_detection_methods(...) -> Dict[str, Any]:
         """Apply statistical methods to aggregated data."""
-    
+
     # Individual method implementations
     async def _apply_zscore_analysis(...) -> Dict[str, Any]:
     async def _apply_iqr_analysis(...) -> Dict[str, Any]:
     async def _apply_isolation_forest_analysis(...) -> Dict[str, Any]:
     async def _apply_time_series_analysis(...) -> Dict[str, Any]:
-    
+
     # Analysis and reporting
     async def _detect_anomaly_patterns(...) -> Dict[str, Any]:
     async def _assess_anomaly_risk(...) -> Dict[str, Any]:
@@ -116,11 +116,11 @@ Tool(
 Uses Elasticsearch aggregations to minimize data transfer:
 
 ```python
-async def _get_anomaly_aggregations(self, time_range_hours: int, dimensions: List[str], 
+async def _get_anomaly_aggregations(self, time_range_hours: int, dimensions: List[str],
                                    methods: List[str], sensitivity: float) -> Dict[str, Any]:
     """Get aggregated data for anomaly detection without raw events."""
     aggs = {}
-    
+
     for dimension in dimensions:
         if dimension in ["source_ip", "destination_ip"]:
             aggs[f"{dimension}_counts"] = {
@@ -137,19 +137,19 @@ async def _get_anomaly_aggregations(self, time_range_hours: int, dimensions: Lis
                     "calendar_interval": "1h"
                 }
             }
-    
+
     # Execute aggregation query
     query_body = {
         "size": 0,
         "query": {"range": {"@timestamp": {"gte": f"now-{time_range_hours}h", "lte": "now"}}},
         "aggs": aggs
     }
-    
+
     result = await self.es_client.client.search(
         index=await self.es_client.get_available_indices(),
         body=query_body
     )
-    
+
     return result["aggregations"]
 ```
 
@@ -158,34 +158,34 @@ async def _get_anomaly_aggregations(self, time_range_hours: int, dimensions: Lis
 #### Z-Score Analysis
 
 ```python
-async def _apply_zscore_analysis(self, anomaly_data: Dict[str, Any], 
+async def _apply_zscore_analysis(self, anomaly_data: Dict[str, Any],
                                 sensitivity: float, max_anomalies: int) -> Dict[str, Any]:
     """Apply Z-score analysis for numerical fields."""
     try:
         import numpy as np
         from scipy import stats
-        
+
         zscore_results = {
             "count": 0,
             "anomalies": [],
             "method": "zscore",
             "sensitivity": sensitivity
         }
-        
+
         # Process numerical fields that have stats
         for field_name, field_data in anomaly_data.items():
             if field_name.endswith("_stats") and "stats" in field_data:
                 stats_data = field_data["stats"]
-                
+
                 if "count" in stats_data and stats_data["count"] > 0:
                     mean = stats_data.get("avg", 0)
                     std = stats_data.get("std_deviation", 1)
-                    
+
                     if std > 0:
                         # Calculate z-score bounds
                         lower_bound = mean - (sensitivity * std)
                         upper_bound = mean + (sensitivity * std)
-                        
+
                         zscore_results["anomalies"].append({
                             "field": field_name.replace("_stats", ""),
                             "mean": mean,
@@ -194,10 +194,10 @@ async def _apply_zscore_analysis(self, anomaly_data: Dict[str, Any],
                             "upper_bound": upper_bound,
                             "anomaly_threshold": sensitivity
                         })
-        
+
         zscore_results["count"] = len(zscore_results["anomalies"])
         return zscore_results
-        
+
     except ImportError as e:
         logger.warning("Required libraries not available for Z-score analysis", error=str(e))
         return {
@@ -211,24 +211,24 @@ async def _apply_zscore_analysis(self, anomaly_data: Dict[str, Any],
 #### Isolation Forest Analysis
 
 ```python
-async def _apply_isolation_forest_analysis(self, anomaly_data: Dict[str, Any], 
+async def _apply_isolation_forest_analysis(self, anomaly_data: Dict[str, Any],
                                           sensitivity: float, max_anomalies: int) -> Dict[str, Any]:
     """Apply Isolation Forest for multivariate anomaly detection."""
     try:
         from sklearn.ensemble import IsolationForest
         import numpy as np
-        
+
         isolation_results = {
             "count": 0,
             "anomalies": [],
             "method": "isolation_forest",
             "sensitivity": sensitivity
         }
-        
+
         # Prepare features from aggregated data
         features = []
         feature_names = []
-        
+
         for field_name, field_data in anomaly_data.items():
             if field_name.endswith("_stats") and "stats" in field_data:
                 stats_data = field_data["stats"]
@@ -240,19 +240,19 @@ async def _apply_isolation_forest_analysis(self, anomaly_data: Dict[str, Any],
                         stats_data.get("std_deviation", 0)
                     ])
                     feature_names.append(field_name.replace("_stats", ""))
-        
+
         if features:
             X = np.array(features)
-            
+
             # Apply Isolation Forest
             iso_forest = IsolationForest(
                 contamination=min(0.1, sensitivity / 10),
                 random_state=42
             )
-            
+
             predictions = iso_forest.fit_predict(X)
             anomaly_indices = np.where(predictions == -1)[0]
-            
+
             isolation_results["count"] = len(anomaly_indices)
             isolation_results["anomalies"] = [
                 {
@@ -262,9 +262,9 @@ async def _apply_isolation_forest_analysis(self, anomaly_data: Dict[str, Any],
                 }
                 for i in anomaly_indices[:max_anomalies]
             ]
-        
+
         return isolation_results
-        
+
     except ImportError as e:
         logger.warning("Required libraries not available for Isolation Forest analysis", error=str(e))
         return {
@@ -314,15 +314,15 @@ pip install -r requirements.txt
 ```python
 class TestStatisticalAnalysisTools:
     """Test cases for StatisticalAnalysisTools class."""
-    
+
     @pytest.fixture
     def mock_es_client(self) -> MagicMock:
         """Create a mock Elasticsearch client."""
-    
+
     @pytest.fixture
     def stats_tools(self, mock_es_client: MagicMock) -> StatisticalAnalysisTools:
         """Create StatisticalAnalysisTools instance with mock ES client."""
-    
+
     # Test methods for each functionality
     async def test_detect_statistical_anomalies_success(self, stats_tools: StatisticalAnalysisTools) -> None:
     async def test_apply_zscore_analysis_success(self, stats_tools: StatisticalAnalysisTools) -> None:
@@ -500,7 +500,7 @@ print(f"Anomaly detection completed in {execution_time:.2f} seconds")
 The modular design allows easy addition of new detection methods:
 
 ```python
-async def _apply_custom_analysis(self, anomaly_data: Dict[str, Any], 
+async def _apply_custom_analysis(self, anomaly_data: Dict[str, Any],
                                 sensitivity: float, max_anomalies: int) -> Dict[str, Any]:
     """Apply custom anomaly detection method."""
     # Implementation here

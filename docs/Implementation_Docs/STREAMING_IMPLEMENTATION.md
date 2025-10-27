@@ -9,8 +9,8 @@ This document summarizes the implementation of **Item 5: Query Result Streaming*
 **Large Dataset Problem**: The MCP service was failing when querying large datasets that exceeded 1MB query response limits, indicating thousands of coordinated attacks. The original issue was:
 
 ```
-The updated MCP server reveals that this event occurred during an extraordinary attack surge 
-with data volumes so large they exceed the 1MB query response limits, indicating thousands 
+The updated MCP server reveals that this event occurred during an extraordinary attack surge
+with data volumes so large they exceed the 1MB query response limits, indicating thousands
 of coordinated attacks.
 ```
 
@@ -255,4 +255,4 @@ The streaming implementation successfully addresses the large dataset problem by
 - **Maintaining all existing functionality** while adding streaming capabilities
 - **Ensuring data integrity** with cursor-based pagination
 
-This implementation makes the DShield MCP service capable of handling datasets of any size, from small queries to massive attack surge data, without performance degradation or memory issues. 
+This implementation makes the DShield MCP service capable of handling datasets of any size, from small queries to massive attack surge data, without performance degradation or memory issues.

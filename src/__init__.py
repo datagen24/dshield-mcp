@@ -1,4 +1,4 @@
-"""DShield MCP - Elastic SIEM Integration Package
+"""DShield MCP - Elastic SIEM Integration Package.
 
 This package provides a Model Context Protocol (MCP) server that integrates with
 DShield's threat intelligence platform and Elasticsearch for security information
@@ -55,4 +55,4 @@ All sensitive information is managed through 1Password CLI integration,
 ensuring no secrets are stored in plain text in configuration files.
 """
 
-# DShield MCP - Elastic SIEM Integration Package 
+# DShield MCP - Elastic SIEM Integration Package

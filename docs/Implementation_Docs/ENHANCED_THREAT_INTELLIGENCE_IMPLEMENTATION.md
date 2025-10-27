@@ -109,7 +109,7 @@ secrets:
   virustotal_api_key: "op://secrets/virustotal_api_key"
   shodan_api_key: "op://secrets/shodan_api_key"
   abuseipdb_api_key: "op://secrets/abuseipdb_api_key"
-  
+
 threat_intelligence:
   sources:
     virustotal:
@@ -133,13 +133,13 @@ threat_intelligence:
       priority: 4
       rate_limit_requests_per_minute: 1000
       cache_ttl_seconds: 3600
-  
+
   correlation:
     enable_cross_source_correlation: true
     confidence_threshold: 0.7
     max_sources_per_query: 3
     timeout_seconds: 30
-  
+
   elasticsearch:
     enabled: true
     writeback_enabled: false  # Users can enable/disable writeback
@@ -204,21 +204,21 @@ class ThreatIntelligenceResult(BaseModel):
     """Enhanced threat intelligence result."""
     ip_address: str = Field(..., description="IP address")
     domain: Optional[str] = Field(None, description="Associated domain")
-    
+
     # Aggregated threat scores
     overall_threat_score: Optional[float] = Field(None, description="Overall threat score (0-100)")
     confidence_score: Optional[float] = Field(None, description="Confidence in assessment (0-1)")
-    
+
     # Source-specific data
     source_results: Dict[ThreatIntelligenceSource, Dict[str, Any]] = Field(
         default_factory=dict, description="Results from each source"
     )
-    
+
     # Correlated indicators
     threat_indicators: List[Dict[str, Any]] = Field(
         default_factory=list, description="Correlated threat indicators"
     )
-    
+
     # Geographic and network data
     geographic_data: Dict[str, Any] = Field(
         default_factory=dict, description="Geographic information"
@@ -226,11 +226,11 @@ class ThreatIntelligenceResult(BaseModel):
     network_data: Dict[str, Any] = Field(
         default_factory=dict, description="Network infrastructure data"
     )
-    
+
     # Timestamps
     first_seen: Optional[datetime] = Field(None, description="First seen across sources")
     last_seen: Optional[datetime] = Field(None, description="Last seen across sources")
-    
+
     # Metadata
     sources_queried: List[ThreatIntelligenceSource] = Field(
         default_factory=list, description="Sources that were queried"
@@ -243,18 +243,18 @@ class DomainIntelligence(BaseModel):
     domain: str = Field(..., description="Domain name")
     threat_score: Optional[float] = Field(None, description="Threat score (0-100)")
     reputation_score: Optional[float] = Field(None, description="Reputation score (0-100)")
-    
+
     # DNS and infrastructure
     ip_addresses: List[str] = Field(default_factory=list, description="Associated IP addresses")
     nameservers: List[str] = Field(default_factory=list, description="Nameservers")
     registrar: Optional[str] = Field(None, description="Domain registrar")
     creation_date: Optional[datetime] = Field(None, description="Domain creation date")
-    
+
     # Threat indicators
     malware_families: List[str] = Field(default_factory=list, description="Associated malware")
     categories: List[str] = Field(default_factory=list, description="Threat categories")
     tags: List[str] = Field(default_factory=list, description="Threat tags")
-    
+
     # Source data
     source_results: Dict[ThreatIntelligenceSource, Dict[str, Any]] = Field(
         default_factory=dict, description="Results from each source"
@@ -282,53 +282,53 @@ logger = structlog.get_logger(__name__)
 
 class ThreatIntelligenceManager:
     """Manages multiple threat intelligence sources, rate limiting, caching, and correlation."""
-    
+
     def __init__(self) -> None:
         """Initialize the threat intelligence manager."""
         self.config = get_config()
         self.user_config = get_user_config()
-        
+
         # Initialize source clients
         self.clients: Dict[ThreatIntelligenceSource, Any] = {}
         self._initialize_clients()
-        
+
         # Correlation settings
         threat_intel_config = self.config.get("threat_intelligence", {})
         self.correlation_config = threat_intel_config.get("correlation", {})
         self.confidence_threshold = self.correlation_config.get("confidence_threshold", 0.7)
         self.max_sources = self.correlation_config.get("max_sources_per_query", 3)
-        
+
         # Enhanced caching: SQLite + Memory
         self.cache: Dict[str, ThreatIntelligenceResult] = {}
         cache_ttl_hours = threat_intel_config.get("cache_ttl_hours", 1)
         self.cache_ttl = timedelta(hours=cache_ttl_hours)
-        
+
         # SQLite cache initialization
         self.cache_db_path = threat_intel_config.get("cache_db_path", "./outputs/enrichment_cache.sqlite3")
         self._initialize_sqlite_cache()
-        
+
         # Enhanced rate limiting with concurrency control
         self.rate_limit_trackers: Dict[ThreatIntelligenceSource, List[float]] = {}
         self.concurrency_semaphores: Dict[ThreatIntelligenceSource, asyncio.Semaphore] = {}
         self._initialize_rate_limit_trackers()
-        
+
         # Elasticsearch client for enrichment writeback
         self.elasticsearch_client = None
         self._initialize_elasticsearch()
-        
-        logger.info("Enhanced Threat Intelligence Manager initialized", 
+
+        logger.info("Enhanced Threat Intelligence Manager initialized",
                    sources=list(self.clients.keys()),
                    confidence_threshold=self.confidence_threshold,
                    max_sources=self.max_sources,
                    cache_ttl_hours=cache_ttl_hours,
                    cache_db_path=self.cache_db_path)
-    
+
     def _initialize_sqlite_cache(self) -> None:
         """Initialize SQLite cache database."""
         try:
             import os
             os.makedirs(os.path.dirname(self.cache_db_path), exist_ok=True)
-            
+
             with sqlite3.connect(self.cache_db_path) as conn:
                 conn.execute("""
                     CREATE TABLE IF NOT EXISTS enrichment_cache (
@@ -341,16 +341,16 @@ class ThreatIntelligenceManager:
                 """)
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_expires_at ON enrichment_cache(expires_at)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_indicator_source ON enrichment_cache(indicator, source)")
-            
+
             logger.info("SQLite cache initialized", db_path=self.cache_db_path)
         except Exception as e:
             logger.warning("Failed to initialize SQLite cache", error=str(e))
-    
+
     def _initialize_elasticsearch(self) -> None:
         """Initialize Elasticsearch client for enrichment writeback."""
         try:
             from elasticsearch import AsyncElasticsearch
-            
+
             es_config = self.config.get("threat_intelligence", {}).get("elasticsearch", {})
             if es_config.get("enabled", False):
                 self.elasticsearch_client = AsyncElasticsearch(
@@ -363,7 +363,7 @@ class ThreatIntelligenceManager:
                 logger.info("Elasticsearch client initialized")
         except Exception as e:
             logger.warning("Failed to initialize Elasticsearch client", error=str(e))
-    
+
     async def enrich_ip_comprehensive(self, ip_address: str) -> ThreatIntelligenceResult:
         """Comprehensive IP enrichment from multiple sources."""
         # Validate IP address
@@ -372,7 +372,7 @@ class ThreatIntelligenceManager:
             ipaddress.ip_address(ip_address)
         except ValueError:
             raise ValueError(f"Invalid IP address: {ip_address}")
-        
+
         # Check SQLite cache first
         cache_key = f"comprehensive_ip_{ip_address}"
         cached_result = await self._get_sqlite_cached_result(cache_key)
@@ -380,65 +380,65 @@ class ThreatIntelligenceManager:
             logger.debug("Returning SQLite cached IP enrichment result", ip_address=ip_address)
             cached_result.cache_hit = True
             return cached_result
-        
+
         # Check memory cache as fallback
         cached_result = self._get_cached_result(cache_key)
         if cached_result:
             logger.debug("Returning memory cached IP enrichment result", ip_address=ip_address)
             cached_result.cache_hit = True
             return cached_result
-        
+
         if not self.clients:
             raise RuntimeError("No threat intelligence sources available")
-        
-        logger.info("Starting comprehensive IP enrichment", 
+
+        logger.info("Starting comprehensive IP enrichment",
                    ip_address=ip_address,
                    available_sources=list(self.clients.keys()))
-        
+
         # Query all enabled sources concurrently with rate limiting
         tasks = []
         for source, client in self.clients.items():
             if hasattr(client, 'get_ip_reputation'):
                 tasks.append(self._query_source_with_rate_limit(source, client, ip_address))
-        
+
         # Wait for all queries to complete
         source_results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         # Process results
         result = ThreatIntelligenceResult(ip_address=ip_address)
         successful_sources = []
-        
+
         for source, source_result in zip(self.clients.keys(), source_results):
             if isinstance(source_result, Exception):
-                logger.warning("Source query failed", 
-                              source=source, 
-                              ip_address=ip_address, 
+                logger.warning("Source query failed",
+                              source=source,
+                              ip_address=ip_address,
                               error=str(source_result))
                 continue
-            
+
             result.source_results[source] = source_result
             successful_sources.append(source)
-        
+
         result.sources_queried = successful_sources
-        
+
         # Correlate and score results
         await self._correlate_results(result)
-        
+
         # Cache the result in both SQLite and memory
         await self._cache_sqlite_result(cache_key, result)
         self._cache_result(cache_key, result)
-        
+
         # Write to Elasticsearch for enrichment correlation
         await self._write_to_elasticsearch(result)
-        
+
         return result
-    
-    async def _query_source_with_rate_limit(self, source: ThreatIntelligenceSource, 
+
+    async def _query_source_with_rate_limit(self, source: ThreatIntelligenceSource,
                                            client: Any, ip_address: str) -> Dict[str, Any]:
         """Query a single source with rate limiting and concurrency control."""
         # Enforce rate limiting
         await self._enforce_rate_limit(source)
-        
+
         # Use concurrency semaphore if available
         semaphore = self.concurrency_semaphores.get(source)
         if semaphore:
@@ -446,70 +446,70 @@ class ThreatIntelligenceManager:
                 return await self._query_source_async(source, client, ip_address)
         else:
             return await self._query_source_async(source, client, ip_address)
-    
+
     async def _enforce_rate_limit(self, source: ThreatIntelligenceSource) -> None:
         """Enforce rate limiting for the specified source."""
         if source not in self.rate_limit_trackers:
             return
-        
+
         current_time = time.time()
         tracker = self.rate_limit_trackers[source]
-        
+
         # Remove expired entries
         tracker[:] = [t for t in tracker if current_time - t < 60]  # 1 minute window
-        
+
         # Get rate limit from config
         sources_config = self.config.get("threat_intelligence", {}).get("sources", {})
         source_config = sources_config.get(source.value, {})
         rate_limit = source_config.get("rate_limit_requests_per_minute", 60)
-        
+
         if len(tracker) >= rate_limit:
             # Wait until we can make another request
             sleep_time = 60 - (current_time - tracker[0])
             if sleep_time > 0:
                 logger.debug("Rate limit hit, waiting", source=source, sleep_time=sleep_time)
                 await asyncio.sleep(sleep_time)
-        
+
         tracker.append(current_time)
-    
+
     async def _get_sqlite_cached_result(self, cache_key: str) -> Optional[ThreatIntelligenceResult]:
         """Get cached result from SQLite if available and not expired."""
         try:
             with sqlite3.connect(self.cache_db_path) as conn:
                 cursor = conn.execute("""
-                    SELECT result_json FROM enrichment_cache 
+                    SELECT result_json FROM enrichment_cache
                     WHERE indicator = ? AND expires_at > datetime('now')
                     ORDER BY retrieved_at DESC LIMIT 1
                 """, (cache_key,))
-                
+
                 row = cursor.fetchone()
                 if row:
                     result_data = json.loads(row[0])
                     return ThreatIntelligenceResult(**result_data)
         except Exception as e:
             logger.warning("SQLite cache lookup failed", error=str(e))
-        
+
         return None
-    
+
     async def _cache_sqlite_result(self, cache_key: str, result: ThreatIntelligenceResult) -> None:
         """Cache a result in SQLite."""
         try:
             expires_at = datetime.now() + self.cache_ttl
-            
+
             with sqlite3.connect(self.cache_db_path) as conn:
                 conn.execute("""
-                    INSERT OR REPLACE INTO enrichment_cache 
-                    (indicator, source, result_json, expires_at) 
+                    INSERT OR REPLACE INTO enrichment_cache
+                    (indicator, source, result_json, expires_at)
                     VALUES (?, ?, ?, ?)
                 """, (cache_key, "comprehensive", json.dumps(result.dict()), expires_at))
         except Exception as e:
             logger.warning("SQLite cache write failed", error=str(e))
-    
+
     async def _write_to_elasticsearch(self, result: ThreatIntelligenceResult) -> None:
         """Write enrichment result to Elasticsearch for correlation."""
         if not self.elasticsearch_client:
             return
-        
+
         try:
             # Prepare document for Elasticsearch
             doc = {
@@ -523,7 +523,7 @@ class ThreatIntelligenceManager:
                 "threat_score": result.overall_threat_score,
                 "confidence_score": result.confidence_score
             }
-            
+
             # Write to Elasticsearch
             index_name = f"enrichment-intel-{datetime.now().strftime('%Y.%m')}"
             await self.elasticsearch_client.index(
@@ -531,8 +531,8 @@ class ThreatIntelligenceManager:
                 document=doc,
                 id=f"{result.ip_address}_{result.query_timestamp.isoformat()}"
             )
-            
-            logger.debug("Enrichment result written to Elasticsearch", 
+
+            logger.debug("Enrichment result written to Elasticsearch",
                         ip_address=result.ip_address,
                         index=index_name)
         except Exception as e:
@@ -549,14 +549,14 @@ async def _enrich_ip_comprehensive(self, arguments: Dict[str, Any]) -> List[Dict
     ip_address = arguments["ip_address"]
     sources = arguments.get("sources", ["all"])
     include_raw_data = arguments.get("include_raw_data", False)
-    
-    logger.info("Comprehensive IP enrichment", 
-               ip_address=ip_address, 
+
+    logger.info("Comprehensive IP enrichment",
+               ip_address=ip_address,
                sources=sources)
-    
+
     try:
         result = await self.threat_intelligence_manager.enrich_ip_comprehensive(ip_address)
-        
+
         # Filter sources if specified
         if sources != ["all"]:
             filtered_results = {}
@@ -564,12 +564,12 @@ async def _enrich_ip_comprehensive(self, arguments: Dict[str, Any]) -> List[Dict
                 if source in result.source_results:
                     filtered_results[source] = result.source_results[source]
             result.source_results = filtered_results
-        
+
         # Remove raw data if not requested
         if not include_raw_data:
             for source_data in result.source_results.values():
                 source_data.pop("raw_data", None)
-        
+
         return [
             {
                 "type": "status_update",
@@ -577,13 +577,13 @@ async def _enrich_ip_comprehensive(self, arguments: Dict[str, Any]) -> List[Dict
             },
             {
                 "type": "text",
-                "text": f"Comprehensive threat intelligence for {ip_address}:\n\n" + 
+                "text": f"Comprehensive threat intelligence for {ip_address}:\n\n" +
                        json.dumps(result.dict(), indent=2, default=str)
             }
         ]
     except Exception as e:
-        logger.error("Comprehensive IP enrichment failed", 
-                    ip_address=ip_address, 
+        logger.error("Comprehensive IP enrichment failed",
+                    ip_address=ip_address,
                     error=str(e))
         return [{
             "type": "text",
@@ -594,11 +594,11 @@ async def _elasticsearch_enrichment_writeback(self, arguments: Dict[str, Any]) -
     """Write enrichment results to Elasticsearch for correlation."""
     indicator = arguments["indicator"]
     indicator_type = arguments.get("indicator_type", "ip")
-    
-    logger.info("Elasticsearch enrichment writeback", 
+
+    logger.info("Elasticsearch enrichment writeback",
                indicator=indicator,
                indicator_type=indicator_type)
-    
+
     try:
         # This would typically be called after enrichment
         # For now, we'll return a status message
@@ -788,13 +788,13 @@ threat_intelligence:
       priority: 4
       rate_limit_requests_per_minute: 1000
       cache_ttl_seconds: 3600
-  
+
   correlation:
     enable_cross_source_correlation: true
     confidence_threshold: 0.7
     max_sources_per_query: 3
     timeout_seconds: 30
-  
+
   elasticsearch:
     enabled: true
     writeback_enabled: false  # Users can enable/disable writeback
@@ -818,19 +818,19 @@ from src.models import ThreatIntelligenceSource, ThreatIntelligenceResult
 
 class TestThreatIntelligenceManager:
     """Test threat intelligence manager functionality."""
-    
+
     @pytest.fixture
     async def manager(self):
         """Create threat intelligence manager instance."""
         return ThreatIntelligenceManager()
-    
+
     @pytest.mark.asyncio
     async def test_enrich_ip_comprehensive_success(self, manager):
         """Test successful comprehensive IP enrichment."""
         # Mock source clients
         manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
         manager.clients[ThreatIntelligenceSource.VIRUSTOTAL] = AsyncMock()
-        
+
         # Mock responses
         manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
             "threat_score": 75.0,
@@ -840,28 +840,28 @@ class TestThreatIntelligenceManager:
             "threat_score": 80.0,
             "confidence": 0.9
         }
-        
+
         result = await manager.enrich_ip_comprehensive("8.8.8.8")
-        
+
         assert result.ip_address == "8.8.8.8"
         assert result.overall_threat_score == 77.5
         assert len(result.sources_queried) == 2
-    
+
     @pytest.mark.asyncio
     async def test_enrich_ip_comprehensive_partial_failure(self, manager):
         """Test IP enrichment with some source failures."""
         # Mock one successful and one failing source
         manager.clients[ThreatIntelligenceSource.DSHIELD] = AsyncMock()
         manager.clients[ThreatIntelligenceSource.VIRUSTOTAL] = AsyncMock()
-        
+
         manager.clients[ThreatIntelligenceSource.DSHIELD].get_ip_reputation.return_value = {
             "threat_score": 75.0,
             "confidence": 0.8
         }
         manager.clients[ThreatIntelligenceSource.VIRUSTOTAL].get_ip_report.side_effect = Exception("API Error")
-        
+
         result = await manager.enrich_ip_comprehensive("8.8.8.8")
-        
+
         assert result.ip_address == "8.8.8.8"
         assert len(result.sources_queried) == 1
         assert ThreatIntelligenceSource.DSHIELD in result.sources_queried
@@ -885,24 +885,24 @@ from src.threat_intelligence_manager import ThreatIntelligenceManager
 
 class TestThreatIntelligenceIntegration:
     """Integration tests for threat intelligence functionality."""
-    
+
     @pytest.mark.asyncio
     async def test_real_api_queries(self):
         """Test with real API queries (requires valid API keys)."""
         # This test requires valid API keys and should be run in CI/CD
         # with proper secrets management
         pass
-    
+
     @pytest.mark.asyncio
     async def test_rate_limiting(self):
         """Test rate limiting across multiple sources."""
         pass
-    
+
     @pytest.mark.asyncio
     async def test_caching_behavior(self):
         """Test caching behavior for repeated queries."""
         pass
-    
+
     @pytest.mark.asyncio
     async def test_elasticsearch_writeback(self):
         """Test Elasticsearch enrichment writeback."""
@@ -920,22 +920,22 @@ from src.threat_intelligence_manager import ThreatIntelligenceManager
 
 class TestThreatIntelligencePerformance:
     """Performance tests for threat intelligence functionality."""
-    
+
     @pytest.mark.asyncio
     async def test_concurrent_queries(self):
         """Test performance with concurrent queries."""
         manager = ThreatIntelligenceManager()
-        
+
         # Test with multiple concurrent IP queries
         ips = ["8.8.8.8", "1.1.1.1", "208.67.222.222"]
         start_time = asyncio.get_event_loop().time()
-        
+
         tasks = [manager.enrich_ip_comprehensive(ip) for ip in ips]
         results = await asyncio.gather(*tasks)
-        
+
         end_time = asyncio.get_event_loop().time()
         duration = end_time - start_time
-        
+
         assert len(results) == 3
         assert duration < 30  # Should complete within 30 seconds
 ```
@@ -1156,4 +1156,4 @@ threat_intelligence:
 - Audit logging and compliance
 - Integration with SIEM platforms
 
-This implementation plan provides a comprehensive roadmap for enhancing the threat intelligence capabilities of the DShield MCP system, following the project's established patterns and best practices. The plan now includes enhanced caching, Elasticsearch integration, and improved async/concurrency handling as specified in the diff refinements. 
+This implementation plan provides a comprehensive roadmap for enhancing the threat intelligence capabilities of the DShield MCP system, following the project's established patterns and best practices. The plan now includes enhanced caching, Elasticsearch integration, and improved async/concurrency handling as specified in the diff refinements.

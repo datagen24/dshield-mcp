@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 """
 Example usage of the DShield Data Dictionary functionality.
+
 This demonstrates how the data dictionary helps models understand DShield data.
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import asyncio
 import json
+
 from src.data_dictionary import DataDictionary
 
 
 async def demonstrate_data_dictionary():
     """Demonstrate the data dictionary functionality."""
     print("=== DShield Data Dictionary Usage Example ===\n")
-    
+
     # 1. Get the initial prompt for models
     print("1. Initial Prompt for Models:")
     print("=" * 50)
@@ -24,16 +27,16 @@ async def demonstrate_data_dictionary():
     print(f"Generated prompt ({len(prompt)} characters):")
     print(prompt[:500] + "..." if len(prompt) > 500 else prompt)
     print("\n")
-    
+
     # 2. Show field descriptions
     print("2. Field Descriptions:")
     print("=" * 50)
     field_descriptions = DataDictionary.get_field_descriptions()
-    
+
     # Show a few key fields
     key_fields = ["source_ip", "reputation_score", "attack_count", "country"]
     for field in key_fields:
-        for category, fields in field_descriptions.items():
+        for _category, fields in field_descriptions.items():
             if field in fields:
                 field_info = fields[field]
                 print(f"• {field}: {field_info['description']}")
@@ -41,7 +44,7 @@ async def demonstrate_data_dictionary():
                     print(f"  Examples: {field_info['examples']}")
                 print()
                 break
-    
+
     # 3. Show query examples
     print("3. Query Examples:")
     print("=" * 50)
@@ -52,7 +55,7 @@ async def demonstrate_data_dictionary():
         print(f"  Query Type: {example['query_type']}")
         print(f"  Parameters: {example['parameters']}")
         print()
-    
+
     # 4. Show threat levels
     print("4. Threat Levels:")
     print("=" * 50)
@@ -64,7 +67,7 @@ async def demonstrate_data_dictionary():
         print(f"  Attack Count: {info['attack_count']}")
         print(f"  Description: {info['description']}")
         print()
-    
+
     # 5. Show correlation rules
     print("5. Correlation Rules:")
     print("=" * 50)
@@ -77,7 +80,7 @@ async def demonstrate_data_dictionary():
         if 'threshold' in rule_info:
             print(f"  Threshold: {rule_info['threshold']}")
         print()
-    
+
     # 6. Demonstrate how this helps with analysis
     print("6. How This Helps with Analysis:")
     print("=" * 50)
@@ -89,7 +92,7 @@ async def demonstrate_data_dictionary():
     print("• Correlate events using defined rules")
     print("• Generate meaningful security insights")
     print()
-    
+
     # 7. Show JSON format for programmatic access
     print("7. JSON Format (for programmatic access):")
     print("=" * 50)
@@ -97,9 +100,12 @@ async def demonstrate_data_dictionary():
         "field_descriptions": DataDictionary.get_field_descriptions(),
         "query_examples": DataDictionary.get_query_examples(),
         "data_patterns": DataDictionary.get_data_patterns(),
-        "analysis_guidelines": DataDictionary.get_analysis_guidelines()
+        "analysis_guidelines": DataDictionary.get_analysis_guidelines(),
     }
-    print(f"Complete data dictionary available in JSON format ({len(json.dumps(json_data))} characters)")
+    print(
+        f"Complete data dictionary available in JSON format "
+        f"({len(json.dumps(json_data))} characters)"
+    )
     print("This can be used by applications to build dynamic queries and analysis tools.")
     print()
 
@@ -107,30 +113,35 @@ async def demonstrate_data_dictionary():
 def show_usage_scenarios():
     """Show practical usage scenarios."""
     print("=== Practical Usage Scenarios ===\n")
-    
+
     scenarios = [
         {
             "title": "Model Initialization",
-            "description": "When a model first connects to the DShield MCP server, it receives the data dictionary as part of the initialization, helping it understand the available data structure.",
-            "benefit": "Reduces trial and error in query formulation"
+            "description": "When a model first connects to the DShield MCP server, it receives "
+            "the data dictionary as part of the initialization, helping it understand the "
+            "available data structure.",
+            "benefit": "Reduces trial and error in query formulation",
         },
         {
             "title": "Dynamic Query Building",
-            "description": "Applications can use the JSON format to dynamically build queries based on available fields and patterns.",
-            "benefit": "Enables intelligent query construction"
+            "description": "Applications can use the JSON format to dynamically build queries "
+            "based on available fields and patterns.",
+            "benefit": "Enables intelligent query construction",
         },
         {
             "title": "Threat Analysis",
-            "description": "Analysts can use the correlation rules and threat levels to prioritize investigations and responses.",
-            "benefit": "Standardizes threat assessment and response"
+            "description": "Analysts can use the correlation rules and threat levels to "
+            "prioritize investigations and responses.",
+            "benefit": "Standardizes threat assessment and response",
         },
         {
             "title": "Training and Documentation",
-            "description": "The data dictionary serves as comprehensive documentation for new team members and automated systems.",
-            "benefit": "Accelerates onboarding and reduces errors"
-        }
+            "description": "The data dictionary serves as comprehensive documentation for new "
+            "team members and automated systems.",
+            "benefit": "Accelerates onboarding and reduces errors",
+        },
     ]
-    
+
     for i, scenario in enumerate(scenarios, 1):
         print(f"{i}. {scenario['title']}:")
         print(f"   {scenario['description']}")
@@ -140,4 +151,4 @@ def show_usage_scenarios():
 
 if __name__ == "__main__":
     asyncio.run(demonstrate_data_dictionary())
-    show_usage_scenarios() 
+    show_usage_scenarios()

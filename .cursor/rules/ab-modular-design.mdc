@@ -4,3 +4,9 @@ globs: *
 alwaysApply: true
 ---
 - Modular design with distinct files for models, services, controllers, and utilities.
+ - Define clear layers and boundaries:
+   - Models (Pydantic types), Services (business logic), Transports/Controllers (MCP handlers, HTTP/TCP), Utilities (shared helpers).
+   - Forbid backwards imports across layers (e.g., transports should not be imported by services). Avoid circular dependencies.
+ - Enforce async-only I/O in core modules; use shared async client sessions; do not introduce blocking I/O (e.g., `requests`).
+ - Linting: Ruff is the standard; adhere to relevant PEPs (naming, typing). MyPy type checks must pass.
+ - Optional enforcement: consider `import-linter` to codify layer rules and detect cycles. Implication: improves maintainability and parallel development by preventing hidden coupling; adds a small CI step.
